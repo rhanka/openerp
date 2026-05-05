@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenERP Brainstorm - Carte de cadrage</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #151923;
+      background: #f7f8fb;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f7f8fb;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 40px 24px 72px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 30px;
+      line-height: 1.2;
+      font-weight: 760;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 19px;
+      line-height: 1.25;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    p {
+      margin: 0;
+      color: #5d6678;
+      line-height: 1.55;
+    }
+
+    .lead {
+      max-width: 960px;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+
+    .section {
+      margin-top: 30px;
+    }
+
+    .label {
+      margin-bottom: 12px;
+      color: #858da0;
+      font-size: 12px;
+      font-weight: 720;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .domain,
+    .option,
+    .recommendation {
+      border: 1px solid #d9dee8;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    }
+
+    .domain {
+      padding: 16px;
+    }
+
+    .options {
+      display: grid;
+      gap: 12px;
+    }
+
+    .option {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+
+    .option:hover,
+    .option.selected {
+      border-color: #4472c4;
+      box-shadow: 0 8px 24px rgba(68, 114, 196, .12);
+      transform: translateY(-1px);
+    }
+
+    .letter {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border-radius: 7px;
+      background: #eef1f6;
+      color: #6c7485;
+      font-weight: 800;
+    }
+
+    .option.selected .letter {
+      background: #4472c4;
+      color: #fff;
+    }
+
+    .recommendation {
+      padding: 18px;
+      border-left: 4px solid #4472c4;
+    }
+
+    .footer-note {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid #e4e7ee;
+      color: #717a8d;
+      font-size: 14px;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        padding: 28px 16px 56px;
+      }
+
+      .domain-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .option {
+        grid-template-columns: 36px 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Carte de cadrage du projet</h1>
+    <p class="lead">Le perimetre combine ERP, CRM, RH, paie, compta et MES. Pour eviter une spec ingerable, la premiere decision est le centre de gravite de l'etude.</p>
+
+    <section class="section">
+      <div class="label">Perimetre fonctionnel cible</div>
+      <div class="domain-grid">
+        <article class="domain">
+          <h2>Commercial</h2>
+          <p>CRM, pipeline, devis, commandes, facturation, portail client.</p>
+        </article>
+        <article class="domain">
+          <h2>Operations</h2>
+          <p>Achats, stock, production, qualite, maintenance, planification MES legere.</p>
+        </article>
+        <article class="domain">
+          <h2>Back office</h2>
+          <p>Comptabilite, paie, RH, temps, notes de frais, reporting legal.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="label">Trois facons de lancer l'etude</div>
+      <div class="options">
+        <article class="option" data-choice="A" tabindex="0">
+          <div class="letter">A</div>
+          <div>
+            <h3>Etude produit exhaustive d'abord</h3>
+            <p>Benchmark Odoo, Twenty, ERPNext, Dolibarr, Akaunting, Wave, Workday-like, solutions paie/compta, puis cartographie des besoins PME/manufactures.</p>
+          </div>
+        </article>
+        <article class="option" data-choice="B" tabindex="0">
+          <div class="letter">B</div>
+          <div>
+            <h3>Architecture cible d'abord</h3>
+            <p>Definir les modules, frontieres backend, modele multi-tenant, Svelte frontend, TypeScript/Rust backend, puis etudier les produits seulement pour valider les choix.</p>
+          </div>
+        </article>
+        <article class="option" data-choice="C" tabindex="0">
+          <div class="letter">C</div>
+          <div>
+            <h3>Vertical manufacture d'abord</h3>
+            <p>Partir des workflows concrets d'une petite manufacture: vente, achat, stock, atelier, qualite, compta, paie. Le benchmark sert a combler les manques.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section recommendation">
+      <h2>Recommandation initiale</h2>
+      <p>Je recommande A pour la phase actuelle: une etude produit exhaustive, avec une grille separee par domaines. Ensuite seulement on derive une architecture et un MVP vertical PME/manufacture.</p>
+    </section>
+
+    <p class="footer-note">Clique une option si tu veux marquer une preference visuelle, puis reponds dans le terminal avec A, B ou C. Le clic reste local a cette page.</p>
+  </main>
+
+  <script>
+    const options = document.querySelectorAll('.option');
+    function selectOption(option) {
+      options.forEach((item) => item.classList.remove('selected'));
+      option.classList.add('selected');
+      document.title = `OpenERP Brainstorm - choix ${option.dataset.choice}`;
+    }
+    options.forEach((option) => {
+      option.addEventListener('click', () => selectOption(option));
+      option.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectOption(option);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
