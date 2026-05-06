@@ -45,7 +45,7 @@ Manufacturing and MES are an important vertical pack, not the only target. The m
 The selected approach is a funnel study:
 
 1. Start with a broad corpus of approximately 15-30 open source projects.
-2. Score each project using a normalized grid.
+2. Evaluate each project using a normalized assessment grid.
 3. Shortlist the strongest candidates per domain.
 4. Clone and analyze the shortlisted repositories.
 5. Run Graphify deeply only on the shortlist.
@@ -72,7 +72,7 @@ Each open source candidate must receive a normalized project fiche with:
 - integration model and API maturity;
 - security, maintenance, and dependency risks.
 
-The score is weighted, but license is an elimination gate. If a project creates too much risk for a future MIT product, it cannot become a technical base. It may still be used as a functional reference if the risk is documented and controlled.
+The assessment method, weighting, and rationale will be defined in the execution plan. At this design stage, the only fixed rule is that license is an elimination gate. If a project creates too much risk for a future MIT product, it cannot become a technical base. It may still be used as a functional reference if the risk is documented and controlled.
 
 The expected domain groups are:
 
@@ -118,15 +118,15 @@ This is a risk-control process, not a final legal opinion. If the project become
 
 ## 6. Graphify Use
 
-Graphify must be used after initial scoring, not across the entire raw corpus.
+Graphify must be used after the initial assessment, not across the entire raw corpus.
 
 The minimum Graphify targets are:
 
 - Odoo, including relevant industry/manufacturing modules or community modules where available;
 - Twenty;
-- ERPNext if the scoring keeps it in the shortlist;
+- ERPNext if the assessment keeps it in the shortlist;
 - the strongest MES/MRP/WMS candidates discovered during the corpus phase;
-- any accounting, HR, or payroll project that scores highly enough to influence MVP scope.
+- any accounting, HR, or payroll project that appears strong enough to influence MVP scope.
 
 For each Graphify run, the study should capture:
 
@@ -169,7 +169,7 @@ For accounting, HR, and payroll, the study must prioritize Quebec/Canada. If ope
 
 The study must deliver:
 
-1. Corpus report: 15-30 project fiches, scoring, licenses, inclusion/exclusion reasons.
+1. Corpus report: 15-30 project fiches, assessment criteria, rationale, licenses, inclusion/exclusion reasons.
 2. Positioning report: product target, differentiation, open source vs proprietary reference analysis, and MVP recommendation.
 3. Functional map: full-scope domain map for services, recurring services, back office, and manufacturing/MES.
 4. MVP functional specs: implementation-ready specs for the selected first modules.

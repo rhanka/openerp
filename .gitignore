@@ -2,3 +2,4 @@
 .playwright-mcp/
 .superpowers/
 openerp-scope-map-viewport.png
+*.swp
