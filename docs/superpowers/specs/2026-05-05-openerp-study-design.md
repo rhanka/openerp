@@ -31,14 +31,13 @@ The core product should serve service companies and recurring-service businesses
 - expenses;
 - support/service activity;
 - recurring, milestone, and time-based billing;
-- operational, financial, and executive reporting;
 - accounting, HR, and payroll where the open source base and localization feasibility support it.
 
 Manufacturing and MES are an important vertical pack, not the only target. The manufacturing scope should cover generic SMB manufacturing, prioritizing:
 
 - discrete workshop and job shop workflows;
 - light assembly;
-- items, BOMs, routings, inventory, purchase flows, production orders, shop-floor execution, quality, maintenance, and production reporting;
+- items, BOMs, routings, inventory, purchase flows, production orders, shop-floor execution, quality, and maintenance;
 - process manufacturing, food, chemical, and heavier traceability later.
 
 ## 3. Study Approach
@@ -52,7 +51,7 @@ The selected approach is a funnel study:
 5. Run Graphify deeply only on the shortlist.
 6. Produce written functional specifications from the research outputs.
 
-Odoo, Twenty, ERPNext, and Dolibarr are mandatory initial candidates, but the corpus is not limited to them. The study must discover additional open source products that cover parts of the scope, especially MES/MRP/WMS, accounting, HR, payroll, recurring billing, field/service operations, maintenance, reporting, and BI.
+Odoo, Twenty, ERPNext, and Dolibarr are mandatory initial candidates, but the corpus is not limited to them. The study must discover additional open source products that cover parts of the scope, especially MES/MRP/WMS, accounting, HR, payroll, recurring billing, field/service operations, and maintenance.
 
 Proprietary products such as Workday, Wave, QuickBooks, Sage, SAP Business One, and similar tools may be used as public functional, UX, pricing, and positioning references only. They must be clearly separated from the open source corpus and must not be treated as reusable sources.
 
@@ -71,7 +70,6 @@ Each open source candidate must receive a normalized project fiche with:
 - Quebec/Canada coverage for accounting, tax, HR, and payroll;
 - SaaS, multi-tenant, self-hosted, and Kubernetes readiness;
 - integration model and API maturity;
-- reporting model, dashboard capabilities, export formats, and BI integration options;
 - security, maintenance, and dependency risks.
 
 The score is weighted, but license is an elimination gate. If a project creates too much risk for a future MIT product, it cannot become a technical base. It may still be used as a functional reference if the risk is documented and controlled.
@@ -85,14 +83,7 @@ The expected domain groups are:
 - subscription and recurring-service operations;
 - project/service delivery;
 - MRP, MES, WMS, shop-floor execution, maintenance, and quality;
-- reporting, BI, analytics, dashboards, exports, and workflow automation.
-
-Reporting must be treated as a first-class product domain rather than a generic BI afterthought. The study must distinguish:
-
-- operational reporting: sales pipeline, project delivery, support, inventory, production, quality, maintenance, and service activity;
-- financial and statutory reporting: invoices, revenue, taxes, accounting outputs, payroll summaries, and Quebec/Canada-specific reports where applicable;
-- management reporting: KPIs, margins, utilization, recurring revenue, churn, cash flow, backlog, production performance, and executive dashboards;
-- embedded analytics and exports: saved views, filters, pivots, CSV/XLSX/PDF exports, scheduled reports, and API/reporting warehouse integration.
+- BI, reporting, and workflow automation.
 
 ## 5. License And Anti-Copy Policy
 
@@ -136,7 +127,6 @@ The minimum Graphify targets are:
 - ERPNext if the scoring keeps it in the shortlist;
 - the strongest MES/MRP/WMS candidates discovered during the corpus phase;
 - any accounting, HR, or payroll project that scores highly enough to influence MVP scope.
-- any reporting/BI project or module that scores highly enough to shape the product's analytics and dashboard strategy.
 
 For each Graphify run, the study should capture:
 
@@ -171,7 +161,6 @@ Implementation-ready MVP specs should include:
 - API expectations;
 - acceptance tests;
 - localization requirements;
-- reporting requirements, including dashboards, exports, scheduled reports, and role-based visibility;
 - audit and compliance requirements where relevant.
 
 For accounting, HR, and payroll, the study must prioritize Quebec/Canada. If open source coverage is weak, the relevant feature should be downgraded to an integration, localized extension point, or later module rather than forcing a low-confidence implementation.
@@ -184,9 +173,8 @@ The study must deliver:
 2. Positioning report: product target, differentiation, open source vs proprietary reference analysis, and MVP recommendation.
 3. Functional map: full-scope domain map for services, recurring services, back office, and manufacturing/MES.
 4. MVP functional specs: implementation-ready specs for the selected first modules.
-5. Reporting and analytics map: operational, financial, statutory, management, export, dashboard, and BI integration requirements.
-6. License and anti-copy dossier: license matrix, reuse classification, recoding rules, and audit checklist.
-7. Graphify dossier: generated HTML/JSON/reports and a synthesis of each analyzed repository.
+5. License and anti-copy dossier: license matrix, reuse classification, recoding rules, and audit checklist.
+6. Graphify dossier: generated HTML/JSON/reports and a synthesis of each analyzed repository.
 
 ## 9. End-Of-Study Decisions
 
@@ -195,7 +183,6 @@ At the end of this study, the project should be able to decide:
 - which modules belong in the MVP;
 - which modules are deferred because no strong open source base or localization basis exists;
 - which open source projects inform each domain;
-- which reporting capabilities belong in the MVP and which require a later BI/reporting layer;
 - which proprietary products are relevant only as positioning or UX references;
 - what architecture should be planned for Svelte/TypeScript frontend, TypeScript backend, and Rust where useful;
 - how SaaS and self-hosted Kubernetes distribution should be supported;
