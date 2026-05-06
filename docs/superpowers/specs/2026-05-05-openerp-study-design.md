@@ -1,7 +1,7 @@
 # OpenERP Study Design
 
 Date: 2026-05-05
-Status: Draft for user review
+Status: Approved for execution planning
 Target license for the future product: MIT
 
 ## 1. Purpose
@@ -55,7 +55,7 @@ Odoo, Twenty, ERPNext, and Dolibarr are mandatory initial candidates, but the co
 
 Proprietary products such as Workday, Wave, QuickBooks, Sage, SAP Business One, and similar tools may be used as public functional, UX, pricing, and positioning references only. They must be clearly separated from the open source corpus and must not be treated as reusable sources.
 
-## 4. Corpus And Scoring
+## 4. Corpus And Assessment
 
 Each open source candidate must receive a normalized project fiche with:
 
@@ -72,7 +72,7 @@ Each open source candidate must receive a normalized project fiche with:
 - integration model and API maturity;
 - security, maintenance, and dependency risks.
 
-The assessment method, weighting, and rationale will be defined in the execution plan. At this design stage, the only fixed rule is that license is an elimination gate. If a project creates too much risk for a future MIT product, it cannot become a technical base. It may still be used as a functional reference if the risk is documented and controlled.
+The assessment method and rationale are defined in the execution plan. The only fixed gate is license risk. If a project creates too much risk for a future MIT product, it cannot become a technical base. It may still be used as a functional reference if the risk is documented and controlled.
 
 The expected domain groups are:
 
