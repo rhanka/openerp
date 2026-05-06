@@ -1,0 +1,5 @@
+project_slug,project_name,category,repository_url,primary_site,license_declared,reuse_classification,coverage_summary,maturity_rating,license_rating,quebec_canada_relevance,saas_selfhost_k8s_relevance,notes,date_checked
+odoo,Odoo,ERP suite,https://github.com/odoo/odoo,https://www.odoo.com,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Initial seed from user-approved spec,2026-05-05
+twenty,Twenty,CRM,https://github.com/twentyhq/twenty,https://twenty.com,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Initial seed from user-approved spec,2026-05-05
+erpnext,ERPNext,ERP suite,https://github.com/frappe/erpnext,https://erpnext.com,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Initial seed from user-approved spec,2026-05-05
+dolibarr,Dolibarr,ERP suite,https://github.com/Dolibarr/dolibarr,https://www.dolibarr.org,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Initial seed from user-approved spec,2026-05-05
