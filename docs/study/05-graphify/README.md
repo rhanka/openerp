@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Graphify wave A is advanced; Odoo, Twenty, Aureus ERP, Kill Bill, and OpenMeter shallow clones are recorded; sixteen TypeScript-runtime AST graph runs are completed and summarized.
-À faire: Continue HR/time/payroll, manufacturing/WMS, BI/reporting, and automation anchors, then consolidate the functional map; overall study is about 84% complete.
-Attendu: Continue with Frappe HR and Kimai next, because billing/metering now has permissive evidence and HR/payroll remains the largest functional and regional gap.
+Fait: Graphify wave A is advanced; Odoo, Twenty, Aureus ERP, Kill Bill, OpenMeter, Frappe HR, and Kimai shallow clones are recorded; twenty-one TypeScript-runtime AST graph runs are completed and summarized.
+À faire: Continue manufacturing/WMS, BI/reporting, and automation anchors, then consolidate the functional map; overall study is about 88% complete.
+Attendu: Continue with frePPLe and OpenBoxes next, because HR/time/payroll now has functional evidence and manufacturing/WMS remains the next domain gap.
 
 ## Local Source Policy
 
@@ -22,6 +22,8 @@ Attendu: Continue with Frappe HR and Kimai next, because billing/metering now ha
 | Aureus ERP | `research/sources/aureuserp` | `master` | `dd251ac` | shallow Git clone | AST runs completed for finance, commerce/inventory, and HR/services models |
 | Kill Bill | `research/sources/killbill` | `master` | `81a24d0c` | shallow Git clone | AST runs completed for catalog/subscription, invoice/payment, and account/API surfaces |
 | OpenMeter | `research/sources/openmeter` | `main` | `8d3a5a05` | shallow Git clone | AST runs completed for runtime/deployment, billing/rating, and entitlement/metering/catalog surfaces |
+| Frappe HR | `research/sources/frappe-hr` | `develop` | `552c35fd` | shallow Git clone | AST runs completed for attendance/leave, lifecycle/recruitment, and payroll core |
+| Kimai | `research/sources/kimai` | `main` | `ebb54e9c` | shallow Git clone | AST runs completed for time/project core and invoice/API/reporting |
 
 ## Scoped Run Plan
 
@@ -41,6 +43,11 @@ Attendu: Continue with Frappe HR and Kimai next, because billing/metering now ha
 | `openmeter-api-runtime` | Apache-2.0 runtime and deployment entry shape. | OpenMeter server, billing-worker, balance-worker, and Helm chart sources. | Checks runtime entry points and Kubernetes deployment while recording AST limitations for TypeSpec. |
 | `openmeter-billing-rating` | Apache-2.0 billing and rating engine shape. | OpenMeter billing model, service, rating, and charge service Go sources. | Checks invoice state, gathering invoice, usage rating, line engine, tax code, and charge lifecycle. |
 | `openmeter-entitlement-metering-catalog` | Apache-2.0 metering, entitlement, and product catalog shape. | OpenMeter entitlement, meter, product catalog, subscription, and customer Go sources with tests/adapters excluded. | Checks feature, meter, plan, ratecard, subscription, entitlement, and customer usage structures. |
+| `frappe-hr-attendance-leave` | GPL HR attendance and leave workflow shape. | Frappe HR attendance, employee check-in, shift, leave, compensatory leave, earned leave, and holiday assignment doctypes. | Functional-only reference for original HR specs; no source reuse. |
+| `frappe-hr-lifecycle-recruitment` | GPL employee lifecycle, recruitment, and performance workflow shape. | Frappe HR job, interview, appointment, onboarding, separation, exit, appraisal, goal, promotion, and transfer doctypes. | Functional-only reference for original HR specs; no doctype/workflow copying. |
+| `frappe-hr-payroll-core` | GPL payroll model shape. | Frappe HR salary, payroll, income tax, employee tax, employee benefit, additional salary, incentive, other income, and cost-center doctypes. | Functional-only payroll reference; Canada/Quebec statutory work remains separate. |
+| `kimai-time-project-core` | AGPL service-company time/project model shape. | Kimai entity, timesheet, working time, project, customer, and activity PHP sources. | Functional-only reference for time tracking and service delivery; no source/API/template reuse. |
+| `kimai-invoice-api-reporting` | AGPL invoice/API/reporting model shape. | Kimai API, invoice, reporting, and export PHP sources. | Functional-only reference for project billing and service reporting; no endpoint/schema/template copying. |
 
 ## Completed Outputs
 
@@ -62,6 +69,11 @@ Attendu: Continue with Frappe HR and Kimai next, because billing/metering now ha
 | `openmeter-api-runtime` | `openmeter-api-runtime/summary.md` |
 | `openmeter-billing-rating` | `openmeter-billing-rating/summary.md` |
 | `openmeter-entitlement-metering-catalog` | `openmeter-entitlement-metering-catalog/summary.md` |
+| `frappe-hr-attendance-leave` | `frappe-hr-attendance-leave/summary.md` |
+| `frappe-hr-lifecycle-recruitment` | `frappe-hr-lifecycle-recruitment/summary.md` |
+| `frappe-hr-payroll-core` | `frappe-hr-payroll-core/summary.md` |
+| `kimai-time-project-core` | `kimai-time-project-core/summary.md` |
+| `kimai-invoice-api-reporting` | `kimai-invoice-api-reporting/summary.md` |
 
 ## Expected Outputs
 
