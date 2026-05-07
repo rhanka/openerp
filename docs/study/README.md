@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, and MVP recommendation are drafted and pushed.
-À faire: write module-level MVP specs, complete the anti-copy dossier, and run Canada/Quebec statutory research; approximate completion 98%.
-Attendu: proceed to the anti-copy dossier next, because implementation planning needs clean reuse boundaries before code starts.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, and anti-copy dossier are drafted and pushed.
+À faire: write module-level MVP specs and run Canada/Quebec statutory research; approximate completion 99%.
+Attendu: proceed to Canada/Quebec statutory research next, because accounting and payroll implementation cannot be specified responsibly from open source anchors alone.
 
 ## Artifact Index
 
