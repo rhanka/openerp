@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Graphify wave A is advanced; Odoo, Twenty, Aureus ERP, Kill Bill, OpenMeter, Frappe HR, Kimai, frePPLe, and OpenBoxes shallow clones are recorded; twenty-five TypeScript-runtime graph runs are completed and summarized.
-À faire: Continue BI/reporting and automation anchors, then consolidate the functional map; overall study is about 92% complete.
-Attendu: Continue with Superset and Node-RED next, because manufacturing/WMS now has planning and logistics evidence and reporting/automation remains the last wave A domain gap.
+Fait: Graphify wave A is completed for core anchors; Odoo, Twenty, Aureus ERP, Kill Bill, OpenMeter, Frappe HR, Kimai, frePPLe, OpenBoxes, Superset, and Node-RED shallow clones are recorded; twenty-nine TypeScript-runtime graph runs are completed and summarized.
+À faire: Consolidate the global functional map, MVP recommendation, anti-copy dossier, and Canada/Quebec statutory research; overall study is about 96% complete.
+Attendu: Move from source graphing to functional specification, because BI/reporting and automation now close the last wave A structural gaps.
 
 ## Local Source Policy
 
@@ -26,6 +26,8 @@ Attendu: Continue with Superset and Node-RED next, because manufacturing/WMS now
 | Kimai | `research/sources/kimai` | `main` | `ebb54e9c` | shallow Git clone | AST runs completed for time/project core and invoice/API/reporting |
 | frePPLe | `research/sources/frepple` | `master` | `6d6ed7b7` | shallow Git clone | AST runs completed for planning models and solver/forecast engine |
 | OpenBoxes | `research/sources/openboxes` | `develop` | `8a637bd0` | shallow Git clone | projection AST runs completed for inventory domains and services/API |
+| Superset | `research/sources/superset` | `master` | `b5186d1c` | shallow Git clone | AST runs completed for BI backend and dashboard/explore frontend |
+| Node-RED | `research/sources/node-red` | `master` | `55e6cc9f` | shallow Git clone | AST runs completed for runtime/API and editor/nodes surfaces |
 
 ## Scoped Run Plan
 
@@ -54,6 +56,10 @@ Attendu: Continue with Superset and Node-RED next, because manufacturing/WMS now
 | `frepple-solver-engine` | Cautious MIT-dual solver and forecast engine shape. | frePPLe C++ model, solver, and forecast sources. | Checks operation plan and solver/forecast engine boundaries without copying algorithms. |
 | `openboxes-domain-projection` | EPL WMS domain inventory shape. | Minimal Java projections generated from selected OpenBoxes Groovy domain class/import lines. | Groovy is not AST-supported here; this is a structural inventory map, not source reuse. |
 | `openboxes-services-api-projection` | EPL WMS service/API inventory shape. | Minimal Java projections generated from selected OpenBoxes Groovy service/controller class/import lines. | Groovy is not AST-supported here; this is a structural inventory map, not source reuse. |
+| `superset-bi-backend` | Apache-2.0 BI, semantic dataset, dashboard, security, and report scheduling shape. | Superset `charts`, `dashboards`, `datasets`, `databases`, `reports`, `security`, and SQLAlchemy connector Python families. | Checks whether advanced BI should be native, integrated, or embedded, while isolating credential and row-level security concerns. |
+| `superset-frontend-dashboard-explore` | Apache-2.0 dashboard and explore UX architecture shape. | Superset frontend `explore`, `dashboard`, and selected list/role page TS/TSX/JS/JSX families. | Captures dashboard state, native filters, chart customization, and explore form flow without copying UI structures. |
+| `node-red-runtime-api-modules` | Apache-2.0 automation runtime and editor API shape. | Selected Node-RED runtime, registry, editor API, util, project, flow, and context JS files copied into a path-safe analysis scope. | Node-RED source paths under `packages/node_modules` were renamed to `packages/modules` only inside ignored Graphify scopes because Graphify excludes `node_modules` path segments. |
+| `node-red-editor-nodes-modules` | Apache-2.0 flow editor and node library UX shape. | Selected Node-RED editor-client JS and core nodes JS files copied into a path-safe analysis scope. | Captures canvas, palette, import/export, edit dialogs, subflows, and representative node behavior while keeping UX/API anti-copy boundaries explicit. |
 
 ## Completed Outputs
 
@@ -84,6 +90,10 @@ Attendu: Continue with Superset and Node-RED next, because manufacturing/WMS now
 | `frepple-solver-engine` | `frepple-solver-engine/summary.md` |
 | `openboxes-domain-projection` | `openboxes-domain-projection/summary.md` |
 | `openboxes-services-api-projection` | `openboxes-services-api-projection/summary.md` |
+| `superset-bi-backend` | `superset-bi-backend/summary.md` |
+| `superset-frontend-dashboard-explore` | `superset-frontend-dashboard-explore/summary.md` |
+| `node-red-runtime-api-modules` | `node-red-runtime-api-modules/summary.md` |
+| `node-red-editor-nodes-modules` | `node-red-editor-nodes-modules/summary.md` |
 
 ## Expected Outputs
 
