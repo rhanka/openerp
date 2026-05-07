@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: 27 open source-oriented candidate projects with public repositories are listed in `candidates.csv`; mandatory seed rows are preserved; GitHub and web discovery searches ran for the requested domains; repository metadata was checked for selected candidates on 2026-05-06; MRP, shop-floor, WMS, maintenance, and asset management coverage is now explicit.
-À faire: Write evidence-backed fiches and complete exact license-file and checked-revision review for all candidates; corpus discovery is 75% complete.
-Attendu: Proceed to candidate fiches next and prioritize license confirmation for `Other` or `Unknown` rows first because MIT-target reuse depends on exact license evidence.
+Fait: 27 open source-oriented candidate projects with public repositories are listed in `candidates.csv`; mandatory seed rows are preserved; evidence-backed fiches exist for all candidates; license-file and checked-revision review is recorded in the fiches; shortlist v1 and proprietary public references are now linked study artifacts.
+À faire: Clone and Graphify selected repositories, synthesize cross-domain functional requirements, define MVP boundaries, and complete anti-copy controls; corpus and fiche discovery are 100% complete, while the wider study is about 70% complete.
+Attendu: Use `03-shortlist/shortlist.md` as the control document for Graphify scope, because the corpus is broad enough and deeper work should now be selective.
 
 ## Corpus Rules
 

@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: study design and execution plan are approved; the initial study workspace index is created.
-À faire: complete methodology, corpus discovery, fiches, shortlist, Graphify synthesis, functional map, MVP recommendation, and anti-copy dossier; approximate completion 5%.
-Attendu: continue with the methodology and license matrix, because those rules must govern later corpus work.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, and proprietary public-reference map are drafted.
+À faire: clone and Graphify selected repositories, synthesize the functional map, write the MVP recommendation, and complete the anti-copy dossier; approximate completion 70%.
+Attendu: proceed to clone plus Graphify wave A, because the shortlist now identifies which projects deserve deeper structural analysis.
 
 ## Artifact Index
 
