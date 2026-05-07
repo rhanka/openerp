@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Graphify wave A is started; Odoo, Twenty, and Aureus ERP shallow clones are recorded; ten TypeScript-runtime AST graph runs are completed and summarized.
-À faire: Run semantic docs+code extraction where useful, synthesize cross-project findings, then continue with billing/time/manufacturing/BI anchors; overall study is about 80% complete.
-Attendu: Continue with permissive billing and metering anchors, because Aureus now gives the MIT ERP comparison point against Odoo.
+Fait: Graphify wave A is advanced; Odoo, Twenty, Aureus ERP, Kill Bill, and OpenMeter shallow clones are recorded; sixteen TypeScript-runtime AST graph runs are completed and summarized.
+À faire: Continue HR/time/payroll, manufacturing/WMS, BI/reporting, and automation anchors, then consolidate the functional map; overall study is about 84% complete.
+Attendu: Continue with Frappe HR and Kimai next, because billing/metering now has permissive evidence and HR/payroll remains the largest functional and regional gap.
 
 ## Local Source Policy
 
@@ -20,6 +20,8 @@ Attendu: Continue with permissive billing and metering anchors, because Aureus n
 | Odoo | `research/sources/odoo` | `19.0` | `af50cb24` | shallow Git clone | first AST run completed for finance/localization |
 | Twenty | `research/sources/twenty` | `main` | `83c40bb8` | shallow Git clone | first AST runs completed for CRM core and object metadata |
 | Aureus ERP | `research/sources/aureuserp` | `master` | `dd251ac` | shallow Git clone | AST runs completed for finance, commerce/inventory, and HR/services models |
+| Kill Bill | `research/sources/killbill` | `master` | `81a24d0c` | shallow Git clone | AST runs completed for catalog/subscription, invoice/payment, and account/API surfaces |
+| OpenMeter | `research/sources/openmeter` | `main` | `8d3a5a05` | shallow Git clone | AST runs completed for runtime/deployment, billing/rating, and entitlement/metering/catalog surfaces |
 
 ## Scoped Run Plan
 
@@ -33,6 +35,12 @@ Attendu: Continue with permissive billing and metering anchors, because Aureus n
 | `aureus-finance-models` | MIT ERP accounting model shape. | Aureus ERP accounting, accounts, invoices, and payments model/policy/enums/settings families. | Checks whether permissive ERP concepts are rich enough to compare with Odoo finance. |
 | `aureus-commerce-inventory-models` | MIT ERP commerce and inventory shape. | Aureus ERP sales, contacts, partners, products, purchases, and inventories model/policy/enums/settings families. | Checks product/order/warehouse/move boundaries without pulling UI code. |
 | `aureus-hr-services-models` | MIT ERP HR and service model shape. | Aureus ERP employees, time-off, timesheets, projects, support, and recruitments model/policy/enums/settings families. | Checks service-company scope and HR adjacency without over-indexing on UI resources. |
+| `killbill-catalog-subscription` | Apache-2.0 subscription lifecycle shape. | Kill Bill catalog, subscription, entitlement, and usage Java sources with glue/DAO/template paths excluded. | Checks product catalog, plan, entitlement, subscription transition, and usage structures. |
+| `killbill-invoice-payment` | Apache-2.0 invoice and payment lifecycle shape. | Kill Bill invoice and payment Java sources with glue/DAO/template/provider paths excluded. | Checks invoice dispatch, invoice item, payment API, payment state, and usage invoicing structures. |
+| `killbill-account-api` | Apache-2.0 account, tenant, and public API shape. | Kill Bill selected API contracts plus account, tenant, and JAX-RS Java sources. | Checks account data, tenant config, invoice/payment/subscription resources, and integration surface. |
+| `openmeter-api-runtime` | Apache-2.0 runtime and deployment entry shape. | OpenMeter server, billing-worker, balance-worker, and Helm chart sources. | Checks runtime entry points and Kubernetes deployment while recording AST limitations for TypeSpec. |
+| `openmeter-billing-rating` | Apache-2.0 billing and rating engine shape. | OpenMeter billing model, service, rating, and charge service Go sources. | Checks invoice state, gathering invoice, usage rating, line engine, tax code, and charge lifecycle. |
+| `openmeter-entitlement-metering-catalog` | Apache-2.0 metering, entitlement, and product catalog shape. | OpenMeter entitlement, meter, product catalog, subscription, and customer Go sources with tests/adapters excluded. | Checks feature, meter, plan, ratecard, subscription, entitlement, and customer usage structures. |
 
 ## Completed Outputs
 
@@ -48,6 +56,12 @@ Attendu: Continue with permissive billing and metering anchors, because Aureus n
 | `aureus-finance-models` | `aureus-finance-models/summary.md` |
 | `aureus-commerce-inventory-models` | `aureus-commerce-inventory-models/summary.md` |
 | `aureus-hr-services-models` | `aureus-hr-services-models/summary.md` |
+| `killbill-catalog-subscription` | `killbill-catalog-subscription/summary.md` |
+| `killbill-invoice-payment` | `killbill-invoice-payment/summary.md` |
+| `killbill-account-api` | `killbill-account-api/summary.md` |
+| `openmeter-api-runtime` | `openmeter-api-runtime/summary.md` |
+| `openmeter-billing-rating` | `openmeter-billing-rating/summary.md` |
+| `openmeter-entitlement-metering-catalog` | `openmeter-entitlement-metering-catalog/summary.md` |
 
 ## Expected Outputs
 
