@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Graphify wave A is advanced; Odoo, Twenty, Aureus ERP, Kill Bill, OpenMeter, Frappe HR, and Kimai shallow clones are recorded; twenty-one TypeScript-runtime AST graph runs are completed and summarized.
-À faire: Continue manufacturing/WMS, BI/reporting, and automation anchors, then consolidate the functional map; overall study is about 88% complete.
-Attendu: Continue with frePPLe and OpenBoxes next, because HR/time/payroll now has functional evidence and manufacturing/WMS remains the next domain gap.
+Fait: Graphify wave A is advanced; Odoo, Twenty, Aureus ERP, Kill Bill, OpenMeter, Frappe HR, Kimai, frePPLe, and OpenBoxes shallow clones are recorded; twenty-five TypeScript-runtime graph runs are completed and summarized.
+À faire: Continue BI/reporting and automation anchors, then consolidate the functional map; overall study is about 92% complete.
+Attendu: Continue with Superset and Node-RED next, because manufacturing/WMS now has planning and logistics evidence and reporting/automation remains the last wave A domain gap.
 
 ## Local Source Policy
 
@@ -24,6 +24,8 @@ Attendu: Continue with frePPLe and OpenBoxes next, because HR/time/payroll now h
 | OpenMeter | `research/sources/openmeter` | `main` | `8d3a5a05` | shallow Git clone | AST runs completed for runtime/deployment, billing/rating, and entitlement/metering/catalog surfaces |
 | Frappe HR | `research/sources/frappe-hr` | `develop` | `552c35fd` | shallow Git clone | AST runs completed for attendance/leave, lifecycle/recruitment, and payroll core |
 | Kimai | `research/sources/kimai` | `main` | `ebb54e9c` | shallow Git clone | AST runs completed for time/project core and invoice/API/reporting |
+| frePPLe | `research/sources/frepple` | `master` | `6d6ed7b7` | shallow Git clone | AST runs completed for planning models and solver/forecast engine |
+| OpenBoxes | `research/sources/openboxes` | `develop` | `8a637bd0` | shallow Git clone | projection AST runs completed for inventory domains and services/API |
 
 ## Scoped Run Plan
 
@@ -48,6 +50,10 @@ Attendu: Continue with frePPLe and OpenBoxes next, because HR/time/payroll now h
 | `frappe-hr-payroll-core` | GPL payroll model shape. | Frappe HR salary, payroll, income tax, employee tax, employee benefit, additional salary, incentive, other income, and cost-center doctypes. | Functional-only payroll reference; Canada/Quebec statutory work remains separate. |
 | `kimai-time-project-core` | AGPL service-company time/project model shape. | Kimai entity, timesheet, working time, project, customer, and activity PHP sources. | Functional-only reference for time tracking and service delivery; no source/API/template reuse. |
 | `kimai-invoice-api-reporting` | AGPL invoice/API/reporting model shape. | Kimai API, invoice, reporting, and export PHP sources. | Functional-only reference for project billing and service reporting; no endpoint/schema/template copying. |
+| `frepple-planning-models` | Cautious MIT-dual planning model shape. | frePPLe input models, output, execute, forecast, and ERP connection Python/JS/Vue sources. | Checks item, location, calendar, resource, operation, demand, forecast, planning task, and ERP connector concepts. |
+| `frepple-solver-engine` | Cautious MIT-dual solver and forecast engine shape. | frePPLe C++ model, solver, and forecast sources. | Checks operation plan and solver/forecast engine boundaries without copying algorithms. |
+| `openboxes-domain-projection` | EPL WMS domain inventory shape. | Minimal Java projections generated from selected OpenBoxes Groovy domain class/import lines. | Groovy is not AST-supported here; this is a structural inventory map, not source reuse. |
+| `openboxes-services-api-projection` | EPL WMS service/API inventory shape. | Minimal Java projections generated from selected OpenBoxes Groovy service/controller class/import lines. | Groovy is not AST-supported here; this is a structural inventory map, not source reuse. |
 
 ## Completed Outputs
 
@@ -74,6 +80,10 @@ Attendu: Continue with frePPLe and OpenBoxes next, because HR/time/payroll now h
 | `frappe-hr-payroll-core` | `frappe-hr-payroll-core/summary.md` |
 | `kimai-time-project-core` | `kimai-time-project-core/summary.md` |
 | `kimai-invoice-api-reporting` | `kimai-invoice-api-reporting/summary.md` |
+| `frepple-planning-models` | `frepple-planning-models/summary.md` |
+| `frepple-solver-engine` | `frepple-solver-engine/summary.md` |
+| `openboxes-domain-projection` | `openboxes-domain-projection/summary.md` |
+| `openboxes-services-api-projection` | `openboxes-services-api-projection/summary.md` |
 
 ## Expected Outputs
 
