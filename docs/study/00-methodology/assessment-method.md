@@ -60,9 +60,9 @@ architecture concerns, must be documented qualitatively. They may lower the
 candidate's usefulness or exclude it from a shortlist, but they do not override
 the license gate rule.
 
-## No Numeric Weighting In This Phase
+## Qualitative Assessment Only
 
-This phase does not assign numeric scores, rankings, or weighted totals. Ratings
-are qualitative and evidence-backed. Later reports may propose a prioritization
-model, but this methodology phase only records defensible findings and reuse
-constraints.
+This phase uses qualitative labels only. It does not combine findings into a
+formula or comparative point system. Ratings are evidence-backed. Later reports
+may propose a prioritization model, but this methodology phase only records
+defensible findings and reuse constraints.

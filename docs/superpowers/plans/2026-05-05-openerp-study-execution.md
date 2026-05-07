@@ -17,7 +17,7 @@ Fait: 100%
 - Study design spec approved by the user.
 - Repository created and pushed to `rhanka/openerp`.
 - MIT selected as the target license.
-- Assessment wording corrected so no ranking method is promised before this execution plan.
+- Assessment wording corrected so no comparative formula is promised before this execution plan.
 
 À faire: 0% démarré
 
@@ -61,7 +61,7 @@ The plan separates:
 
 ## Assessment Method
 
-This plan uses a qualitative evidence grid, not numeric ranking.
+This plan uses a qualitative evidence grid only.
 
 Each candidate receives these ratings per criterion:
 
