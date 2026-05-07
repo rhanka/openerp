@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Graphify wave A is started; Odoo and Twenty shallow clones are recorded; three TypeScript-runtime AST graph runs are completed and summarized.
-À faire: Split the remaining Odoo operations and Twenty workflow scopes, run semantic docs+code extraction where useful, synthesize cross-project findings, then continue with the remaining wave A anchors; overall study is about 74% complete.
-Attendu: Continue with smaller Odoo operations and Twenty workflow runs, because the first extraction proved whole-module scopes are too noisy and need controlled cuts.
+Fait: Graphify wave A is started; Odoo and Twenty shallow clones are recorded; seven TypeScript-runtime AST graph runs are completed and summarized.
+À faire: Run semantic docs+code extraction where useful, synthesize cross-project findings, then continue with the remaining wave A anchors; overall study is about 76% complete.
+Attendu: Continue with a cross-run synthesis for Odoo plus Twenty, because the mandatory anchors now have enough structural graph evidence for first conclusions.
 
 ## Local Source Policy
 
@@ -35,8 +35,12 @@ Attendu: Continue with smaller Odoo operations and Twenty workflow runs, because
 | Run | Output |
 | --- | --- |
 | `odoo-finance-localization` | `odoo-finance-localization/summary.md` |
+| `odoo-services-crm-hr` | `odoo-services-crm-hr/summary.md` |
+| `odoo-inventory-mrp` | `odoo-inventory-mrp/summary.md` |
 | `twenty-crm-core` | `twenty-crm-core/summary.md` |
 | `twenty-object-metadata` | `twenty-object-metadata/summary.md` |
+| `twenty-workflow-server` | `twenty-workflow-server/summary.md` |
+| `twenty-workflow-front` | `twenty-workflow-front/summary.md` |
 
 ## Expected Outputs
 
