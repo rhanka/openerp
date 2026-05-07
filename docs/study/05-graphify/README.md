@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Graphify wave A is started; Odoo and Twenty shallow clones are recorded; seven TypeScript-runtime AST graph runs are completed and summarized.
-À faire: Run semantic docs+code extraction where useful, synthesize cross-project findings, then continue with the remaining wave A anchors; overall study is about 76% complete.
-Attendu: Continue with a cross-run synthesis for Odoo plus Twenty, because the mandatory anchors now have enough structural graph evidence for first conclusions.
+Fait: Graphify wave A is started; Odoo, Twenty, and Aureus ERP shallow clones are recorded; ten TypeScript-runtime AST graph runs are completed and summarized.
+À faire: Run semantic docs+code extraction where useful, synthesize cross-project findings, then continue with billing/time/manufacturing/BI anchors; overall study is about 80% complete.
+Attendu: Continue with permissive billing and metering anchors, because Aureus now gives the MIT ERP comparison point against Odoo.
 
 ## Local Source Policy
 
@@ -19,6 +19,7 @@ Attendu: Continue with a cross-run synthesis for Odoo plus Twenty, because the m
 | --- | --- | --- | --- | --- | --- |
 | Odoo | `research/sources/odoo` | `19.0` | `af50cb24` | shallow Git clone | first AST run completed for finance/localization |
 | Twenty | `research/sources/twenty` | `main` | `83c40bb8` | shallow Git clone | first AST runs completed for CRM core and object metadata |
+| Aureus ERP | `research/sources/aureuserp` | `master` | `dd251ac` | shallow Git clone | AST runs completed for finance, commerce/inventory, and HR/services models |
 
 ## Scoped Run Plan
 
@@ -29,6 +30,9 @@ Attendu: Continue with a cross-run synthesis for Odoo plus Twenty, because the m
 | `twenty-crm-core` | CRM entities and customer-facing activity flow. | Twenty root metadata plus server CRM/task/calendar modules and selected frontend companies/people/dashboard modules. | Keeps core CRM separate from platform metadata and workflow engine. |
 | `twenty-object-metadata` | Custom object and schema extensibility model. | Twenty root metadata plus frontend object metadata and selected SDK metadata surfaces. | Isolates platform extensibility, a key product-positioning question. |
 | `twenty-workflow` | Workflow builder, execution, trigger, and automation architecture. | Twenty root metadata plus selected server and frontend workflow families. | Workflow modules are large; this run will stay conceptual and anti-copy constrained. |
+| `aureus-finance-models` | MIT ERP accounting model shape. | Aureus ERP accounting, accounts, invoices, and payments model/policy/enums/settings families. | Checks whether permissive ERP concepts are rich enough to compare with Odoo finance. |
+| `aureus-commerce-inventory-models` | MIT ERP commerce and inventory shape. | Aureus ERP sales, contacts, partners, products, purchases, and inventories model/policy/enums/settings families. | Checks product/order/warehouse/move boundaries without pulling UI code. |
+| `aureus-hr-services-models` | MIT ERP HR and service model shape. | Aureus ERP employees, time-off, timesheets, projects, support, and recruitments model/policy/enums/settings families. | Checks service-company scope and HR adjacency without over-indexing on UI resources. |
 
 ## Completed Outputs
 
@@ -41,6 +45,9 @@ Attendu: Continue with a cross-run synthesis for Odoo plus Twenty, because the m
 | `twenty-object-metadata` | `twenty-object-metadata/summary.md` |
 | `twenty-workflow-server` | `twenty-workflow-server/summary.md` |
 | `twenty-workflow-front` | `twenty-workflow-front/summary.md` |
+| `aureus-finance-models` | `aureus-finance-models/summary.md` |
+| `aureus-commerce-inventory-models` | `aureus-commerce-inventory-models/summary.md` |
+| `aureus-hr-services-models` | `aureus-hr-services-models/summary.md` |
 
 ## Expected Outputs
 
