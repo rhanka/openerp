@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: openerp
+      POSTGRES_USER: openerp
+      POSTGRES_PASSWORD: openerp
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openerp -d openerp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      DATABASE_URL: postgres://openerp:openerp@postgres:5432/openerp
+      SESSION_SECRET: local-development-session-secret
+      APP_VERSION: "0.1.0"
+      OPENERP_CURRENT_VERSION: "0.1.0"
+      OPENERP_LATEST_SUPPORTED_VERSION: "0.1.0"
+      OPENERP_SUPPORT_WINDOW: "under_12_months"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/worker.Dockerfile
+    environment:
+      DATABASE_URL: postgres://openerp:openerp@postgres:5432/openerp
+      SESSION_SECRET: local-development-session-secret
+      APP_VERSION: "0.1.0"
+      OPENERP_CURRENT_VERSION: "0.1.0"
+      OPENERP_LATEST_SUPPORTED_VERSION: "0.1.0"
+      OPENERP_SUPPORT_WINDOW: "under_12_months"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      API_BASE_URL: http://api:3000
+    depends_on:
+      - api
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:

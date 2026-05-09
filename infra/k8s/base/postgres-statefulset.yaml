@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openerp-postgres
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: postgres
+spec:
+  # Development self-hosted baseline. Production operators should provide
+  # managed PostgreSQL or a reviewed database operator.
+  serviceName: openerp-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openerp
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openerp
+        app.kubernetes.io/component: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: openerp
+            - name: POSTGRES_USER
+              value: openerp
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openerp-runtime
+                  key: postgresPassword
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "openerp", "-d", "openerp"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+        labels:
+          app.kubernetes.io/name: openerp
+          app.kubernetes.io/component: postgres
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

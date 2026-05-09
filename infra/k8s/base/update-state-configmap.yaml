@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openerp-update-state
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: update-state
+data:
+  currentVersion: "0.1.0"
+  latestSupportedVersion: "0.1.0"
+  supportWindow: "under_12_months"

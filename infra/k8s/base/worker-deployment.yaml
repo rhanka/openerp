@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-worker
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openerp
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openerp
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: worker
+          image: openerp/worker:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: openerp-runtime
+                  key: databaseUrl
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: openerp-runtime
+                  key: sessionSecret
+            - name: APP_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: openerp-update-state
+                  key: currentVersion
+            - name: OPENERP_CURRENT_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: openerp-update-state
+                  key: currentVersion
+            - name: OPENERP_LATEST_SUPPORTED_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: openerp-update-state
+                  key: latestSupportedVersion
+            - name: OPENERP_SUPPORT_WINDOW
+              valueFrom:
+                configMapKeyRef:
+                  name: openerp-update-state
+                  key: supportWindow
+          readinessProbe:
+            exec:
+              command: ["node", "-e", "process.exit(0)"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
