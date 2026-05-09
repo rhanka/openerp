@@ -95,6 +95,22 @@ Attendu: Move from source graphing to functional specification, because BI/repor
 | `node-red-runtime-api-modules` | `node-red-runtime-api-modules/summary.md` |
 | `node-red-editor-nodes-modules` | `node-red-editor-nodes-modules/summary.md` |
 
+## Collaboration Source Inventory
+
+The collaboration extension uses Graphify selectively. The aim is to capture
+module relationships and functional boundaries for OpenERP-written specs, not
+to copy source structures.
+
+| Candidate | Target Local Source | Treatment | License Caution | Evidence Still Needed |
+| --- | --- | --- | --- | --- |
+| BookStack | `research/sources/bookstack` | Clone and Graphify focused wiki, permission, search, export/import, API, and localization paths. | MIT candidate; still requires attribution, dependency, asset, and non-code expression review. | HEAD commit, `LICENSE`, dependency license notes, relevant app path list. |
+| Baserow | `research/sources/baserow` | Clone and Graphify only MIT-covered core table, view, field, form, API, and permission paths if premium/enterprise directories can be excluded. | Open-core boundary; avoid premium and enterprise paths. | HEAD commit, `LICENSE`, premium/enterprise directory map, package metadata. |
+| Zulip | `research/sources/zulip` | Clone and Graphify focused server model/action/webhook/OpenAPI and selected web client paths for durable async communication. | Apache-2.0 candidate; do not copy stream/topic product model, endpoint details, docs, tests, or UI text. | HEAD commit, `LICENSE`, dependency notes, selected `zerver` and `web` path list. |
+| Rocket.Chat | `research/sources/rocketchat` | Clone only if Graphify time permits; inspect community communication and integration paths after excluding enterprise/source-available areas. | Cautious open-core boundary; default no source reuse until compatible file set is named. | HEAD commit, license files, `ee` and premium directory exclusions. |
+| Mattermost | `research/sources/mattermost` | No deep Graphify by default; keep as functional reference and deployment-license comparison. | Mixed AGPL/commercial/MIT/Apache posture; main platform source is high-risk for MIT target. | Optional license-bound deployment artifact review only. |
+| AppFlowy, Docmost, Logseq, Plane, Vikunja, Outline, Anytype, NocoDB | `research/sources/<slug>` | No Graphify unless a later question requires functional architecture detail not covered by permissive candidates. | AGPL, BSL, source-available, or mixed source boundaries. | Functional observations from fiches are enough for this extension phase. |
+| Notion, ClickUp, Airtable, Monday.com, Asana, Slack, Microsoft Teams | none | No clone and no Graphify. | Proprietary public benchmarks only. | Public product signals only; no reuse. |
+
 ## Expected Outputs
 
 Each completed run should produce:

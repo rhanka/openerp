@@ -50,6 +50,41 @@ These stay available if wave A exposes gaps.
 | metasfresh | Broad ERP/manufacturing reference, but GPL-2.0 and architecture mismatch make it less efficient than Odoo, ERPNext, Dolibarr, and frePPLe for the next Graphify pass. |
 | OpenTCS | Valuable for AGV control, but too specialized for the broad service-company core and not necessary unless the MES pack includes vehicle routing. |
 
+## Collaboration Extension
+
+The collaboration extension adds a focused shortlist for docs/wiki, workspace,
+work management, database workspace, and async communication. The product
+filter remains ERP/CRM first: collaboration is useful when it attaches to
+customers, opportunities, quotes, contracts, projects, tasks, time entries,
+invoices, support cases, assets, work orders, files, decisions, notifications,
+and audit events.
+
+### Collaboration Candidates For Deeper Technical Study
+
+| Area | Candidate | Why It Stays In Scope | Reuse Boundary |
+| --- | --- | --- | --- |
+| Knowledge base | BookStack | MIT candidate with simple self-hosted wiki architecture, mature permissions, search, export/import, API, and content hierarchy useful for customer/project knowledge. | Potentially usable after notice, dependency, and asset review; avoid copying UI text, docs, hierarchy wording, examples, or API examples. |
+| Database workspace | Baserow | Best permissive-adjacent candidate for table/view/form/API patterns that can inform configurable operational views around ERP/CRM records. | Cautious because premium and enterprise boundaries must be isolated; only non-premium MIT-covered areas can inform technical study. |
+| Async communication | Zulip | Apache-2.0 candidate with durable topics, APIs, webhooks, imports/exports, self-hosting, and Kubernetes packaging evidence. Useful for object-linked async discussion. | Potentially usable after notice, dependency, and asset review; do not copy stream/topic product model or endpoint/schema details. |
+| Team communication packaging | Rocket.Chat | MIT community-core evidence and self-hosted communication breadth make it useful to inspect cautiously for deployment and integration patterns. | Cautious open-core boundary; block source reuse by default until `ee`, marketplace, premium, trademark, and bundled dependency boundaries are reviewed. |
+
+### Collaboration Functional Reference Only
+
+| Area | Candidates | Why They Stay As Functional References | Reuse Boundary |
+| --- | --- | --- | --- |
+| Notion-like workspace | AppFlowy, AFFiNE, Anytype, Outline | Strong workspace, page, database, local-first, or knowledge-base product signals, but licenses and source boundaries are not clean enough for direct MIT-target technical reuse in this phase. | Use only rewritten functional observations unless a later file-level review isolates permissive components. |
+| Collaborative docs/wiki | Docmost, Logseq | Good collaborative editor, wiki, graph, and local-first behavior signals, but AGPL blocks technical reuse for the MIT target. | Functional reference only. Do not copy source, editor behavior, block names, templates, sync model, UI copy, or schemas. |
+| Work management | Plane, Vikunja, Focalboard, Huly, NocoDB, Taiga, OpenProject | Useful task, board, workflow, database, and project-management references; license posture ranges from AGPL/source-available to MPL/EPL/mixed and GPL. | Functional or cautious inspiration only, with no source reuse unless later review names a compatible file set. |
+| Team communication | Mattermost | Strong operational collaboration and deployment reference, but source license posture is mixed and high-risk for the MIT target. | Functional reference only by default; only separately licensed deployment artifacts may be considered after review. |
+
+### Collaboration Proprietary Benchmark Only
+
+| Area | References | Use | Reuse Boundary |
+| --- | --- | --- | --- |
+| Workspace and knowledge | Notion, Airtable | Public expectations for docs, databases, templates, views, and team knowledge. | Public benchmark only; do not reuse product expression, templates, screenshots, schemas, or API shapes. |
+| Work management | ClickUp, Monday.com, Asana | Public expectations for tasks, views, status communication, dependencies, approvals, goals, dashboards, and workload surfaces. | Public benchmark only; do not reuse copy, workflows, templates, screenshots, schemas, or product packaging. |
+| Team communication | Slack, Microsoft Teams | Public expectations for channels, threads, mentions, files, notifications, integrations, and enterprise controls. | Public benchmark only; do not reuse UI text, app model, proprietary flows, screenshots, assets, or API shapes. |
+
 ## Domain Conclusions
 
 - Core product should start as service-company ERP plus CRM plus finance operations, not manufacturing-only.
