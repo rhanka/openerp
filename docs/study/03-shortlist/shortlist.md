@@ -72,7 +72,7 @@ and audit events.
 
 | Area | Candidates | Why They Stay As Functional References | Reuse Boundary |
 | --- | --- | --- | --- |
-| Notion-like workspace | AppFlowy, AFFiNE, Anytype, Outline | Strong workspace, page, database, local-first, or knowledge-base product signals, but licenses and source boundaries are not clean enough for direct MIT-target technical reuse in this phase. | Use only rewritten functional observations unless a later file-level review isolates permissive components. |
+| Notion-like workspace | AppFlowy, AFFiNE | Strong workspace, page, database, local-first, or knowledge-base product signals, but licenses and source boundaries are not clean enough for direct MIT-target technical reuse in this phase. | Use only rewritten functional observations unless a later file-level review isolates permissive components. |
 | Collaborative docs/wiki | Docmost, Logseq | Good collaborative editor, wiki, graph, and local-first behavior signals, but AGPL blocks technical reuse for the MIT target. | Functional reference only. Do not copy source, editor behavior, block names, templates, sync model, UI copy, or schemas. |
 | Work management | Plane, Vikunja, Focalboard, Huly, NocoDB, Taiga, OpenProject | Useful task, board, workflow, database, and project-management references; license posture ranges from AGPL/source-available to MPL/EPL/mixed and GPL. | Functional or cautious inspiration only, with no source reuse unless later review names a compatible file set. |
 | Team communication | Mattermost | Strong operational collaboration and deployment reference, but source license posture is mixed and high-risk for the MIT target. | Functional reference only by default; only separately licensed deployment artifacts may be considered after review. |
@@ -81,7 +81,7 @@ and audit events.
 
 | Area | References | Use | Reuse Boundary |
 | --- | --- | --- | --- |
-| Workspace and knowledge | Notion, Airtable | Public expectations for docs, databases, templates, views, and team knowledge. | Public benchmark only; do not reuse product expression, templates, screenshots, schemas, or API shapes. |
+| Workspace and knowledge | Notion, Airtable, Outline, Anytype | Public expectations for docs, databases, templates, views, local-first spaces, and team knowledge. | Public benchmark only; do not reuse product expression, templates, screenshots, schemas, source-available implementation, or API shapes. |
 | Work management | ClickUp, Monday.com, Asana | Public expectations for tasks, views, status communication, dependencies, approvals, goals, dashboards, and workload surfaces. | Public benchmark only; do not reuse copy, workflows, templates, screenshots, schemas, or product packaging. |
 | Team communication | Slack, Microsoft Teams | Public expectations for channels, threads, mentions, files, notifications, integrations, and enterprise controls. | Public benchmark only; do not reuse UI text, app model, proprietary flows, screenshots, assets, or API shapes. |
 
