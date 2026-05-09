@@ -1,0 +1,14 @@
+{
+  "name": "openerp",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "check:workspace": "node scripts/check-workspace.mjs",
+    "check:i18n": "node scripts/validate-i18n.mjs",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "build": "pnpm -r build"
+  },
+  "packageManager": "pnpm"
+}

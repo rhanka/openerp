@@ -1,0 +1,15 @@
+{
+  "name": "@openerp/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@openerp/domain": "workspace:*",
+    "@openerp/i18n": "workspace:*"
+  },
+  "devDependencies": {}
+}

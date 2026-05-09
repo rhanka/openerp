@@ -5,3 +5,10 @@ openerp-scope-map-viewport.png
 *.swp
 research/sources/
 research/graphify/
+node_modules/
+.svelte-kit/
+dist/
+coverage/
+.env
+.env.*
+!.env.example

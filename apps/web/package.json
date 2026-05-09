@@ -1,0 +1,15 @@
+{
+  "name": "@openerp/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "lint": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@openerp/domain": "workspace:*",
+    "@openerp/i18n": "workspace:*"
+  },
+  "devDependencies": {}
+}
