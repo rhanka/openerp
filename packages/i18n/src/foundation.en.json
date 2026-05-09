@@ -1,0 +1,18 @@
+{
+  "app.title": "OpenERP",
+  "error.permissionDenied": "You do not have permission to perform this action.",
+  "error.validation": "Some fields need attention.",
+  "nav.audit": "Audit",
+  "nav.roles": "Roles",
+  "nav.settings": "Settings",
+  "nav.users": "Users",
+  "role.admin": "Admin",
+  "role.auditor": "Auditor",
+  "role.externalUser": "External user",
+  "role.manager": "Manager",
+  "role.owner": "Owner",
+  "role.standardUser": "Standard user",
+  "update.between12And24": "Guided catch-up required",
+  "update.over24": "Outside standard support",
+  "update.under12": "Supported"
+}
