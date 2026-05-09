@@ -3,13 +3,22 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "vite dev --host 127.0.0.1 --port 4173",
     "build": "vite build",
     "lint": "svelte-check --tsconfig ./tsconfig.json",
-    "test": "vitest run"
+    "test": "playwright test"
   },
   "dependencies": {
     "@openerp/domain": "workspace:*",
     "@openerp/i18n": "workspace:*"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@playwright/test": "^1.53.0",
+    "@sveltejs/adapter-node": "^5.2.12",
+    "@sveltejs/kit": "^2.21.1",
+    "@sveltejs/vite-plugin-svelte": "^5.1.0",
+    "svelte": "^5.33.2",
+    "svelte-check": "^4.2.1",
+    "vite": "^6.3.5"
+  }
 }
