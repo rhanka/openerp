@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and first two MVP specs are drafted and pushed.
-À faire: write the remaining project/time-to-invoice, billing/accounting, and reporting/automation MVP specs; approximate completion 99.7%.
-Attendu: proceed to the project/time-to-invoice spec next, because accepted CRM opportunities must become service delivery and billable work.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and first three MVP specs are drafted and pushed.
+À faire: write the remaining billing/accounting and reporting/automation MVP specs; approximate completion 99.8%.
+Attendu: proceed to billing/accounting next, because project invoice proposals need conservative finance posting rules.
 
 ## Artifact Index
 
@@ -25,3 +25,4 @@ Attendu: proceed to the project/time-to-invoice spec next, because accepted CRM 
 | `09-canada-quebec/statutory-research.md` | official-source Canada/Quebec statutory research and implementation boundaries. |
 | `10-mvp-specs/foundation-security-i18n.md` | implementation-ready MVP foundation, security, and bilingual baseline spec. |
 | `10-mvp-specs/crm-customer-timeline.md` | implementation-ready MVP CRM and customer timeline spec. |
+| `10-mvp-specs/project-time-to-invoice.md` | implementation-ready MVP project, time, approval, and invoice proposal spec. |
