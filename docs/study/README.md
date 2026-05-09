@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and first four MVP specs are drafted and pushed.
-À faire: write the remaining reporting/automation MVP spec; approximate completion 99.9%.
-Attendu: proceed to reporting/automation next, because the MVP needs operational visibility and typed workflow without cloning Superset or Node-RED.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and initial MVP spec package are drafted and pushed.
+À faire: review cross-module consistency and finalize the study package synthesis; approximate completion 99.9%.
+Attendu: proceed to final package synthesis next, because the core research and initial MVP specs are now complete enough for implementation planning.
 
 ## Artifact Index
 
@@ -27,3 +27,4 @@ Attendu: proceed to reporting/automation next, because the MVP needs operational
 | `10-mvp-specs/crm-customer-timeline.md` | implementation-ready MVP CRM and customer timeline spec. |
 | `10-mvp-specs/project-time-to-invoice.md` | implementation-ready MVP project, time, approval, and invoice proposal spec. |
 | `10-mvp-specs/billing-accounting.md` | implementation-ready MVP billing and accounting operations spec. |
+| `10-mvp-specs/reporting-automation.md` | implementation-ready MVP reporting and typed automation spec. |
