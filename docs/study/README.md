@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, and initial Canada/Quebec statutory research are drafted and pushed.
-À faire: write module-level MVP specs and deepen year-specific statutory rule packs; approximate completion 99.5%.
-Attendu: proceed to MVP module specs next, because the statutory research confirms payroll should stay integration/export-first until official formulas become versioned tests.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and first MVP foundation/security/i18n spec are drafted and pushed.
+À faire: write the remaining CRM, project/time-to-invoice, billing/accounting, and reporting/automation MVP specs; approximate completion 99.6%.
+Attendu: proceed to the CRM/customer timeline spec next, because it is the first user-facing domain built on the foundation module.
 
 ## Artifact Index
 
@@ -23,3 +23,4 @@ Attendu: proceed to MVP module specs next, because the statutory research confir
 | `07-mvp/mvp-recommendation.md` | MVP recommendation and deferred domains. |
 | `08-anti-copy/anti-copy-dossier.md` | recoding rules and audit checklist. |
 | `09-canada-quebec/statutory-research.md` | official-source Canada/Quebec statutory research and implementation boundaries. |
+| `10-mvp-specs/foundation-security-i18n.md` | implementation-ready MVP foundation, security, and bilingual baseline spec. |
