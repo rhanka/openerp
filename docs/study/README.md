@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and first MVP foundation/security/i18n spec are drafted and pushed.
-À faire: write the remaining CRM, project/time-to-invoice, billing/accounting, and reporting/automation MVP specs; approximate completion 99.6%.
-Attendu: proceed to the CRM/customer timeline spec next, because it is the first user-facing domain built on the foundation module.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and first two MVP specs are drafted and pushed.
+À faire: write the remaining project/time-to-invoice, billing/accounting, and reporting/automation MVP specs; approximate completion 99.7%.
+Attendu: proceed to the project/time-to-invoice spec next, because accepted CRM opportunities must become service delivery and billable work.
 
 ## Artifact Index
 
@@ -24,3 +24,4 @@ Attendu: proceed to the CRM/customer timeline spec next, because it is the first
 | `08-anti-copy/anti-copy-dossier.md` | recoding rules and audit checklist. |
 | `09-canada-quebec/statutory-research.md` | official-source Canada/Quebec statutory research and implementation boundaries. |
 | `10-mvp-specs/foundation-security-i18n.md` | implementation-ready MVP foundation, security, and bilingual baseline spec. |
+| `10-mvp-specs/crm-customer-timeline.md` | implementation-ready MVP CRM and customer timeline spec. |
