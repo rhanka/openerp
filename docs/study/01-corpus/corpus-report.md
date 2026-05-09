@@ -23,3 +23,29 @@ The normalized candidate inventory is maintained in `docs/study/01-corpus/candid
 - GitHub searches returning empty JSON arrays for the exact requested terms: `open source accounting invoicing`, `open source project time expenses`, `open source MRP MES WMS`, and `open source maintenance quality manufacturing`.
 - Web searches were used as fallback discovery support for accounting/invoicing, project/time/expenses, MRP/MES/WMS, maintenance/quality/manufacturing, subscription billing, CRM, ERP, and HR/payroll.
 - `license_declared` uses GitHub metadata or public project metadata only. All candidates require exact license-file and checked-revision review before technical reuse classification in the fiche phase; rows with `Other` or `Unknown` are the highest priority for that review.
+
+## Collaboration Extension
+
+The collaboration extension adds docs/wiki, work management, async communication,
+and database workspace candidates to the corpus. The added candidates are meant
+to complement the ERP, CRM, project, billing, reporting, automation, HR, and
+manufacturing research already completed.
+
+The product filter remains ERP/CRM first. Collaboration capabilities should be
+evaluated for their ability to attach to customers, contacts, opportunities,
+quotes, contracts, projects, tasks, time entries, invoices, support cases,
+files, decisions, notifications, and audit events.
+
+The license posture is stricter than the product discovery posture:
+
+- MIT, Apache-2.0, BSD, and similarly permissive candidates can be considered
+  for deeper technical study after exact license evidence is recorded.
+- MPL, EPL, LGPL, mixed-license, and open-core candidates require cautious
+  file-level review before any technical reuse.
+- GPL, AGPL, BSL, Sustainable Use, source-available, and proprietary products
+  remain functional references or public benchmarks only.
+
+Proprietary collaboration products such as Notion, ClickUp, Airtable,
+Monday.com, Asana, Slack, and Microsoft Teams are public benchmarks only. They
+must not be treated as reusable sources for code, copy, screenshots, templates,
+workflows, assets, API shapes, schemas, or proprietary product expression.
