@@ -54,3 +54,24 @@ Attendu: Use this fiche as a mature project-management functional reference, but
 - Graphify target: conditional.
 - Modules/plugins to inspect: `app/controllers/projects_controller.rb`, `app/controllers/work_packages_controller.rb`, `app/controllers/projects`, `app/controllers/work_packages`, `app/models/project.rb`, `app/models/work_package.rb`, `app/models/version.rb`, `app/models/member.rb`, `frontend`, `docs/api`, `config/locales`, and `spec/features`.
 - Reason: OpenProject is a mature service/project-management functional reference. GPL means Graphify outputs must feed independent written specs only.
+
+## Collaboration Extension Notes
+
+### Work Package Collaboration
+
+- Date checked: 2026-05-09 for this extension note.
+- OpenProject remains a strong functional reference for work package collaboration: assignments, statuses, workflows, custom fields, comments/activity, notifications, project membership, versions, exports, Gantt/PDF output, API documentation, and permission-driven project spaces.
+- For OpenERP, the useful concept is a record-linked work package model around customers, projects, service delivery, and internal operations, not a copy of OpenProject's source, labels, or UI.
+
+### ERP CRM Fit
+
+- Strong fit: service-company project execution, implementation plans, customer delivery tasks, portfolio/program views, time-related project work, and cross-team accountability.
+- CRM adjacency: customer-facing projects and support escalations can benefit from work-package-style tasks attached to accounts, contacts, opportunities, invoices, and contracts.
+- Weak fit: OpenProject does not replace CRM, accounting, payroll, inventory, manufacturing, purchasing, tax, or statutory localization modules.
+- License constraint: GPL-3.0 keeps OpenProject in `functional reference only` status for the MIT target.
+
+### OpenERP Takeaways
+
+- Build original OpenERP work items that live inside ERP context: customer, project, quote, order, invoice, support case, asset, and employee assignment links.
+- Prioritize comments, mentions, status workflow, custom fields, due dates, attachments, audit history, permissions, and API access before portfolio-level complexity.
+- Keep terminology and UX original; use OpenProject only to validate functional coverage expectations for mature project collaboration.
