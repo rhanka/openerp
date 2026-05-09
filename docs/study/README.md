@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, and initial MVP spec package are drafted and pushed.
-À faire: review cross-module consistency and finalize the study package synthesis; approximate completion 99.9%.
-Attendu: proceed to final package synthesis next, because the core research and initial MVP specs are now complete enough for implementation planning.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, initial MVP spec package, and final synthesis are drafted and pushed.
+À faire: move to implementation planning and app scaffold; study package completion 100%.
+Attendu: start the foundation/security/i18n implementation plan next, because every MVP module depends on tenant, role, audit, locale, and update foundations.
 
 ## Artifact Index
 
@@ -28,3 +28,5 @@ Attendu: proceed to final package synthesis next, because the core research and 
 | `10-mvp-specs/project-time-to-invoice.md` | implementation-ready MVP project, time, approval, and invoice proposal spec. |
 | `10-mvp-specs/billing-accounting.md` | implementation-ready MVP billing and accounting operations spec. |
 | `10-mvp-specs/reporting-automation.md` | implementation-ready MVP reporting and typed automation spec. |
+| `11-final-package/final-synthesis.md` | final written synthesis and decisions for implementation planning. |
+| `11-final-package/openerp-final-synthesis.pptx` | final presentation deck for the study package. |
