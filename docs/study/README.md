@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, and anti-copy dossier are drafted and pushed.
-À faire: write module-level MVP specs and run Canada/Quebec statutory research; approximate completion 99%.
-Attendu: proceed to Canada/Quebec statutory research next, because accounting and payroll implementation cannot be specified responsibly from open source anchors alone.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, and initial Canada/Quebec statutory research are drafted and pushed.
+À faire: write module-level MVP specs and deepen year-specific statutory rule packs; approximate completion 99.5%.
+Attendu: proceed to MVP module specs next, because the statutory research confirms payroll should stay integration/export-first until official formulas become versioned tests.
 
 ## Artifact Index
 
@@ -22,3 +22,4 @@ Attendu: proceed to Canada/Quebec statutory research next, because accounting an
 | `06-functional-map/global-functional-map.md` | cross-domain functional map. |
 | `07-mvp/mvp-recommendation.md` | MVP recommendation and deferred domains. |
 | `08-anti-copy/anti-copy-dossier.md` | recoding rules and audit checklist. |
+| `09-canada-quebec/statutory-research.md` | official-source Canada/Quebec statutory research and implementation boundaries. |
