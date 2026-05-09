@@ -57,6 +57,64 @@ Attendu: Use this map as product-positioning and requirements context only, then
 | Power Automate | Low-code cloud flows, desktop flows, process mining, connectors, Teams/SharePoint/email integrations, ALM, and admin/governance. Source: https://www.microsoft.com/en-us/power-platform/products/power-automate | Use for automation governance, connector strategy, and workflow builder expectations. Compare against Node-RED for self-hosted implementation. |
 | Zapier | SMB automation, app integrations, no-code workflows, AI orchestration, tables/forms, and security positioning. Sources: https://zapier.com/smb and https://help.zapier.com/hc/en-us/articles/37518970271245-What-is-Zapier | Use for integration marketplace expectations and nontechnical workflow authoring. |
 
+## Collaboration Benchmarks
+
+### Notion
+
+- Public reference role: Public collaboration benchmark for docs, lightweight databases, internal knowledge bases, projects, and AI-assisted team spaces.
+- Capabilities to observe: Page hierarchy, database views, comments, mentions, sharing controls, connected docs, task surfaces, permissions, and AI writing assistance.
+- What must not be reused: This reference is a public benchmark only; do not reuse code, copy, screenshots, templates, workflows, assets, API shapes, schemas, or proprietary product expression.
+- ERP/CRM relevance: Useful for ERP/CRM notes, customer/account workspaces, internal SOPs, task context, and structured team knowledge attached to operational records.
+- Date checked: 2026-05-09.
+
+### ClickUp
+
+- Public reference role: Public collaboration benchmark for project execution, tasks, docs, whiteboards, goals, chat, automations, dashboards, and time tracking.
+- Capabilities to observe: Task lists, custom fields, dependencies, comments, docs, whiteboards, views, notifications, automation triggers, dashboards, and workload visibility.
+- What must not be reused: This reference is a public benchmark only; do not reuse code, copy, screenshots, templates, workflows, assets, API shapes, schemas, or proprietary product expression.
+- ERP/CRM relevance: Relevant to ERP/CRM implementation projects, sales follow-up tasks, service delivery work, approval queues, and operational task ownership.
+- Date checked: 2026-05-09.
+
+### Airtable
+
+- Public reference role: Public collaboration benchmark for relational-style team databases, forms, interfaces, automations, and app-like business trackers.
+- Capabilities to observe: Table views, linked records, field types, forms, interfaces, permissions, comments, automations, integrations, and lightweight operational apps.
+- What must not be reused: This reference is a public benchmark only; do not reuse code, copy, screenshots, templates, workflows, assets, API shapes, schemas, or proprietary product expression.
+- ERP/CRM relevance: Relevant to configurable ERP/CRM objects, pipeline boards, inventory trackers, approval lists, customer research tables, and team-maintained operational data.
+- Date checked: 2026-05-09.
+
+### Monday.com
+
+- Public reference role: Public collaboration benchmark for work management, CRM-adjacent boards, automations, forms, dashboards, and cross-team project operations.
+- Capabilities to observe: Boards, columns, item updates, forms, timeline/calendar views, dashboards, automations, integrations, permissions, and status communication.
+- What must not be reused: This reference is a public benchmark only; do not reuse code, copy, screenshots, templates, workflows, assets, API shapes, schemas, or proprietary product expression.
+- ERP/CRM relevance: Relevant to sales operations, customer onboarding, project delivery, procurement follow-up, issue tracking, and visual status surfaces around ERP/CRM records.
+- Date checked: 2026-05-09.
+
+### Asana
+
+- Public reference role: Public collaboration benchmark for structured work management, team projects, goals, approvals, reporting views, and cross-functional coordination.
+- Capabilities to observe: Projects, tasks, subtasks, dependencies, timelines, forms, approvals, comments, rules, portfolios, goals, and team workload views.
+- What must not be reused: This reference is a public benchmark only; do not reuse code, copy, screenshots, templates, workflows, assets, API shapes, schemas, or proprietary product expression.
+- ERP/CRM relevance: Relevant to CRM handoffs, service delivery plans, implementation projects, internal approvals, customer success activities, and operational accountability.
+- Date checked: 2026-05-09.
+
+### Slack
+
+- Public reference role: Public collaboration benchmark for channel-based messaging, searchable team communication, app integrations, huddles, canvases, and AI-assisted summaries.
+- Capabilities to observe: Channels, threads, mentions, reactions, message search, shared channels, app actions, canvases, clips, huddles, notifications, and enterprise controls.
+- What must not be reused: This reference is a public benchmark only; do not reuse code, copy, screenshots, templates, workflows, assets, API shapes, schemas, or proprietary product expression.
+- ERP/CRM relevance: Relevant to activity notifications, customer-room collaboration, internal support channels, approval alerts, incident discussion, and contextual messages around ERP/CRM events.
+- Date checked: 2026-05-09.
+
+### Microsoft Teams
+
+- Public reference role: Public collaboration benchmark for Microsoft 365-connected chat, meetings, channels, files, apps, webinars, and enterprise communication.
+- Capabilities to observe: Teams and channels, chats, meetings, file collaboration, tabs, app integrations, notifications, search, guest access, compliance controls, and Copilot surfaces.
+- What must not be reused: This reference is a public benchmark only; do not reuse code, copy, screenshots, templates, workflows, assets, API shapes, schemas, or proprietary product expression.
+- ERP/CRM relevance: Relevant to Microsoft-stack customer environments, meeting-linked CRM notes, service channels, document collaboration, approval alerts, and ERP/CRM notifications in enterprise chat.
+- Date checked: 2026-05-09.
+
 ## Product Positioning Implications
 
 - The product should not be positioned as a clone of one incumbent. The viable opening is "open, self-hostable, service-company ERP/CRM with Canada-first accounting/HR path and optional manufacturing pack."
