@@ -94,6 +94,9 @@ Attendu: Move from source graphing to functional specification, because BI/repor
 | `superset-frontend-dashboard-explore` | `superset-frontend-dashboard-explore/summary.md` |
 | `node-red-runtime-api-modules` | `node-red-runtime-api-modules/summary.md` |
 | `node-red-editor-nodes-modules` | `node-red-editor-nodes-modules/summary.md` |
+| `bookstack-wiki-permissions` | `bookstack-wiki-permissions/summary.md` |
+| `baserow-database-core` | `baserow-database-core/summary.md` |
+| `zulip-object-async` | `zulip-object-async/summary.md` |
 
 ## Collaboration Source Inventory
 
@@ -103,9 +106,9 @@ to copy source structures.
 
 | Candidate | Target Local Source | Treatment | License Caution | Evidence Still Needed |
 | --- | --- | --- | --- | --- |
-| BookStack | `research/sources/bookstack` | Clone and Graphify focused wiki, permission, search, export/import, API, and localization paths. | MIT candidate; still requires attribution, dependency, asset, and non-code expression review. | HEAD commit, `LICENSE`, dependency license notes, relevant app path list. |
-| Baserow | `research/sources/baserow` | Clone and Graphify only MIT-covered core table, view, field, form, API, and permission paths if premium/enterprise directories can be excluded. | Open-core boundary; avoid premium and enterprise paths. | HEAD commit, `LICENSE`, premium/enterprise directory map, package metadata. |
-| Zulip | `research/sources/zulip` | Clone and Graphify focused server model/action/webhook/OpenAPI and selected web client paths for durable async communication. | Apache-2.0 candidate; do not copy stream/topic product model, endpoint details, docs, tests, or UI text. | HEAD commit, `LICENSE`, dependency notes, selected `zerver` and `web` path list. |
+| BookStack | `research/sources/bookstack` | Graphify run completed in `bookstack-wiki-permissions`; focused wiki, permission, search, export/import, API, and reference paths. | MIT candidate; still requires attribution, dependency, asset, and non-code expression review. | Checked commit `50d3be4`; `LICENSE` reviewed; dependency notes remain for later implementation planning. |
+| Baserow | `research/sources/baserow` | Graphify run completed in `baserow-database-core`; focused core table, view, field, row, token, webhook, and API paths; `premium` and `enterprise` excluded. | Open-core boundary; avoid premium and enterprise paths. | Checked commit `9b56c3f`; `LICENSE` reviewed; package metadata remains for later implementation planning. |
+| Zulip | `research/sources/zulip` | Graphify run completed in `zulip-object-async`; focused model, message/action, user/topic, notification, export, and OpenAPI paths. | Apache-2.0 candidate; do not copy stream/topic product model, endpoint details, docs, tests, or UI text. | Checked commit `6e06e50`; `LICENSE` reviewed; dependency notes remain for later implementation planning. |
 | Rocket.Chat | `research/sources/rocketchat` | Clone only if Graphify time permits; inspect community communication and integration paths after excluding enterprise/source-available areas. | Cautious open-core boundary; default no source reuse until compatible file set is named. | HEAD commit, license files, `ee` and premium directory exclusions. |
 | Mattermost | `research/sources/mattermost` | No deep Graphify by default; keep as functional reference and deployment-license comparison. | Mixed AGPL/commercial/MIT/Apache posture; main platform source is high-risk for MIT target. | Optional license-bound deployment artifact review only. |
 | AppFlowy, Docmost, Logseq, Plane, Vikunja, NocoDB | `research/sources/<slug>` | No Graphify unless a later question requires functional architecture detail not covered by permissive candidates. | AGPL, source-available, or mixed source boundaries. | Functional observations from fiches are enough for this extension phase. |
