@@ -54,6 +54,25 @@ The future implementation target remains:
 | Reporting | Saved views, operational reports, dashboards, KPI widgets, exports, scheduled delivery, row-level and role-aware access. | Superset backend/frontend, Odoo dashboards/reporting, Kimai reporting. | Build native operational reporting in MVP; advanced BI integration later. |
 | Automation | Typed triggers, typed actions, approvals, notifications, scheduled jobs, webhooks, import/export jobs, audit trails. | Twenty workflow, Node-RED runtime/editor, Odoo automation adjacency. | Build narrow domain-safe automation in MVP. |
 | Integrations | Webhooks, REST/JSON APIs, import/export, email/calendar connectors, payment provider connectors, accounting/payroll integrations, BI/automation adapters. | Twenty SDK/deployment, Node-RED, OpenMeter API/runtime, Kill Bill APIs. | Build core API and webhook model in MVP. |
+| Collaboration | Comments, mentions, files, pages, lightweight tasks, decisions, approvals, async object threads, notifications, permission-aware search, and customer-visible collaboration. | BookStack, Baserow, Zulip Graphify summaries; Huly, Plane, OpenProject, Mattermost, Rocket.Chat, Notion, ClickUp, Airtable, Monday.com, Asana, Slack, and Teams as bounded references. | Add as a transverse ERP/CRM layer; start object-bound, not as a generic workspace or chat clone. |
+
+## Collaboration Extension
+
+The detailed collaboration map is maintained in
+`docs/study/06-functional-map/collaboration-functional-map.md`.
+
+Collaboration supports the existing CRM, project, billing, reporting,
+automation, HR, and manufacturing domains by attaching pages, comments, files,
+tasks, decisions, approvals, async threads, and notifications to business
+objects. The early product posture is object-bound collaboration: customers,
+opportunities, quotes, contracts, projects, tasks, time entries, invoices,
+support cases, assets, work orders, and audit events remain the source of
+truth.
+
+The study does not recommend a standalone Notion, ClickUp, Airtable, Slack, or
+Teams clone. Generic workspace databases, generic chat, broad whiteboards, and
+full portfolio management remain later or integration-first unless pilot
+evidence changes the product boundary.
 
 ## Cross-Domain Object Spine
 
@@ -107,7 +126,7 @@ These objects should be stable across modules because Graphify repeatedly surfac
 ### Product To Delivery
 
 1. Define product/service catalog item.
-2. Attach pricing, tax category placeholder, contract eligibility, and revenue/accounting mapping.
+2. Attach pricing, tax category field, contract eligibility, and revenue/accounting mapping.
 3. Use item on quotes, contracts, invoices, subscriptions, usage charges, inventory, or manufacturing packs.
 4. Keep accounting mapping explicit and reviewable before posting.
 
