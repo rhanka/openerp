@@ -48,6 +48,16 @@ Manufacturing should remain a named vertical pack, not part of the first core bu
 | General visual automation | Full node palette, flow canvas, arbitrary plugin installation, generic node runtime. | Node-RED-style breadth raises security, tenancy, and support complexity. |
 | Complex usage rating | High-volume event metering, entitlements, prepaid wallet, complex subscription amendments. | OpenMeter/Kill Bill evidence supports later design; MVP billing can stay narrower. |
 
+## Collaboration Addendum
+
+Collaboration is documented in
+`docs/study/07-mvp/collaboration-mvp-addendum.md`. The MVP-safe posture is
+object-bound collaboration: comments, mentions, files, activity timeline,
+structured decisions, lightweight tasks, customer/project pages, notifications,
+and permission-aware search. Generic chat, generic workspace databases,
+advanced whiteboards, and full portfolio management remain later or
+integration-first.
+
 ## Integration-First Modules
 
 | Module | Integration-First Direction |

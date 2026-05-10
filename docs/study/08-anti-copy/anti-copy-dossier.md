@@ -127,6 +127,15 @@ Every implementation PR touching domain behavior inspired by the corpus must ans
 | Superset | Apache-2.0. Prefer integration/embedding for advanced BI. Avoid dashboard schemas, SQL Lab behavior, chart controls, and UI. |
 | Node-RED | Apache-2.0. Prefer optional integration or narrow native automation. Avoid flow JSON, node APIs, editor canvas, palette, and built-in nodes. |
 
+## Collaboration Addendum
+
+Collaboration-specific anti-copy controls are documented in
+`docs/study/08-anti-copy/collaboration-anti-copy-addendum.md`. The addendum
+covers editor UI text, slash commands, block names, templates, onboarding copy,
+demo spaces, screenshots, schema/API shapes, automation recipes, and the
+boundary between object-linked OpenERP collaboration and copied workspace or
+chat product expression.
+
 ## Reference Sources
 
 - MIT license text: https://opensource.org/license/mit.
