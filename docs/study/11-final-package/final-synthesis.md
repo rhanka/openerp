@@ -2,9 +2,9 @@
 
 ## Avancement
 
-Fait: etude corpus, fiches, shortlist, Graphify wave A, carte fonctionnelle, recommandation MVP, dossier anti-copy, recherche Canada/Quebec et specs MVP initiales termines.
-À faire: lancer la phase implementation planning puis le scaffold applicatif; phase d'etude initiale terminee a 100%.
-Attendu: valider le passage en implementation avec un premier plan sur foundation/security/i18n, car ce module conditionne CRM, projet, facturation, reporting et automation.
+Fait: etude corpus, fiches, shortlist, Graphify wave A, extension collaboration, carte fonctionnelle, recommandation MVP, dossier anti-copy, recherche Canada/Quebec et specs MVP initiales termines.
+À faire: lancer la phase implementation planning puis le scaffold applicatif; phase d'etude initiale et extension collaboration terminees a 100%.
+Attendu: valider le passage en implementation avec un premier plan sur foundation/security/i18n, car ce module conditionne CRM, projet, facturation, reporting, collaboration objet et automation.
 
 ## Decision Produit
 
@@ -18,15 +18,65 @@ CRM -> contrat/offre -> projet/service -> temps approuve -> facture -> ecriture 
 
 Manufacturing, WMS, planning, MES, qualite et maintenance restent des vertical packs. Ils doivent etre prepares dans le modele, mais pas au centre du premier MVP.
 
+La collaboration est une couche transverse du produit ("transverse layer"), pas un deuxieme produit. Elle doit enrichir les objets ERP/CRM: client, opportunite, devis, contrat, projet, tache, temps, facture, support, actif, ordre de travail et audit.
+
 ## Base De Preuve
 
 | Element | Resultat |
 | --- | --- |
-| Corpus open source | 27 projets documentes par fiches. |
-| Graphify | 29 runs TypeScript-runtime sur Odoo, Twenty, Aureus ERP, Kill Bill, OpenMeter, Frappe HR, Kimai, frePPLe, OpenBoxes, Superset, Node-RED. |
+| Corpus open source | 44 projets documentes par fiches, dont 17 ajouts collaboration. |
+| Graphify | 32 runs TypeScript-runtime, dont BookStack, Baserow et Zulip pour l'extension collaboration. |
 | Proprietary references | Workday, Wave, QuickBooks, Sage, SAP Business One et autres gardes comme benchmarks publics uniquement. |
+| Collaboration references | Notion, ClickUp, Airtable, Monday, Asana, Slack et Teams comme benchmarks publics uniquement. |
 | Recherche statutaire | Sources officielles CRA, Revenu Quebec et CNESST pour cadrer paie, GST/QST, slips, remises, bulletins de paie, registre des salaires, vacances et jours feries. |
 | Specs MVP | 5 specs implementation-ready: foundation/security/i18n, CRM, project/time-to-invoice, billing/accounting, reporting/automation. |
+
+## Collaboration Extension
+
+L'extension couvre quatre familles:
+
+- knowledge workspace: pages client/projet, notes de reunion, SOPs, handover et fichiers;
+- work management: taches legeres, decisions, approbations, formulaires et vues de suivi;
+- async communication: commentaires, mentions, notifications et activite objet;
+- collaboration controls: permissions heritees, audit, recherche, exports, retention et self-hosted.
+
+Le positionnement reste ERP/CRM-first. OpenERP ne doit pas lancer un clone Notion, ClickUp, Slack ou Airtable dans le MVP. Les fonctions collaboration doivent etre attachees a des objets metier et reutiliser foundation/security/i18n.
+
+## Collaboration Corpus Evidence
+
+Le corpus collaboration ajoute AFFiNE, Anytype, AppFlowy, Baserow, BookStack, Docmost, Focalboard, Huly, Logseq, Mattermost, NocoDB, Outline, Plane, Rocket.Chat, Taiga, Vikunja et Zulip.
+
+La conclusion de reuse est prudente:
+
+- BookStack et Zulip sont les sources les plus propres pour inspiration technique permissive, avec attribution et reecriture;
+- Baserow est interessant pour base/table/formulaire, mais ses frontieres premium/enterprise doivent rester separees;
+- Rocket.Chat est exploitable seulement avec revue fichier par fichier a cause des zones enterprise;
+- Outline, Anytype, AppFlowy, Docmost, Logseq, Plane, Vikunja, NocoDB, Mattermost, Taiga et Huly restent des references fonctionnelles ou publiques selon leur licence et leur structure.
+
+Graphify a ete applique a BookStack, Baserow et Zulip pour isoler des patterns generiques: permissions wiki, noyau database/workspace et communication asynchrone. Les graphes servent a comprendre les domaines; ils ne deviennent pas une source de copie.
+
+## Collaboration MVP Impact
+
+Ajouter au MVP:
+
+- commentaires et mentions sur objets ERP/CRM;
+- fichiers attaches aux clients, opportunites, projets, taches, temps, factures, support, actifs et ordres de travail;
+- timeline objet combinant evenements systeme, commentaires, fichiers et decisions;
+- decisions et approbations structurees;
+- taches legeres liees aux objets metier;
+- pages client/projet pour notes, SOPs et handover;
+- inbox de notifications regroupee par objet;
+- recherche permission-aware sur pages, commentaires, fichiers, decisions et taches.
+
+Post-MVP: templates riches, rooms client, formulaires avances, synchronisation outils externes et vues de charge. A deferer: chat generique, workspace database generique, whiteboard avance, marketplace bots et no-code app builder.
+
+## Collaboration License And Anti-Copy
+
+Target: MIT.
+
+Les sources MIT/Apache/BSD peuvent informer l'architecture avec attribution et notices. Les sources AGPL/GPL, BSL, source-available et proprietaires restent functional reference only ou public benchmark only. Meme avec une licence permissive, l'implementation doit etre reecrite depuis les specs OpenERP.
+
+Ne pas reutiliser code, UI text, docs, assets, screenshots, tests, demo data, schemas, API shapes, templates, slash commands, noms de blocs, routes, payloads ou workflow structures. Les surfaces collaboration sont particulierement reconnaissables; le controle anti-copy doit donc etre applique avant chaque merge de ce domaine.
 
 ## Recommandation MVP
 
@@ -37,6 +87,7 @@ Construire en premier:
 - project/time-to-invoice: projects, tasks, assignments, time entries, approvals, invoice proposals;
 - billing/accounting: invoices, recurring schedules, payments, journal entries, tax abstraction, period close basics;
 - reporting/automation: saved views, operational reports, dashboards, exports, scheduled delivery, typed workflows and webhooks;
+- collaboration objet: comments, mentions, files, decisions, approvals, lightweight tasks, pages, notifications and permission-aware search;
 - deployment: SaaS first, self-hosted Kubernetes supported from the beginning.
 
 ## Hors MVP Explicite
@@ -48,6 +99,8 @@ Construire en premier:
 - Superset clone or advanced BI authoring.
 - Node-RED clone or generic visual programming runtime.
 - Full Kill Bill/OpenMeter-class subscription and usage engine.
+- Generic Notion/ClickUp/Slack/Airtable clone.
+- Generic company chat, whiteboard, bot marketplace or no-code workspace builder.
 
 ## Canada Et Quebec
 
@@ -106,7 +159,9 @@ The product must expose version state, preflight checks, backup requirement, mig
 | Graphify dossier | `docs/study/05-graphify/README.md` |
 | Functional map | `docs/study/06-functional-map/global-functional-map.md` |
 | MVP recommendation | `docs/study/07-mvp/mvp-recommendation.md` |
+| Collaboration MVP addendum | `docs/study/07-mvp/collaboration-mvp-addendum.md` |
 | Anti-copy dossier | `docs/study/08-anti-copy/anti-copy-dossier.md` |
+| Collaboration anti-copy addendum | `docs/study/08-anti-copy/collaboration-anti-copy-addendum.md` |
 | Canada/Quebec research | `docs/study/09-canada-quebec/statutory-research.md` |
 | MVP specs | `docs/study/10-mvp-specs/` |
 | Final PPTX | `docs/study/11-final-package/openerp-final-synthesis.pptx` |
@@ -118,8 +173,9 @@ The product must expose version state, preflight checks, backup requirement, mig
 3. Choisir le modele d'isolation tenant initial: shared DB avec tenant_id strict, schema per tenant, ou database per tenant pour certains plans.
 4. Choisir le premier fournisseur ou format d'integration payroll Quebec/Canada.
 5. Confirmer le premier pilot target: service company, recurring-service company, ou small manufacturer with services.
+6. Confirmer les premiers objets collaboration: customer, opportunity, project, task, time entry, invoice et support case.
 
-## Prochaine Etape Recommandee
+## Updated Next Step
 
 Ecrire le plan d'implementation de foundation/security/i18n puis scaffold applicatif:
 
@@ -130,4 +186,5 @@ Ecrire le plan d'implementation de foundation/security/i18n puis scaffold applic
 5. auth/roles/permissions/audit;
 6. FR/EN i18n baseline;
 7. CI/test/build pipeline;
-8. Kubernetes/self-hosted skeleton.
+8. Kubernetes/self-hosted skeleton;
+9. primitives collaboration objet: comments, mentions, files, decisions, approvals, notifications and search hooks.
