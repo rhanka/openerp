@@ -136,6 +136,15 @@ demo spaces, screenshots, schema/API shapes, automation recipes, and the
 boundary between object-linked OpenERP collaboration and copied workspace or
 chat product expression.
 
+## Agentic Addendum
+
+Agentic-specific anti-copy controls are documented in
+[`docs/study/08-anti-copy/agentic-anti-copy-addendum.md`](agentic-anti-copy-addendum.md).
+The addendum covers prompts, personas, tool definitions, schemas, workflow and
+agent graph definitions, eval datasets, golden traces, marketplace/registry UI,
+agent catalog/configuration/builder UI, policy DSL syntax, sandbox templates,
+runtime configuration and the pre-merge audit questions for agentic work.
+
 ## Reference Sources
 
 - MIT license text: https://opensource.org/license/mit.
