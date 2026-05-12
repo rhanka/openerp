@@ -172,7 +172,7 @@ audit-trail layer applied to agent executions in OpenERP, covering the full
 agent turn: input context, model invocation, tool calls, policy decisions,
 output, latency, token cost, and rollback or escalation events. Traces are the
 primary artifact for debugging and compliance demonstration. Eval hooks enable
-periodic re-scoring against an eval dataset for regression detection without a live deployment.
+periodic re-evaluation against an eval dataset for regression detection without a live deployment.
 
 ### Eval Dataset
 

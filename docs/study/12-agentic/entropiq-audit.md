@@ -18,7 +18,7 @@ The root workspace manifest (`package.json`) declares the monorepo name as `entr
 
 The repository was created on 2025-09-30 and last pushed on 2026-05-10. The primary language is TypeScript. The GitHub API reports the license as `NOASSERTION`, indicating that GitHub's license detector did not classify the file as a standard SPDX identifier.
 
-Top-level layout (overview only): configuration directories (`.claude`, `.cursor`, `.github`, `.security`, `.graphify`), application roots (`api/`, `ui/`), a `packages/` workspace for future extractions, a `plan/` directory for branch specifications, a `spec/` directory for functional specifications, and supporting files (`Makefile`, `README.md`, `README.fr.md`, `PLAN.md`, `AGENTS.md`, `CLAUDE.md`, `TRANSITION.md`). The `api/src/` tree contains a services layer with clearly separated concerns: `llm-runtime/`, `providers/` (five provider files: Claude, OpenAI, Gemini, Mistral, Cohere), a queue manager, chat and session services, tool orchestration, workflow state management, and streaming infrastructure.
+Top-level layout (overview only): configuration directories, application roots (`api/`, `ui/`), a `packages/` workspace for future extractions, a `plan/` directory for branch specifications, a `spec/` directory for functional specifications, and supporting project files. The `api/src/` tree contains a services layer with clearly separated concerns: `llm-runtime/`, `providers/` with five commercial LLM provider adapters, a queue manager, chat and session services, tool orchestration, workflow state management, and streaming infrastructure.
 
 ## Declared License
 
@@ -32,11 +32,11 @@ The design specification (section 7) refers to `@entropiq` as "MIT (TypeScript, 
 
 The runtime already operates as a functioning application backend for the "Top AI Ideas" product, which provides the concrete evidence base for the following capabilities, all observed directly in the repository structure and service files:
 
-**Multi-provider LLM client.** The `providers/` directory contains five discrete provider adapters (Claude via Anthropic SDK, OpenAI, Google Gemini, Mistral, Cohere). The `llm-runtime/` service abstracts over them. Provider credentials and model selection are handled at the service layer, supporting token-based and Codex-account-based authentication modes per the README.
+**Multi-provider LLM client.** The `providers/` directory contains five discrete provider adapters for major commercial LLM APIs. The `llm-runtime/` service abstracts over them. Provider credentials and model selection are handled at the service layer, supporting token-based and Codex-account-based authentication modes per the README.
 
 **Typed tool calling.** The `tool-service.ts` and `tools.ts` service files, combined with the chat service's streaming loop, implement typed tool invocation within agent turns. Tool results flow back into the conversation context before the next model call.
 
-**Agent loop.** The `todo-orchestration.ts` service manages task-graph execution with explicit state transitions (todo → planned → in\_progress → done/blocked/cancelled), fanout/join patterns, and steering mechanisms. The workflow runtime supports multiple workflow definitions per workspace type and generic transition-driven execution, as documented in `PLAN.md` section on BR-04/04B.
+**Agent loop.** The task-graph orchestration service manages task execution with explicit state transitions (not_started → planned → in\_progress → done/blocked/cancelled), fanout/join patterns, and steering mechanisms. The workflow runtime supports multiple workflow definitions per workspace type and generic transition-driven execution, as documented in `PLAN.md` section on BR-04/04B.
 
 **Conversational memory.** The `chat-session-history.ts` service and the session manager maintain per-session turn history. Context is enriched from business objects (organization, initiative, matrix, document sources) via dedicated context-enrichment services before each model call.
 
@@ -44,7 +44,7 @@ The runtime already operates as a functioning application backend for the "Top A
 
 **Streaming.** The `stream-service.ts` provides server-sent event streaming from the LLM loop to connected clients. The chat service wires streaming events to the frontend transport.
 
-**Multi-agent coordination.** The `todo-orchestration.ts` and workflow runtime support multi-task graphs with inter-task dependencies, which constitutes the foundation for multi-agent supervision patterns. The README explicitly names this layer as the precursor to `@entropic/flow`, described in spirit as comparable to LangGraph or Temporal but adapted to this project.
+**Multi-agent coordination.** The task-graph orchestration layer and workflow runtime support multi-task graphs with inter-task dependencies, which constitutes the foundation for multi-agent supervision patterns. The README explicitly names this layer as the precursor to `@entropic/flow`, described in spirit as comparable to LangGraph or Temporal but adapted to this project.
 
 **Observability infrastructure.** The `chat-trace.ts` and `chat-trace-sweep.ts` services record per-turn traces and manage their lifecycle. This is the foundation for GenAI observability as defined in the glossary.
 
@@ -80,7 +80,7 @@ The npm publication plan (`@entropic/llm-mesh`, `@entropic/chat`, `@entropic/flo
 
 ## Supervision Implications
 
-The workflow and task-graph machinery already in the runtime provides the structural substrate for human supervision: execution states are persisted, transitions are typed, and the `todo-orchestration.ts` layer supports multi-step task management. However, bridging this structure to the OpenERP supervision model requires explicit additions at every agent mode.
+The workflow and task-graph machinery already in the runtime provides the structural substrate for human supervision: execution states are persisted, transitions are typed, and the task-graph orchestration layer supports multi-step task management. However, bridging this structure to the OpenERP supervision model requires explicit additions at every agent mode.
 
 For conversational agents, an approval-in-the-loop primitive must be added: the agent loop must be able to pause after generating an action proposal, emit a structured approval request to the calling session, and resume only after a human decision is received. For autonomous agents, a canary deployment mechanism must allow a new agent or policy version to run on a bounded fraction of events before full activation, with a rollback hook that can revert to the previous version without manual intervention. For workflow-typed agents, typed checkpoints must allow the agent step to signal success, failure, or escalation back to the typed automation layer in a format the downstream step can interpret deterministically.
 
