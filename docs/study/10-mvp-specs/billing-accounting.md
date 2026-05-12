@@ -255,3 +255,7 @@ MVP finance reporting should include:
 - No high-volume usage rating engine equivalent to OpenMeter.
 - No copied Odoo accounting models, reports, XML views, localization templates, or workflows.
 - No copied Kill Bill/OpenMeter APIs, state machines, generated clients, templates, or tests.
+
+## Agentic Impacts
+
+Agentic support adds supervised invoice preparation, dunning preparation, renewal watch, AR reconciliation suggestions, AP triage, anomaly detection, policy-blocked accounting actions and audit-visible finance approval; the consolidated impact map is in [`docs/study/10-mvp-specs/agentic-impacts.md`](agentic-impacts.md).

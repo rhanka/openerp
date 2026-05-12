@@ -97,7 +97,7 @@ Required scopes:
 2. Select primary locale, supported locales, currency, timezone, country, and province/state.
 3. Create first owner user.
 4. Create baseline roles: owner, admin, manager, standard user, auditor, external user.
-5. Configure fiscal year start, document numbering placeholder, tax region placeholder, and data retention defaults.
+5. Configure fiscal year start, document numbering (pending - to be confirmed by maintainer), tax region (pending - to be confirmed by maintainer), and data retention defaults.
 6. Emit audit events for every setup step.
 
 ### User Invitation
@@ -255,3 +255,7 @@ Audit log access is permissioned separately from ordinary record access.
 - No full identity provider product; support external SSO later through integration.
 - No native payroll, statutory filing, or accounting close logic in this foundation module.
 - No copied permission schema or metadata model from Odoo, Twenty, Superset, or Node-RED.
+
+## Agentic Impacts
+
+Agentic support adds tenant-aware identity modes, policy hooks, tool-call audit fields, supervision actions, budget limits, revocation paths and bilingual FR/EN notification requirements to the foundation layer; the consolidated impact map is in [`docs/study/10-mvp-specs/agentic-impacts.md`](agentic-impacts.md).

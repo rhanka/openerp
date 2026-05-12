@@ -294,3 +294,7 @@ No SQL authoring, arbitrary dataset editor, or chart exploration is required.
 - No Node-RED clone, visual flow canvas, arbitrary plugin installation, arbitrary JavaScript execution, or generic node palette in MVP.
 - No copied Superset dashboard schemas, chart controls, import/export YAML, UI text, or report templates.
 - No copied Node-RED flow JSON, node APIs, editor canvas, palette metadata, credential UI, or built-in node behavior.
+
+## Agentic Impacts
+
+Agentic support extends typed automation with approved mini-module references, bounded input scopes, tool scopes, policy hooks, supervision checkpoints, trace retention, budget caps, FR/EN output settings and reports on agentic runs; the consolidated impact map is in [`docs/study/10-mvp-specs/agentic-impacts.md`](agentic-impacts.md).

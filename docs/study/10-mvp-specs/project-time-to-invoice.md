@@ -63,7 +63,7 @@ The module must:
 
 | State | Meaning |
 | --- | --- |
-| `todo` | Not started. |
+| `not_started` | Not started. |
 | `in_progress` | Work is active. |
 | `blocked` | Work cannot continue without dependency resolution. |
 | `done` | Delivery work complete. |
@@ -118,7 +118,7 @@ Rules:
 1. CRM emits won opportunity and quote handoff.
 2. Project manager creates project from handoff.
 3. System copies customer, opportunity reference, service summary, language, currency, and billing assumptions.
-4. Project manager selects billing mode: time-and-materials, milestone, recurring service, or fixed fee placeholder.
+4. Project manager selects billing mode: time-and-materials, milestone, recurring service, or fixed fee (pending - to be confirmed by maintainer).
 5. Project becomes active after required fields and manager assignment are complete.
 
 ### Task And Assignment Planning
@@ -253,3 +253,7 @@ MVP project reporting should include:
 - No advanced project portfolio management.
 - No copied Kimai entities, controllers, invoice renderers, API routes, templates, or report layouts.
 - No copied Odoo project/task/timesheet schemas, XML views, reports, or workflow text.
+
+## Agentic Impacts
+
+Agentic support adds timesheet classification suggestions, project status coaching, margin alerts, invoice-proposal preparation, typed checkpoints and audit-visible manager approval before finance impact; the consolidated impact map is in [`docs/study/10-mvp-specs/agentic-impacts.md`](agentic-impacts.md).

@@ -254,3 +254,7 @@ No advanced BI authoring is required in CRM MVP.
 - No general custom object engine in CRM MVP.
 - No copied Twenty object metadata model, GraphQL operations, workflow names, or UI labels.
 - No copied Odoo lead/opportunity schemas, XML views, reports, or workflow text.
+
+## Agentic Impacts
+
+Agentic support adds supervised lead qualification, follow-up preparation, timeline summaries, proposed activities, language-aware customer communication and audit-visible human validation to CRM; the consolidated impact map is in [`docs/study/10-mvp-specs/agentic-impacts.md`](agentic-impacts.md).
