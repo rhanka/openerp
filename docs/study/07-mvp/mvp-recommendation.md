@@ -201,3 +201,10 @@ Functional requirements:
 4. Billing/accounting operations module spec.
 5. Typed automation and reporting module spec.
 6. Anti-copy dossier and Canada/Quebec statutory research plan.
+
+## Agentic Addendum
+
+The agentic MVP posture is documented in
+[`docs/study/07-mvp/agentic-mvp-addendum.md`](agentic-mvp-addendum.md). It keeps agents inside the existing service-company MVP flow: lead qualification, customer follow-up, timesheet classification, project status support, invoice preparation, dunning preparation, AR/AP assistance, reporting synthesis, and object-bound decision summaries.
+
+The runtime recommendation is `@entropiq` plus MCP client/server support and policy hooks before product use. Marketplace exposure stays internal-governed private tier only; business autonomy starts with a self-service catalog; authoring, partner/community publication, large-scope autonomy, and vertical-pack agents remain post-MVP.
