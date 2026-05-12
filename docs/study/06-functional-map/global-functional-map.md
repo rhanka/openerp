@@ -74,6 +74,22 @@ Teams clone. Generic workspace databases, generic chat, broad whiteboards, and
 full portfolio management remain later or integration-first unless pilot
 evidence changes the product boundary.
 
+## Agentic Extension
+
+The detailed agentic map is maintained in
+`docs/study/06-functional-map/agentic-functional-map.md`.
+
+Agentic capabilities support CRM, project and service delivery, billing,
+accounting operations, reporting, automation, and object-bound collaboration by
+helping users draft, validate, summarize, reconcile, monitor, and escalate work
+inside existing domain workflows. They do not replace those domains, change the
+source of truth, or create a separate generic assistant product.
+
+Procurement, MES, WMS, payroll, and manufacturing planning agents remain
+surface-mapped as later vertical packs. They should reuse the same object spine,
+permission model, audit trail, localization posture, and supervision model once
+their domain specs are written.
+
 ## Cross-Domain Object Spine
 
 These objects should be stable across modules because Graphify repeatedly surfaced them as integration points:
