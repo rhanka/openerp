@@ -2,9 +2,9 @@
 
 ## Avancement
 
-Fait: etude corpus, fiches, shortlist, Graphify wave A, extension collaboration, carte fonctionnelle, recommandation MVP, dossier anti-copy, recherche Canada/Quebec et specs MVP initiales termines.
-À faire: lancer la phase implementation planning puis le scaffold applicatif; phase d'etude initiale et extension collaboration terminees a 100%.
-Attendu: valider le passage en implementation avec un premier plan sur foundation/security/i18n, car ce module conditionne CRM, projet, facturation, reporting, collaboration objet et automation.
+Fait: etude corpus, fiches, shortlist, Graphify wave A, extension collaboration, extension agentique, carte fonctionnelle, recommandation MVP, dossier anti-copy, recherche Canada/Quebec et specs MVP initiales termines.
+À faire: lancer la phase implementation planning puis le scaffold applicatif; phase d'etude initiale, extension collaboration et extension agentique terminees.
+Attendu: valider le passage en implementation avec un premier plan sur foundation/security/i18n, car ce module conditionne CRM, projet, facturation, reporting, collaboration objet, automation et agents supervises.
 
 ## Decision Produit
 
@@ -28,6 +28,7 @@ La collaboration est une couche transverse du produit ("transverse layer"), pas 
 | Graphify | 32 runs TypeScript-runtime, dont BookStack, Baserow et Zulip pour l'extension collaboration. |
 | Proprietary references | Workday, Wave, QuickBooks, Sage, SAP Business One et autres gardes comme benchmarks publics uniquement. |
 | Collaboration references | Notion, ClickUp, Airtable, Monday, Asana, Slack et Teams comme benchmarks publics uniquement. |
+| Agentic references | Corpus agentique, 50 entreprises datees et design spaces runtime/identite/autonomie/marketplace/supervision. |
 | Recherche statutaire | Sources officielles CRA, Revenu Quebec et CNESST pour cadrer paie, GST/QST, slips, remises, bulletins de paie, registre des salaires, vacances et jours feries. |
 | Specs MVP | 5 specs implementation-ready: foundation/security/i18n, CRM, project/time-to-invoice, billing/accounting, reporting/automation. |
 
@@ -78,6 +79,62 @@ Les sources MIT/Apache/BSD peuvent informer l'architecture avec attribution et n
 
 Ne pas reutiliser code, UI text, docs, assets, screenshots, tests, demo data, schemas, API shapes, templates, slash commands, noms de blocs, routes, payloads ou workflow structures. Les surfaces collaboration sont particulierement reconnaissables; le controle anti-copy doit donc etre applique avant chaque merge de ce domaine.
 
+## Agentic Extension
+
+L'extension agentique complete l'etude avec un cadrage fonctionnel, runtime, gouvernance et anti-copy pour des agents supervises dans OpenERP. Les sources principales sont la carte fonctionnelle agentique [`docs/study/06-functional-map/agentic-functional-map.md`](../06-functional-map/agentic-functional-map.md), l'addendum MVP [`docs/study/07-mvp/agentic-mvp-addendum.md`](../07-mvp/agentic-mvp-addendum.md) et les design spaces dans [`docs/study/12-agentic/`](../12-agentic/).
+
+La posture reste ERP/CRM-first: l'agent n'est pas un produit separe, ni un constructeur generaliste. Il augmente les objets OpenERP existants avec aide a la qualification, classification, rapprochement, synthese, relance, reporting et decision objet.
+
+## Agentic Functional Headline
+
+Le headline fonctionnel est: **agents supervises pour accelerer le flux lead -> projet -> temps -> facture -> rapprochement -> reporting -> decision objet**.
+
+Les familles MVP retenues sont CRM, project/service delivery, billing, accounting operations, reporting/automation et object-bound collaboration. Le detail est dans [`docs/study/12-agentic/agents-by-use-case.md`](../12-agentic/agents-by-use-case.md), [`docs/study/12-agentic/patterns-library.md`](../12-agentic/patterns-library.md) et les fiches agentiques de [`docs/study/02-fiches/`](../02-fiches/).
+
+Les vertical packs procurement, MES, WMS, payroll et manufacturing planning restent later vertical packs, not part of the agentic MVP; voir [`docs/study/12-agentic/vertical-packs-surface-map.md`](../12-agentic/vertical-packs-surface-map.md).
+
+## Agentic Runtime Base: `@entropiq`
+
+Le runtime de base recommande `@entropiq` comme ancre: client LLM, tool calling type, boucle agent persistante, chat session, workflow state machine, streaming et trace recording. L'audit est documente dans [`docs/study/12-agentic/entropiq-audit.md`](../12-agentic/entropiq-audit.md).
+
+Deux manques doivent etre ajoutes avant usage produit: MCP client/server et policy hooks pre-call/post-call. La posture runtime complete est dans [`docs/study/12-agentic/runtime-safety-functional-map.md`](../12-agentic/runtime-safety-functional-map.md) et [`docs/study/07-mvp/agentic-mvp-addendum.md`](../07-mvp/agentic-mvp-addendum.md).
+
+## Agentic Identity And Business Autonomy
+
+L'identite agentique repose sur Acting-As pour l'assistance en session, Service Principal pour les jobs planifies/event-driven et On-Behalf-Of pour les workflows delegues. Le detail est dans [`docs/study/12-agentic/identity-design-space.md`](../12-agentic/identity-design-space.md).
+
+L'autonomie business MVP commence par self-service catalog: discovery, selection/activation et configuration limitee. L'authoring reste post-MVP; voir [`docs/study/12-agentic/business-autonomy-design-space.md`](../12-agentic/business-autonomy-design-space.md).
+
+## Agentic Marketplace Posture
+
+Le MVP est limite a un niveau **internal-governed private tier only**: modules visibles dans le tenant, activation controlee, version tracee, revocation possible et audit d'activation.
+
+La publication partenaire et la communaute publique restent post-MVP, avec exigences de signature, registre, provenance, revue, policy, sandbox et observabilite decrites dans [`docs/study/12-agentic/marketplace-design-space.md`](../12-agentic/marketplace-design-space.md).
+
+## Agentic Runtime Safety And Supervision
+
+Les primitives obligatoires sont policy engine, sandboxing, MCP interop, GenAI observability, secrets and credentials, budgets et human supervision. Elles sont cartographiees dans [`docs/study/12-agentic/runtime-safety-functional-map.md`](../12-agentic/runtime-safety-functional-map.md).
+
+La supervision combine approval-in-the-loop, canary mini-modules, typed checkpoints, escalation rules et exigences bilingues FR/EN. Le detail est dans [`docs/study/12-agentic/human-supervision-design-space.md`](../12-agentic/human-supervision-design-space.md).
+
+## Agentic Deep Research Summary
+
+La recherche agentique couvre le corpus open source, les references proprietaires datees, les startups et produits recents, les cas d'usage metier, MCP, observabilite, policy et sandbox. Les syntheses sources sont dans [`docs/study/01-corpus/agentic-corpus-report.md`](../01-corpus/agentic-corpus-report.md), [`docs/study/04-proprietary-references/agentic-references.md`](../04-proprietary-references/agentic-references.md) et [`docs/study/12-agentic/startups-deep-research.md`](../12-agentic/startups-deep-research.md).
+
+Les references proprietaires et source-available restent benchmarks publics ou references fonctionnelles. Les projets permissifs peuvent informer l'architecture avec notices et attribution si une decision technique de reuse est prise.
+
+## Agentic License And Anti-Copy
+
+La cible produit reste MIT. `@entropiq` est l'ancre runtime, mais sa restriction commerciale custom doit etre resolue avant de le traiter comme distribution MIT ordinaire; voir [`docs/study/12-agentic/license-posture.md`](../12-agentic/license-posture.md).
+
+Les surfaces agentiques les plus sensibles sont prompts, personas, tool schemas, workflow definitions, eval datasets, demos, marketplace UI, agent catalog/configuration/builder UI, policy DSL syntax, sandbox config et MCP server schemas. Les controles sont dans [`docs/study/08-anti-copy/agentic-anti-copy-addendum.md`](../08-anti-copy/agentic-anti-copy-addendum.md).
+
+## Agentic MVP Recommendation
+
+Ajouter au MVP seulement des agents supervises, bornes a des objets OpenERP et relies aux workflows existants: qualification lead, suivi client, classification de temps, coaching projet, preparation de facture, relance preparee, rapprochement AR, triage AP, synthese reporting et decision object-bound.
+
+Les impacts sur les specs MVP existantes sont centralises dans [`docs/study/10-mvp-specs/agentic-impacts.md`](../10-mvp-specs/agentic-impacts.md). L'ordre de construction reste foundation/security/i18n d'abord, puis CRM, projet/time-to-invoice, billing/accounting, reporting/automation, collaboration objet et agents supervises.
+
 ## Recommandation MVP
 
 Construire en premier:
@@ -88,6 +145,7 @@ Construire en premier:
 - billing/accounting: invoices, recurring schedules, payments, journal entries, tax abstraction, period close basics;
 - reporting/automation: saved views, operational reports, dashboards, exports, scheduled delivery, typed workflows and webhooks;
 - collaboration objet: comments, mentions, files, decisions, approvals, lightweight tasks, pages, notifications and permission-aware search;
+- agents supervises: lead qualification, follow-up, timesheet classification, project status coaching, invoice preparation, dunning preparation, AR/AP assistance, reporting summaries and object-bound decision summaries;
 - deployment: SaaS first, self-hosted Kubernetes supported from the beginning.
 
 ## Hors MVP Explicite
@@ -101,6 +159,7 @@ Construire en premier:
 - Full Kill Bill/OpenMeter-class subscription and usage engine.
 - Generic Notion/ClickUp/Slack/Airtable clone.
 - Generic company chat, whiteboard, bot marketplace or no-code workspace builder.
+- Agent builder generaliste, marketplace partenaire/communautaire, agents autonomes a large portee et agents vertical packs.
 
 ## Canada Et Quebec
 
@@ -162,6 +221,9 @@ The product must expose version state, preflight checks, backup requirement, mig
 | Collaboration MVP addendum | `docs/study/07-mvp/collaboration-mvp-addendum.md` |
 | Anti-copy dossier | `docs/study/08-anti-copy/anti-copy-dossier.md` |
 | Collaboration anti-copy addendum | `docs/study/08-anti-copy/collaboration-anti-copy-addendum.md` |
+| Agentic MVP addendum | `docs/study/07-mvp/agentic-mvp-addendum.md` |
+| Agentic anti-copy addendum | `docs/study/08-anti-copy/agentic-anti-copy-addendum.md` |
+| Agentic design space | `docs/study/12-agentic/` |
 | Canada/Quebec research | `docs/study/09-canada-quebec/statutory-research.md` |
 | MVP specs | `docs/study/10-mvp-specs/` |
 | Final PPTX | `docs/study/11-final-package/openerp-final-synthesis.pptx` |
@@ -174,10 +236,11 @@ The product must expose version state, preflight checks, backup requirement, mig
 4. Choisir le premier fournisseur ou format d'integration payroll Quebec/Canada.
 5. Confirmer le premier pilot target: service company, recurring-service company, ou small manufacturer with services.
 6. Confirmer les premiers objets collaboration: customer, opportunity, project, task, time entry, invoice et support case.
+7. Confirmer le sous-ensemble agentique MVP et le sequence apres foundation/security/i18n.
 
 ## Updated Next Step
 
-Ecrire le plan d'implementation de foundation/security/i18n puis scaffold applicatif:
+Ecrire le plan d'implementation de foundation/security/i18n puis scaffold applicatif. La transition post-etude agentique arrive ensuite: planifier le MVP agentique supervise apres la base foundation/security/i18n, car les agents dependent de permissions, audit, FR/EN, identity modes, policy hooks, traces et supervision.
 
 1. repo app structure;
 2. Svelte/TypeScript frontend;
@@ -187,4 +250,5 @@ Ecrire le plan d'implementation de foundation/security/i18n puis scaffold applic
 6. FR/EN i18n baseline;
 7. CI/test/build pipeline;
 8. Kubernetes/self-hosted skeleton;
-9. primitives collaboration objet: comments, mentions, files, decisions, approvals, notifications and search hooks.
+9. primitives collaboration objet: comments, mentions, files, decisions, approvals, notifications and search hooks;
+10. cadrage implementation du MVP agentique supervise: `@entropiq` integration, MCP, policy hooks, self-service catalog interne, traces et checkpoints humains.
