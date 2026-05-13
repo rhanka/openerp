@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: First implementation-ready MVP spec drafted for tenant foundation, user/role/permission model, audit logging, settings, files, notifications, and FR/EN localization baseline.
-À faire: Draft CRM, project/time-to-invoice, billing/accounting, and reporting/automation specs; module-spec package is about 20% complete.
-Attendu: Use this spec as the base contract for every later MVP module, because permissions, audit, locale, tenant settings, and update visibility are cross-cutting.
+Fait: spec drafted + enrichissement 2026-05-12 (functional depth, cross-ERP benchmark, UI screen inventory, tech layer options, decision register). 6 décisions P0 transverses identifiées (canon entités, RLS, queue, i18n, identité multi-tenant, Idempotency-Key) remontées au decision-pack.
+À faire: arbitrage porteur produit via `decision-pack.md` (PG-02/03/05/06/07/08 bloquent foundation), puis gravage des décisions inline dans cette spec.
+Attendu: figer foundation en premier — bloque toutes les autres specs (RLS, AuditEvent étendu agentic, ApprovalRequest, Money type, i18n catalog).
 
 ## Objective
 

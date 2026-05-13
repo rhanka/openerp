@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: CRM/customer timeline MVP spec drafted for companies, contacts, leads, opportunities, activities, timeline, imports, ownership, and quote/contract handoff.
-À faire: Draft project/time-to-invoice, billing/accounting, and reporting/automation specs; module-spec package is about 40% complete.
-Attendu: Use this CRM spec as the first customer-facing workflow contract, then connect accepted opportunities to project/time and billing specs.
+Fait: spec drafted + enrichissement 2026-05-12 (12 décisions D-CRM-01→12, 12 écrans CRM-S01→S12, 3 anti-copy hotspots Twenty/Odoo/HubSpot flaggés). Décisions clés remontées au decision-pack : custom fields JSON+declarative (ferme mimic Twenty), multi-currency par opportunité, frontière CRM/Billing QuoteHandoff.
+À faire: arbitrage porteur produit via `decision-pack.md` (C-1 à C-5 + PG-06 canon Activity), puis correction `pipeline_stage.{tenant_stage_id}.fr` en table dédiée (désaccord reviewer), puis gravage inline.
+Attendu: foundation arbitré en premier (multi-tenant + canon entités) avant de figer CRM ; lien projet ↔ opportunité 1:N à confirmer avec project spec.
 
 ## Objective
 

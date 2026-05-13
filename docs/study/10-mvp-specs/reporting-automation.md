@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Reporting/automation MVP spec drafted for saved views, operational reports, dashboards, exports, scheduled delivery, typed triggers/actions, workflow runs, and webhook delivery.
-À faire: Review the full MVP spec package for cross-module consistency and produce final package synthesis; module-spec package is about 100% complete.
-Attendu: Use this spec to deliver operational visibility and controlled automation without rebuilding Superset or Node-RED inside the ERP core.
+Fait: spec drafted + enrichissement 2026-05-12 (14 décisions YAML, 13 écrans originaux, 7 axes techno). Posture Apache (Superset, Node-RED) explicitement notice-conditionnée, pas de copy canvas/explorer.
+À faire: arbitrage porteur produit (R-1 à R-6 + PG-10 BI stack + PG-11 PDF), assouplir scope dashboards en team-scope (désaccord reviewer : admin-curated only trop strict), aligner sur queue PG-04.
+Attendu: figer après foundation (RBAC objet-level utilisé pour row-level reporting) + après billing (subscription/recurring schedule share pgmq).
 
 ## Objective
 

@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Brainstorming validé, design approuvé en séance, Phase 2 ajustée pour combiner relecture Claude et cross-check codex.
-À faire: Exécuter writing-plans pour produire le plan d'exécution détaillé puis dispatcher 6 sous-agents Claude pour la Phase 1, lancer la double revue (Claude + codex) en Phase 2, et consolider en Phase 3.
-Attendu: Tu valides ce design (ce fichier) ; je passe immédiatement à writing-plans.
+Fait: Phase 1 (6 enrichissements parallèles, commit `f163a16`), Phase 2 (Claude reviewer + codex exec, sorties dans `tmp/`), Phase 3 (consolidation `decision-pack.md` commit `c277be1`, PPTX thème projet commit `a499fd2`), sweep `@entropiq` → `@sentropic` plain MIT (commit `54dede9`), synchronisation Progress 6 specs (commit en cours).
+À faire: arbitrage porteur produit sur les 12 décisions programme + 30 décisions par spec ; création `NOTICE` racine + script CI anti-copy après gravage.
+Attendu: porteur arbitre via `decision-pack.pptx` ; gravage inline ; passage en mode réalisation/audit.
 
 ## Objective
 

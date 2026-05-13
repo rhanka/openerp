@@ -4,9 +4,9 @@ Sprint de cadrage MVP OpenERP. Consolidation transverse des 6 specs MVP enrichie
 
 ## Statut
 
-- **Fait** : 6 specs MVP enrichies (`docs/study/10-mvp-specs/`), commit `f163a16`, +1675 lignes. Double revue (`tmp/claude-cross-review.md` ~5300 mots, `tmp/codex-review.md` ~1500 mots).
-- **À faire** : arbitrage porteur produit sur ce pack, gravage des décisions inline dans les 6 specs, sweep rename `@entropiq` → `@sentropic` (31 docs).
-- **Attendu** : tu arbitres ; je grave ; je passe en mode réalisation/audit.
+- **Fait** : 6 specs MVP enrichies (commit `f163a16`, +1675 lignes), double revue (`tmp/claude-cross-review.md` 5300 mots + `tmp/codex-review.md` 1500 mots), decision-pack MD + PPTX (commits `c277be1` + `a499fd2` thème projet), sweep rename `@entropiq` → `@sentropic` plain MIT sur 30 docs (commit `54dede9`, 163 occurrences). Blocs `## Progress` des 6 specs synchronisés.
+- **À faire** : arbitrage porteur produit sur ce pack (6 décisions P0 bloquent code), gravage des décisions inline dans les 6 specs, création `NOTICE` racine, script CI anti-copy.
+- **Attendu** : tu arbitres ; je grave ; je passe en mode réalisation/audit. Push remote en attente de ton OK explicite.
 
 ## Synthèse exécutive
 

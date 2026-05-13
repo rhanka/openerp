@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: impacts agentiques consolidés depuis l'addendum MVP, la carte fonctionnelle agentique, les design spaces runtime, identité, autonomie et supervision.
-À faire: transformer ces impacts en exigences détaillées pendant la phase de specs produit.
-Attendu: appliquer ces impacts comme contraintes transverses avant d'implémenter tout mini-module agentique.
+Fait: impacts agentiques + enrichissement 2026-05-12 (15 décisions AGT-D-01→15, dont AGT-D-12 et AGT-D-13 marquées RESOLVED après rename `@entropiq` → `@sentropic` plain MIT). 8 axes techno transverses (sandbox, policy, observability, identity, MCP, supervision).
+À faire: arbitrage porteur produit sur les 6 décisions transverses agentiques restantes (approval threshold, rate-limit triplet, budget defaults, irreversible actions, supervision UI placement, MCP audit), aligner sandbox MVP scope (codex conteste isolated-vm si code tiers hostile).
+Attendu: figer après foundation (AuditEvent étendu + identité JWT agent + ApprovalRequest) ; supervision banner imposée comme contrainte UI à toutes les surfaces métier.
 
 ## Purpose
 

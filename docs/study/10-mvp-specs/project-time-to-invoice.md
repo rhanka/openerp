@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Project/time-to-invoice MVP spec drafted for service projects, tasks, activities, assignments, time entries, approval, billing rules, invoice proposal, and traceability.
-À faire: Draft billing/accounting and reporting/automation specs; module-spec package is about 60% complete.
-Attendu: Use this spec to connect CRM wins to billable delivery and to feed the billing/accounting spec with approved invoice proposal lines.
+Fait: spec drafted + enrichissement 2026-05-12 (15 décisions PT-D-01→15, 10 écrans delivery.*, 8 axes techno). Décisions clés au decision-pack : approval per-week, tâche parent-enfant 1 niveau MVP, lien projet ↔ opportunité 1:N.
+À faire: arbitrage porteur produit (P-1 à P-5), corriger `ServiceActivity.fr_label/en_label` en TranslationKey (cohérence PG-05 i18n ICU JSON foundation), valider mode timer MVP (codex recommande post-MVP).
+Attendu: figer après foundation + CRM (dépend du canon Activity PG-06 et du multi-currency CRM C-3).
 
 ## Objective
 

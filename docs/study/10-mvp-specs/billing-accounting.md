@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: Billing/accounting MVP spec drafted for invoice drafts, recurring billing schedules, project invoice proposals, payment status, journal postings, tax registration settings, and conservative accounting controls.
-À faire: Draft reporting/automation spec; module-spec package is about 80% complete.
-Attendu: Use this spec as the financial boundary for MVP implementation, while keeping statutory filing and native payroll outside scope until versioned rule packs exist.
+Fait: spec drafted + enrichissement 2026-05-12 (14 décisions BA-DEC-001→014, 10 écrans, 8 axes techno, exigence Québec inscrite transverse). NOTICE Apache pour Kill Bill / OpenMeter explicitement requise (BA-DEC-014).
+À faire: arbitrage porteur produit (B-1 à B-5 + PG-04 queue + PG-07 ApprovalRequest), créer `NOTICE` racine du repo, revoir noms de champs comptables vs Odoo `account.move` avant code (anti-copy P-12).
+Attendu: figer après foundation (Money type PG-06 + multi-currency PG-?) et après CRM (multi-currency par opportunité C-3) ; subscription engine native MVP + interface Kill Bill compatible pour migration.
 
 ## Objective
 
