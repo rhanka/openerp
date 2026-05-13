@@ -257,3 +257,216 @@ MVP project reporting should include:
 ## Agentic Impacts
 
 Agentic support adds timesheet classification suggestions, project status coaching, margin alerts, invoice-proposal preparation, typed checkpoints and audit-visible manager approval before finance impact; the consolidated impact map is in [`docs/study/10-mvp-specs/agentic-impacts.md`](agentic-impacts.md).
+
+## Enrichment 2026-05-12
+
+This block extends the MVP spec with functional depth, cross-ERP benchmark, UI inventory, technical option set, and recorded decisions. Existing sections above remain authoritative; this block adds resolution and context for the maintainer review pass. All wording is original, FR-CA prioritaire with EN-CA parité, and no third-party identifiers (table names, controller names, UI strings) are copied.
+
+### Functional Depth
+
+#### User Stories
+
+- US-PT-01 — As a project manager, when a CRM opportunity is marked won, I want to create a delivery project with one click that carries customer, language, currency, opportunity reference, and proposed billing assumptions, so I can start planning without re-keying handoff data.
+- US-PT-02 — As a consultant, I want to log time against an assigned project, task, and service activity, with a billable default I can override, so my hours feed both delivery reporting and invoicing without manual reclassification.
+- US-PT-03 — As a project manager, I want to review and approve a week of team time entries in one queue, filtered by project and submission state, so I can release billable hours quickly while keeping non-billable hours visible for margin.
+- US-PT-04 — As a finance user, I want to generate an invoice proposal draft for a project and period, see proposed lines grouped by activity and resource with rate snapshot, and exclude or write off lines with a reason, so finance keeps control while delivery prepares.
+- US-PT-05 — As a manager, I want to see, per project, approved-but-not-proposed hours, budget-vs-actual hours, and overdue tasks, so I can act on revenue risk and delivery slippage before month-end.
+
+#### Golden Path
+
+Opportunity won (CRM) → project created from handoff with copied customer/currency/language → manager confirms billing mode and rate source → tasks and service activities created with estimates and billable defaults → assignments with allocation and applicable rate → consultants log time entries (draft → submitted) → manager approves entries in batch (approved) → finance generates invoice proposal for project + period → reviewer accepts proposed lines (rate snapshot frozen) → proposal approved → handoff event emitted to billing/accounting module → time entry billing status moves to `proposed` then `invoiced` once billing module issues the invoice → delivery timeline reflects the closed billing loop.
+
+#### Edge Cases
+
+- EC-PT-01 — Overlapping time entries: two entries by the same user with overlapping start/duration windows. MVP rule: duration-based logging without start/stop overlap detection is allowed; if timer mode is enabled, the new timer auto-stops the previous one. Validation message must be FR/EN.
+- EC-PT-02 — Project reassignment mid-period: a project is moved to a different customer or billing mode while approved-but-not-proposed hours exist. Rule: those hours retain their original project snapshot for billing; new entries follow the new billing rule. Audit event `project.reassigned` is emitted.
+- EC-PT-03 — Rate change mid-period: an effective-dated rate change happens between work date and approval/proposal. Rule: rate source resolves by work date, not by approval date; proposal line carries the resolved rate snapshot.
+- EC-PT-04 — FR/EN language mismatch: project customer language is FR-CA but the consultant operates in EN-CA. Rule: proposal line description uses translation keys; rendered text follows customer language; internal UI follows user language.
+- EC-PT-05 — Billing handoff retry: a `handoff_to_billing` event is delivered but the billing module returns a transient failure. Rule: proposal stays `approved`, lines remain locked, handoff is idempotent by proposal id, and re-emission produces no duplicate billing artifact.
+- EC-PT-06 — Late correction on approved time: an approved entry needs adjustment after lock. Rule: a controlled correction creates a paired adjustment entry referencing the original; the original stays locked; both entries reconcile in delivery timeline.
+
+#### Acceptance Criteria
+
+- A project cannot be activated without manager, customer, currency, and a billing mode (consistent with existing acceptance tests above).
+- Time entries cannot move to `submitted` without a project assignment that is active on the work date.
+- Approval action requires a different actor than the entry author unless an explicit self-approval policy is granted at organization level.
+- Invoice proposal generation is idempotent on (project_id, period_start, period_end, source_set_hash).
+- Rate snapshot on proposal line equals the rate resolved at time-entry work date, not at proposal generation date.
+- Every approval, rejection, correction, and proposal action emits a domain event with actor, timestamp, and reason where applicable.
+- FR-CA and EN-CA labels exist for every status enum, validation message, and translation key used in proposal line descriptions.
+
+### Cross-ERP Benchmark
+
+License posture: Odoo entries describe abstracted observations only; Kimai/OpenProject/ERPNext entries are functional reference only. No vendor identifiers, table names, or UI strings are reused.
+
+| Capability | Odoo | Kimai | OpenProject | ERPNext | Posture |
+| --- | --- | --- | --- | --- | --- |
+| Project hierarchy | Project with sub-projects and grouped tasks observable in the suite. | Customer → project → activity, flat hierarchy. | Project with sub-projects, portfolios, programs, and work-package hierarchy. | Project with parent/child projects and tasks. | MVP: single project with flat sub-tasks under each task at most one level. |
+| Task model | Tasks with sub-tasks, stages, assignees, dependencies. | Activities at customer/project/global level, not full task model. | Work packages with rich types, status, custom fields, dependencies. | Tasks with status, dependencies, and timesheets. | MVP: tasks with status, assignee, estimate, optional parent (one level). |
+| Time tracking | Timesheet entries with hours and project/task/activity. | Strong timesheet with duration and rich filters/reports. | Spent time on work packages with module-level tracking. | Timesheets with activity and project links. | MVP: time entry on project + task + service activity, duration-based. |
+| Timer | Live timer integrated with timesheet. | First-class running timer with start/stop. | Time tracker on work packages. | Timer present alongside manual entry. | MVP: manual duration first; optional timer behind a tenant setting. |
+| Approval workflow | Period-based timesheet submit/approve flow observable. | Lock/unlock and approval flows present. | Approval modules exist; project-level configuration. | Timesheet submit/approve with manager flow. | MVP: per-entry approval queue grouped by project + week. |
+| Billable flag | Billable default propagates from project/activity. | Billable flag on activity, project, and entry. | Billable annotation limited; cost tracking via custom fields/plugins. | Billable flag on timesheet and project. | MVP: billable default cascades project → activity → assignment → entry, overridable. |
+| Hourly rate | Rate per employee/project/customer with effective dates observed. | Rates per user, customer, project, activity with hourly/fixed. | Cost rates via custom fields/plugins. | Activity-type and employee billing/cost rate. | MVP: rate with effective-dated snapshot, resolution by work date. |
+| Milestones | Milestone billing supported in service flows. | Fixed-rate items on invoices. | Versions/milestones on work packages. | Project milestones and deliverables. | MVP: milestone billing rule on project, manual trigger. |
+| Invoice generation | Service invoicing from timesheet and milestone observable. | Invoice templates from approved time, multiple renderers. | No native invoicing. | Sales invoice from delivered service or timesheet. | MVP: invoice proposal draft → handoff to billing/accounting module; this module does not render final invoice. |
+| Capacity planning | Forecast/capacity in service modules. | Not present. | Capacity views and team planner. | Resource allocation per project. | MVP: out-of-scope, only allocation percent on assignment is captured. |
+| Gantt | Gantt in project app. | Not present. | Gantt-style timeline mature. | Gantt available on tasks. | MVP: out-of-scope, list and board only. |
+| Time-off integration | Tight integration with leave. | None native. | Non-working time and working hours on user. | HR module separate; leave integration. | MVP: time-off lives in the HR module; project time entries simply exclude leave days from billable utilization counts. |
+
+### UI Screen Inventory
+
+Internal names use the project's convention `delivery.<screen>`; FR-CA and EN-CA labels resolve via translation keys.
+
+| Screen | Internal id | Purpose | Key surfaces |
+| --- | --- | --- | --- |
+| Project list | `delivery.project.list` | Filterable index of active and historical projects per scope. | Filters by status, customer, manager, billing mode; columns include name, customer, status, budget vs actual hours, billable hours pending. |
+| Project detail | `delivery.project.detail` | Single project overview with delivery, billing readiness, and team. | Tabs: overview, tasks, time entries, billing rules, proposals, timeline. |
+| Task board | `delivery.task.board` | Kanban-style status flow for tasks of a project. | Columns map to task statuses; cards show estimate, assignee, due date, billable default. |
+| Time entry composer | `delivery.time.compose` | Create or edit a time entry with optional running timer. | Fields: project, task, activity, work date, duration, billable, description; timer start/stop controls behind tenant setting. |
+| My time week | `delivery.time.week` | Personal weekly grid of own entries with submit action. | Rows per project/task/activity, columns per weekday, totals, submit selected. |
+| Time approval queue | `delivery.time.approval` | Manager queue of submitted entries grouped by project and week. | Bulk approve/reject with reason; filter by submitter, project, date range. |
+| Invoice proposal preview | `delivery.proposal.preview` | Draft invoice proposal with traceable source lines. | Grouping by activity/resource; exclude, write-off, adjust actions; rate snapshot column; approve/handoff buttons. |
+| Milestone tracker | `delivery.milestone.tracker` | Project milestones with billing readiness. | Status, planned/actual completion, billing rule, triggered proposals. |
+| Capacity view (read-only MVP) | `delivery.capacity.view` | Per-user allocation across active projects within a period. | Allocation percent vs available hours; surfaces over-allocation flags only, no scheduler. |
+| Delivery timeline | `delivery.timeline` | Audit feed of project events for delivery review. | Chronological list of typed events with actor, payload summary, and links to source entities. |
+
+### Tech Layer Options
+
+Each axis records the MVP choice and the rejected alternatives with rationale.
+
+1. Time entry mode
+   - Options: timer + manuel; manuel seul; timer only.
+   - MVP choice: manuel seul as the default; timer optional behind a per-tenant setting.
+   - Rationale: covers consulting and back-office logging without imposing timer discipline; timer remains available for service teams that already work that way.
+
+2. Approval workflow
+   - Options: per-entry; per-week; per-project; aucune en MVP.
+   - MVP choice: per-entry approval surfaced through a manager queue that supports per-week bulk approval as a UI convenience.
+   - Rationale: per-entry granularity protects billing accuracy; bulk UI gives weekly-rhythm teams a fast path.
+
+3. Invoice trigger
+   - Options: manuel; milestone; récurrent; mix.
+   - MVP choice: manuel + milestone mix; récurrent moved to post-MVP via the billing/accounting module.
+   - Rationale: T&M and milestone cover the majority of service-company billing; recurring belongs in billing/subscription scope, not in delivery.
+
+4. Task hierarchy
+   - Options: flat; parent-enfant un niveau; portfolio (programme > projet > tâche).
+   - MVP choice: parent-enfant un niveau, with portfolio deferred.
+   - Rationale: enough structure for implementation work breakdowns without portfolio complexity.
+
+5. Project ↔ opportunity link
+   - Options: 1:1; 1:N; référence floue.
+   - MVP choice: 1:N from opportunity to projects, with one canonical opportunity per project (back-reference single-valued).
+   - Rationale: an opportunity can split into multiple delivery projects; each project still answers to one win event for traceability.
+
+6. Per-project billing mode
+   - Options: T&M; fixed-price; hybride (cap + T&M).
+   - MVP choice: T&M and fixed-price as first-class; hybride (cap + T&M) supported through a project-level cap rule that converts T&M to non-billable once reached.
+   - Rationale: the cap pattern is common in implementation contracts and can be expressed without a separate billing engine.
+
+7. Resource allocation
+   - Options: capacity per user; capacity per role; aucune en MVP.
+   - MVP choice: allocation percent per user assignment, with no aggregated capacity view beyond a read-only surface.
+   - Rationale: provides input to utilization reporting without a scheduling product.
+
+8. Time entry rounding
+   - Options: aucun; 15 min; configurable.
+   - MVP choice: configurable per tenant with default `none`; allowed values `none`, `5min`, `6min`, `15min`, `30min`.
+   - Rationale: many shops bill in 15-minute units while others want exact durations; one tenant-level setting avoids per-user friction.
+
+### Decision Register
+
+```yaml
+decisions:
+  - id: PT-D-01
+    topic: time_entry_mode
+    choice: manual_with_optional_timer
+    scope: mvp
+    rationale: duration-based logging suits consulting; timer optional via tenant flag.
+
+  - id: PT-D-02
+    topic: approval_workflow
+    choice: per_entry_with_bulk_weekly_ui
+    scope: mvp
+    rationale: granular control with a weekly bulk path in the approval queue.
+
+  - id: PT-D-03
+    topic: invoice_trigger
+    choice: manual_and_milestone_mix
+    scope: mvp
+    rationale: recurring billing handled by billing/accounting module post-MVP.
+
+  - id: PT-D-04
+    topic: task_hierarchy
+    choice: parent_child_one_level
+    scope: mvp
+    rationale: enough structure without portfolio overhead.
+
+  - id: PT-D-05
+    topic: project_opportunity_link
+    choice: one_to_many_opportunity_to_projects
+    scope: mvp
+    rationale: traceable single source opportunity per project.
+
+  - id: PT-D-06
+    topic: per_project_billing_mode
+    choice: tm_and_fixed_with_cap_rule
+    scope: mvp
+    rationale: cap+T&M expressed as a project-level rule.
+
+  - id: PT-D-07
+    topic: resource_allocation
+    choice: allocation_percent_per_user_readonly_view
+    scope: mvp
+    rationale: feeds utilization reporting without a scheduler.
+
+  - id: PT-D-08
+    topic: time_entry_rounding
+    choice: tenant_configurable_default_none
+    scope: mvp
+    rationale: support 15-min billing shops and exact-duration shops with one setting.
+
+  - id: PT-D-09
+    topic: multi_currency_per_project
+    choice: yes
+    scope: mvp
+    rationale: project currency is set at creation and used for proposal lines; FX handled in billing/accounting module.
+
+  - id: PT-D-10
+    topic: subcontracted_time_with_vendor_bill
+    choice: post_mvp
+    scope: post_mvp
+    rationale: vendor bill association handled by billing/accounting; MVP captures subcontractor time as non-billable-to-customer when needed.
+
+  - id: PT-D-11
+    topic: time_off_integration
+    choice: external_via_hr_module
+    scope: mvp
+    rationale: HR module owns leave; project module reads non-working days for utilization calculations only.
+
+  - id: PT-D-12
+    topic: mobile_time_entry
+    choice: responsive_web_only
+    scope: mvp
+    rationale: responsive composer screen for phone use; no native mobile app in MVP.
+
+  - id: PT-D-13
+    topic: approval_delegation
+    choice: post_mvp
+    scope: post_mvp
+    rationale: per-policy delegation deferred; MVP allows reassigning approver per project as a workaround.
+
+  - id: PT-D-14
+    topic: self_approval_policy
+    choice: org_level_flag_default_false
+    scope: mvp
+    rationale: small teams need to enable self-approval; default forbids it to protect controls.
+
+  - id: PT-D-15
+    topic: idempotency_proposal_generation
+    choice: hash_of_project_period_source_set
+    scope: mvp
+    rationale: avoid duplicate proposals when generation is retried.
+```
+
