@@ -93,9 +93,9 @@ Les familles MVP retenues sont CRM, project/service delivery, billing, accountin
 
 Les vertical packs procurement, MES, WMS, payroll et manufacturing planning restent later vertical packs, not part of the agentic MVP; voir [`docs/study/12-agentic/vertical-packs-surface-map.md`](../12-agentic/vertical-packs-surface-map.md).
 
-## Agentic Runtime Base: `@entropiq`
+## Agentic Runtime Base: `@sentropic`
 
-Le runtime de base recommande `@entropiq` comme ancre: client LLM, tool calling type, boucle agent persistante, chat session, workflow state machine, streaming et trace recording. L'audit est documente dans [`docs/study/12-agentic/entropiq-audit.md`](../12-agentic/entropiq-audit.md).
+Le runtime de base recommande `@sentropic` comme ancre: client LLM, tool calling type, boucle agent persistante, chat session, workflow state machine, streaming et trace recording. L'audit est documente dans [`docs/study/12-agentic/entropiq-audit.md`](../12-agentic/entropiq-audit.md).
 
 Deux manques doivent etre ajoutes avant usage produit: MCP client/server et policy hooks pre-call/post-call. La posture runtime complete est dans [`docs/study/12-agentic/runtime-safety-functional-map.md`](../12-agentic/runtime-safety-functional-map.md) et [`docs/study/07-mvp/agentic-mvp-addendum.md`](../07-mvp/agentic-mvp-addendum.md).
 
@@ -125,7 +125,7 @@ Les references proprietaires et source-available restent benchmarks publics ou r
 
 ## Agentic License And Anti-Copy
 
-La cible produit reste MIT. `@entropiq` est l'ancre runtime, mais sa restriction commerciale custom doit etre resolue avant de le traiter comme distribution MIT ordinaire; voir [`docs/study/12-agentic/license-posture.md`](../12-agentic/license-posture.md).
+La cible produit reste MIT. `@sentropic` est l'ancre runtime, mais sa restriction commerciale custom doit etre resolue avant de le traiter comme distribution MIT ordinaire; voir [`docs/study/12-agentic/license-posture.md`](../12-agentic/license-posture.md).
 
 Les surfaces agentiques les plus sensibles sont prompts, personas, tool schemas, workflow definitions, eval datasets, demos, marketplace UI, agent catalog/configuration/builder UI, policy DSL syntax, sandbox config et MCP server schemas. Les controles sont dans [`docs/study/08-anti-copy/agentic-anti-copy-addendum.md`](../08-anti-copy/agentic-anti-copy-addendum.md).
 
@@ -251,4 +251,4 @@ Ecrire le plan d'implementation de foundation/security/i18n puis scaffold applic
 7. CI/test/build pipeline;
 8. Kubernetes/self-hosted skeleton;
 9. primitives collaboration objet: comments, mentions, files, decisions, approvals, notifications and search hooks;
-10. cadrage implementation du MVP agentique supervise: `@entropiq` integration, MCP, policy hooks, self-service catalog interne, traces et checkpoints humains.
+10. cadrage implementation du MVP agentique supervise: `@sentropic` integration, MCP, policy hooks, self-service catalog interne, traces et checkpoints humains.

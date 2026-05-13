@@ -23,9 +23,9 @@ OpenInference defines conventions for representing LLM and agent activity in tel
 
 For OpenERP, this is relevant because the agent runtime should emit traces that other observability tools can understand without locking OpenERP to one vendor.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Suitability is strong for standardizing the telemetry layer. `@entropiq` already has trace-oriented services, but the audit identifies missing eval hooks, audit trail mapping, and rollback hooks. OpenInference can inform the bridge between runtime events and standard telemetry.
+Suitability is strong for standardizing the telemetry layer. `@sentropic` already has trace-oriented services, but the audit identifies missing eval hooks, audit trail mapping, and rollback hooks. OpenInference can inform the bridge between runtime events and standard telemetry.
 
 OpenERP should keep its business audit model separate from telemetry conventions. The same event can produce a trace for operations and an audit record for tenant review.
 
@@ -42,7 +42,7 @@ Private-to-tenant use can start with core traces and audit links. Partner and pu
 - Audit trails: telemetry can carry audit context, but the durable audit trail must use OpenERP-owned records.
 - Rollback hooks: pending - to be confirmed by maintainer.
 
-OpenERP should map `@entropiq` events into standard telemetry while keeping tenant data minimization, redaction, and bilingual review language under OpenERP control.
+OpenERP should map `@sentropic` events into standard telemetry while keeping tenant data minimization, redaction, and bilingual review language under OpenERP control.
 
 ## Self-Hosted And Kubernetes
 

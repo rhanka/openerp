@@ -2,7 +2,7 @@
 
 ## Progress
 
-Fait: document de Task 15 créé avec les sections obligatoires, la lecture fonctionnelle de chaque primitive de sécurité, et le mapping vers les lacunes identifiées de `@entropiq`.
+Fait: document de Task 15 créé avec les sections obligatoires, la lecture fonctionnelle de chaque primitive de sécurité, et le mapping vers les lacunes identifiées de `@sentropic`.
 À faire: validation des seuils de budget et des paramètres de supervision avec la sécurité produit et finance.
 Attendu: aucune decision produit immediate; cette section sert au travail de conception Phase 3.
 
@@ -27,8 +27,8 @@ Elles servent a:
   - Elle applique notamment des limites d'action (montant, objet, calendrier, type de modification, niveau de risque), avec issue possible: autoriser, bloquer, demander approbation.
   - Sans cette couche, un agent autonome ou un agent de mini-module reste un executant automatique et non un composant gouverne.
 
-- Integration with `@entropiq`:
-  - `@entropiq` dispose deja d'une boucle LLM et d'un moteur d'execution d'outils, mais n'a pas de policy hook a l'interieur de cette boucle.
+- Integration with `@sentropic`:
+  - `@sentropic` dispose deja d'une boucle LLM et d'un moteur d'execution d'outils, mais n'a pas de policy hook a l'interieur de cette boucle.
   - L'intégration se fait en interposant un contrôle de décision entre le planificateur d'actions et l'exécution d'outil.
   - Les traces de décision doivent être persistantes et raccordées aux journaux existants (event, audit, workflow state).
 
@@ -55,8 +55,8 @@ Elles servent a:
   - Il doit contenir tres concretement les ressources (temps CPU, memoire, temps reel, appels sortants), les chemins d'acces, et les actions interdites selon le tenant.
   - Sans ce niveau, un module simple avec un bug de configuration peut perturber plusieurs modules, ou sortir du tenant.
 
-- Integration with `@entropiq`:
-  - `@entropiq` offre une boucle durable, mais n'a pas de profil d'isolation a proprement parler.
+- Integration with `@sentropic`:
+  - `@sentropic` offre une boucle durable, mais n'a pas de profil d'isolation a proprement parler.
   - OpenERP doit introduire une couche d'execution enveloppante ou un runtime d'isolation pour les mini-modules, en fonction du trust tier.
   - Le resultat attendu reste compatible avec la queue existante et la gestion d'event actuelle.
 
@@ -85,8 +85,8 @@ Elles servent a:
     2) serveur MCP OpenERP: les outils OpenERP sont exposés de manière contrôlée.
   - Elle permet aux mini-modules de dependre d'ecosystemes externes de facon traçable.
 
-- Integration with `@entropiq`:
-  - `@entropiq` n'expose ni client MCP ni serveur MCP aujourd'hui.
+- Integration with `@sentropic`:
+  - `@sentropic` n'expose ni client MCP ni serveur MCP aujourd'hui.
   - L'integration se fait via un adaptateur tool layer entre appels internes et discovery MCP.
   - La conversion de métadonnées d'outils, de scopes, et de contrats de retour doit rester OpenERP-specific.
 
@@ -112,8 +112,8 @@ Elles servent a:
   - Elle alimente debug, incident response, audit, et revue de performance par famille d'agents.
   - Sans cette couche, les erreurs d'agent deviennent opacifies en production.
 
-- Integration with `@entropiq`:
-  - `@entropiq` contient déjà une base de traces par tour, ce qui constitue une base exploitable.
+- Integration with `@sentropic`:
+  - `@sentropic` contient déjà une base de traces par tour, ce qui constitue une base exploitable.
   - Le gap est la couche transverse: standardisation des attributs, corrélation entre policy state, budgets, et supervision.
   - L'objectif est de produire des traces OpenERP, non de copier un schema externe.
 
@@ -137,7 +137,7 @@ Elles servent a:
   - Le contrôle inclut stockage chiffré, séparation tenant, rotation, et récupération de révocation en urgence.
   - Sans cette couche, un seul compromis de runtime met en danger toutes les integrations.
 
-- Integration with `@entropiq`:
+- Integration with `@sentropic`:
   - Le runtime actuel gere des credentials de modele dans les services, ce qui reste une base.
   - Il manque un modele de coffre a secrets tenant et per-module, avec cycle de vie complet (mint, rotation, revoke).
   - OpenERP doit ajouter une couche de gestion securisee independante du runtime applicatif.
@@ -163,8 +163,8 @@ Elles servent a:
   - Ils reduisent les risques financiers et servent de garde-fou anti-derive pour agents autonomes.
   - Ils doivent aussi regler les limites de planification et de cadence pour workloads haut volume.
 
-- Integration with `@entropiq`:
-  - `@entropiq` donne des points de mesure techniques utiles (durability, traces partielle), mais pas de gouvernance budgetaire.
+- Integration with `@sentropic`:
+  - `@sentropic` donne des points de mesure techniques utiles (durability, traces partielle), mais pas de gouvernance budgetaire.
   - OpenERP doit brancher les quotas sur le scheduler, la factory d'agent, et les actions de garde.
 
 - Dependency on identity:
@@ -188,8 +188,8 @@ Elles servent a:
   - Elle inclut approbation in-loop, escalade, canary, checkpoints deterministes, et rollback.
   - Sans ce bloc, la responsabilite client et compta devient non reconstruisible.
 
-- Integration with `@entropiq`:
-  - `@entropiq` stocke un graphe d'exécution et un historique d'états, ce qui est une base.
+- Integration with `@sentropic`:
+  - `@sentropic` stocke un graphe d'exécution et un historique d'états, ce qui est une base.
   - Il manque toutefois la surface explicite pour pause/resume humain, escalation queue, approbation de sortie et rollback de version mini-module.
   - Les adaptateurs OpenERP doivent traduire les résultats d'état en checkpoints business.
 
@@ -207,7 +207,7 @@ Elles servent a:
   - Message d'approbation, formulaire de rejet, et escalade doivent exister en FR/EN.
   - Les workflows de supervision doivent utiliser les mêmes libellés de rôle et d'état en FR/EN.
 
-## Mapping To `@entropiq` Gaps
+## Mapping To `@sentropic` Gaps
 
 ### Missing today
 
@@ -255,7 +255,7 @@ Les intégrations techniques restent fonctionnelles, indépendantes, et reconstr
 
 ## OpenERP Takeaways
 
-- `@entropiq` donne un noyau utile (LLM routing, queue durable, multi-agent orchestration, traces de base) et ne doit pas être traité comme un runtime sécuritaire fini.
+- `@sentropic` donne un noyau utile (LLM routing, queue durable, multi-agent orchestration, traces de base) et ne doit pas être traité comme un runtime sécuritaire fini.
 - Les principaux travaux de l'etape sont:
   - brancher la policy engine entre appel d'outil et execution,
   - definir le modele de secrets tenant-first,

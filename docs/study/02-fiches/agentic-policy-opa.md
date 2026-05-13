@@ -16,12 +16,12 @@ Apache-2.0 is compatible with the MIT-targeted OpenERP direction when notice and
 
 ## Functional Role
 
-OPA is the broad policy-engine reference for the runtime safety gap identified in the `@entropiq` audit: no pre-call or post-call policy hook exists today. For OpenERP, the relevant function is a tenant-aware decision layer that receives an attempted agent action, evaluates tenant policy, and returns permit, block, or escalate before the action runs.
+OPA is the broad policy-engine reference for the runtime safety gap identified in the `@sentropic` audit: no pre-call or post-call policy hook exists today. For OpenERP, the relevant function is a tenant-aware decision layer that receives an attempted agent action, evaluates tenant policy, and returns permit, block, or escalate before the action runs.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Integration Suitability With @entropiq: strong at the boundary level.
-The fit is strong at the boundary level because `@entropiq` already has typed tool calling and durable agent execution, but lacks an interception point around each tool call. OPA is most relevant as an external or embedded decision component wrapped by OpenERP-authored adapters. The adapter contract, data envelope, and audit vocabulary must be designed from OpenERP tenant identity, service principal, and on-behalf-of requirements.
+Integration Suitability With @sentropic: strong at the boundary level.
+The fit is strong at the boundary level because `@sentropic` already has typed tool calling and durable agent execution, but lacks an interception point around each tool call. OPA is most relevant as an external or embedded decision component wrapped by OpenERP-authored adapters. The adapter contract, data envelope, and audit vocabulary must be designed from OpenERP tenant identity, service principal, and on-behalf-of requirements.
 
 ## OpenERP Trust Tier Fit
 

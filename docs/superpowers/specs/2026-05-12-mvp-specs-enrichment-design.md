@@ -107,7 +107,7 @@ Exemples : choix ORM/DB (Postgres / Postgres + ClickHouse / Postgres + SQLite r�
 `agentic-impacts.md` (79 lignes) est moins une spec qu'un addendum transverse. Sa passe :
 
 - Pas de sections 1, 3 (functional depth, UI inventory) — non pertinent.
-- Section 2 (benchmark) → tableau des frameworks agentiques étudiés (cf. agentic deep research) vs `@entropiq`.
+- Section 2 (benchmark) → tableau des frameworks agentiques étudiés (cf. agentic deep research) vs `@sentropic`.
 - Section 4 (tech layer) → consolidation des options déjà ouvertes en Phase 3 agentique (policy, sandbox, MCP, observability).
 - Section 5 (decision register) → décisions agentiques transverses qui impactent les 5 autres specs (ex: tous les écrans Activity doivent-ils être instrumentés pour agent supervision dès MVP ?).
 

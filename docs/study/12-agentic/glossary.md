@@ -4,7 +4,7 @@
 
 Fait: glossary file created with all required sections and cross-references; directory `docs/study/12-agentic/` initialized.
 À faire: remaining Phase 1 artifacts (entropiq-audit, corpus update, proprietary references, startups deep research, license posture); Phase 1 completion at approximately 14%.
-Attendu: no decision needed. Next action is Task 2 (`@entropiq` audit), which can proceed immediately because it is independent of any other Phase 1 file.
+Attendu: no decision needed. Next action is Task 2 (`@sentropic` audit), which can proceed immediately because it is independent of any other Phase 1 file.
 
 ## Purpose
 
@@ -152,7 +152,7 @@ typed checkpoints. Supervision state and outcomes are always recorded in the aud
 MCP (Model Context Protocol) is an open interoperability protocol that
 standardizes how agents discover, invoke, and authenticate to tools exposed by
 external servers. In the OpenERP agentic extension, MCP is the primary tool
-interop standard between the `@entropiq` runtime and tool providers. The study
+interop standard between the `@sentropic` runtime and tool providers. The study
 covers client posture (agent calling an MCP server), server posture (OpenERP
 exposing ERP tools as an MCP server), and registry and signing expectations.
 

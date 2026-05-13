@@ -4,7 +4,7 @@
 
 **Goal:** Execute the OpenERP agentic study extension as a phased research effort that delivers business agent families, governance and runtime design spaces, dated deep research, anti-copy controls, and a unified final synthesis on top of the existing OpenERP study.
 
-**Architecture:** This is a research execution plan, not application code. It extends `docs/study/` with a new `docs/study/12-agentic/` directory, keeps raw clones and raw Graphify outputs under ignored `research/sources/` and `research/graphify/`, and converts all findings into OpenERP-written analysis before any later implementation. The agent runtime base for the future product is `@entropiq` (MIT TypeScript SDK owned by the user). External agent frameworks are reference only.
+**Architecture:** This is a research execution plan, not application code. It extends `docs/study/` with a new `docs/study/12-agentic/` directory, keeps raw clones and raw Graphify outputs under ignored `research/sources/` and `research/graphify/`, and converts all findings into OpenERP-written analysis before any later implementation. The agent runtime base for the future product is `@sentropic` (MIT TypeScript SDK owned by the user). External agent frameworks are reference only.
 
 **Tech Stack:** Markdown, CSV, Git, GitHub/web evidence, optional Graphify, shell verification, WebSearch and WebFetch for dated deep-research sources, optional Playwright visual checks for diagrams and PPTX previews, Python or office tooling for PPTX update if needed.
 
@@ -30,10 +30,10 @@ The percentage is an approximate completion indicator, not a comparative measure
 
 ## Scope Check
 
-This plan executes the agentic study only. It does not implement agentic features in the OpenERP application. It does not implement `@entropiq` changes. It produces written analysis, fiches, design spaces, dated deep research, and synthesis artifacts.
+This plan executes the agentic study only. It does not implement agentic features in the OpenERP application. It does not implement `@sentropic` changes. It produces written analysis, fiches, design spaces, dated deep research, and synthesis artifacts.
 
 Included:
-- agentic glossary, `@entropiq` audit, agentic corpus, dated deep research, license posture (Phase 1);
+- agentic glossary, `@sentropic` audit, agentic corpus, dated deep research, license posture (Phase 1);
 - business agents functional map by MVP-aligned family, patterns library, thematic deep research, candidate business agent fiches, vertical packs surface map (Phase 2);
 - identity delegation, business autonomy, marketplace publication, runtime safety, human supervision design spaces and OSS brick fiches (Phase 3);
 - agentic MVP addendum, agentic anti-copy addendum, impacts on existing MVP specs, final Markdown synthesis update, final PPTX update, final verification (Phase 4).
@@ -137,7 +137,7 @@ Create or modify these paths during execution:
 Phases run sequentially. Inside each phase, tasks with disjoint file ownership may run in parallel.
 
 Phase 1, parallel-safe set:
-- Task 1 Glossary, Task 2 `@entropiq` Audit, Task 3 Agentic Corpus, Task 4 Startups Deep Research, Task 5 License Posture.
+- Task 1 Glossary, Task 2 `@sentropic` Audit, Task 3 Agentic Corpus, Task 4 Startups Deep Research, Task 5 License Posture.
 
 Phase 2, parallel-safe set:
 - Task 6 Patterns Library, Task 7 Agentic Functional Map (touches `global-functional-map.md` last), Task 8 Thematic Deep Research, Task 9 Vertical Packs Surface Map, Task 10 Business Agent Fiches Group A (CRM and project), Task 11 Business Agent Fiches Group B (billing, accounting, reporting, collaboration).
@@ -239,14 +239,14 @@ git commit -m "Add agentic glossary"
 git push origin main
 ```
 
-### Task 2: `@entropiq` Audit
+### Task 2: `@sentropic` Audit
 
 **Files:**
 - Create: `docs/study/12-agentic/entropiq-audit.md`
 
 - [ ] **Step 1: Collect factual evidence**
 
-For `@entropiq`, retrieve and record:
+For `@sentropic`, retrieve and record:
 
 - repository URL (ask the user or check public GitHub for the rhanka organization);
 - npm package name and registry status;
@@ -264,7 +264,7 @@ Do not copy or paraphrase any source file content; describe capabilities in Open
 Create `docs/study/12-agentic/entropiq-audit.md` with these sections:
 
 ```markdown
-# `@entropiq` Audit
+# `@sentropic` Audit
 
 ## Progress
 
@@ -289,7 +289,7 @@ Create `docs/study/12-agentic/entropiq-audit.md` with these sections:
 ## OpenERP Takeaways
 ```
 
-Each section must be at least one paragraph. `Anti-Copy Notes` must state that no `@entropiq` source code, prompts, tool schemas, or examples may be copied into the OpenERP product; only functional descriptions in OpenERP wording are permitted.
+Each section must be at least one paragraph. `Anti-Copy Notes` must state that no `@sentropic` source code, prompts, tool schemas, or examples may be copied into the OpenERP product; only functional descriptions in OpenERP wording are permitted.
 
 - [ ] **Step 3: Verify audit**
 
@@ -308,7 +308,7 @@ Run:
 ```bash
 git status --short --branch
 git add docs/study/12-agentic/entropiq-audit.md
-git commit -m "Add @entropiq audit"
+git commit -m "Add @sentropic audit"
 git push origin main
 ```
 
@@ -1311,7 +1311,7 @@ Create `docs/study/12-agentic/runtime-safety-functional-map.md` with these secti
 
 ### Human Supervision
 
-## Mapping To `@entropiq` Gaps
+## Mapping To `@sentropic` Gaps
 
 ## Mapping To Trust Tier And Identity
 
@@ -1320,7 +1320,7 @@ Create `docs/study/12-agentic/runtime-safety-functional-map.md` with these secti
 ## OpenERP Takeaways
 ```
 
-Each primitive subsection must state: functional purpose in OpenERP wording, integration points with `@entropiq`, dependency on identity (Task 12), dependency on marketplace tier (Task 14), bilingual FR/EN considerations where applicable. `Mapping To @entropiq Gaps` must explicitly list which primitives are missing today and which are partially present.
+Each primitive subsection must state: functional purpose in OpenERP wording, integration points with `@sentropic`, dependency on identity (Task 12), dependency on marketplace tier (Task 14), bilingual FR/EN considerations where applicable. `Mapping To @sentropic Gaps` must explicitly list which primitives are missing today and which are partially present.
 
 - [ ] **Step 2: Verify runtime safety map**
 
@@ -1330,7 +1330,7 @@ Run:
 rg -n "Policy Engine|Sandboxing|MCP Interop|GenAI Observability|Secrets And Credentials|Budgets|Human Supervision|Mapping To .entropiq" docs/study/12-agentic/runtime-safety-functional-map.md
 ```
 
-Expected: every primitive subsection and the `@entropiq` mapping are present.
+Expected: every primitive subsection and the `@sentropic` mapping are present.
 
 - [ ] **Step 3: Commit and push**
 
@@ -1356,7 +1356,7 @@ git push origin main
 
 - [ ] **Step 1: Collect evidence per project**
 
-For each project, collect: repository URL, official site, checked branch/tag/commit, license evidence path, declared license, reuse classification, primary functional role, integration suitability with `@entropiq`, anti-copy notes (especially policy DSL surface syntax, sandbox configuration templates, example libraries).
+For each project, collect: repository URL, official site, checked branch/tag/commit, license evidence path, declared license, reuse classification, primary functional role, integration suitability with `@sentropic`, anti-copy notes (especially policy DSL surface syntax, sandbox configuration templates, example libraries).
 
 - [ ] **Step 2: Write fiches**
 
@@ -1371,7 +1371,7 @@ Each fiche must follow this section list:
 
 ## Functional Role
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
 ## OpenERP Trust Tier Fit
 
@@ -1530,7 +1530,7 @@ Create `docs/study/07-mvp/agentic-mvp-addendum.md` with these sections:
 
 ## MVP Agent Families
 
-## MVP Runtime Posture (`@entropiq` Plus MCP And Policy Hooks)
+## MVP Runtime Posture (`@sentropic` Plus MCP And Policy Hooks)
 
 ## MVP Identity Posture
 
@@ -1618,7 +1618,7 @@ Create `docs/study/08-anti-copy/agentic-anti-copy-addendum.md` with these sectio
 
 ## Source-Family Posture For Agentic Projects
 
-## Anchor-Specific Notes (`@entropiq` And External Frameworks)
+## Anchor-Specific Notes (`@sentropic` And External Frameworks)
 ```
 
 `Pre-Merge Audit Checklist` must list at least ten yes/no questions the reviewer answers before merging any agentic-touching PR (for example: which OpenERP spec section is the source of truth, which external projects informed the spec, are any external sources GPL or AGPL with functional-spec-only use confirmed, were prompts or tool schemas copied, were UI surfaces of catalog or builder copied, were eval datasets copied, were demos copied, were translations from another language requested, are FR/EN strings written in OpenERP wording, does the PR description include an anti-copy note).
@@ -1727,7 +1727,7 @@ Add or update these sections in `docs/study/11-final-package/final-synthesis.md`
 
 ## Agentic Functional Headline
 
-## Agentic Runtime Base: `@entropiq`
+## Agentic Runtime Base: `@sentropic`
 
 ## Agentic Identity And Business Autonomy
 
@@ -1780,7 +1780,7 @@ Add slides to the existing PPTX deck. The slide order must be functional-first:
 2. Agentic functional headline (agent families aligned with MVP);
 3. Agentic deep research panorama (open source and proprietary, dated);
 4. Identity, marketplace, and business autonomy design spaces;
-5. Runtime safety primitives (`@entropiq` plus MCP and policy hooks);
+5. Runtime safety primitives (`@sentropic` plus MCP and policy hooks);
 6. MVP agentic recommendation;
 7. Anti-copy posture.
 

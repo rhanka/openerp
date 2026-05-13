@@ -101,7 +101,7 @@ OpenERP relevance: maps to the ERP documentation agent, project and delivery kno
 
 LangChain and LangSmith, Mastra Cloud, Vercel Agents, Inngest, Vellum, Stack AI, Inkeep, OpenAI Agents SDK. These products do not build vertical business agents themselves; they provide the primitives for building them: workflow orchestration with durability (Inngest, Vercel durable workflow), agent evaluation and observability (LangSmith, Vellum), no-code agent authoring (Stack AI, Inkeep, LangSmith Fleet), and agent distribution (LangSmith Deployment, Mastra Platform Agent Editor). The convergence toward MCP as the interop standard is visible across all agent platform entrants by late 2025.
 
-OpenERP relevance: this theme provides the primary input for the Phase 3 runtime safety, observability, MCP, and marketplace design spaces. Mastra Cloud is the highest-priority TypeScript framework benchmark for `@entropiq` gap analysis. Vellum is the highest-priority observability and eval benchmark.
+OpenERP relevance: this theme provides the primary input for the Phase 3 runtime safety, observability, MCP, and marketplace design spaces. Mastra Cloud is the highest-priority TypeScript framework benchmark for `@sentropic` gap analysis. Vellum is the highest-priority observability and eval benchmark.
 
 ### Theme 7: Autonomous Orchestration over Legacy Business Systems (RPA-to-Agentic)
 
@@ -215,11 +215,11 @@ Decagon's Agent Operating Procedures, Sierra's Agent Studio, Ramp's policy-from-
 
 ### MCP Has Become the Interop Standard
 
-By late 2025, MCP integration is present or announced across OpenAI Agents SDK, Vercel AI SDK 6, LangSmith, Mastra, Inngest, Workato Enterprise MCP, Cohere North, Notion 3.0, Inkeep, Zapier (ZapConnect 2025), and Vellum Agent Node. The `@entropiq` MCP gap identified in the entropiq audit is confirmed as a broadly adopted standard, not a niche choice.
+By late 2025, MCP integration is present or announced across OpenAI Agents SDK, Vercel AI SDK 6, LangSmith, Mastra, Inngest, Workato Enterprise MCP, Cohere North, Notion 3.0, Inkeep, Zapier (ZapConnect 2025), and Vellum Agent Node. The `@sentropic` MCP gap identified in the entropiq audit is confirmed as a broadly adopted standard, not a niche choice.
 
 ### TypeScript Agent Frameworks for Vercel-Hosted Apps Converge on a Short List
 
-For OpenERP's TypeScript and Node.js stack, the directly relevant framework benchmarks are: Mastra (MIT, TypeScript, workflows plus agents plus RAG, Agent Editor for no-code adjustments), Vercel AI SDK 6 (Apache-2.0, Agent abstraction, durable workflows, MCP, DevTools), and Inngest (Apache-2.0, queue-based durable step functions, event-driven and scheduled triggers). These three together with `@entropiq` define the functional gap surface for Phase 3 runtime safety work.
+For OpenERP's TypeScript and Node.js stack, the directly relevant framework benchmarks are: Mastra (MIT, TypeScript, workflows plus agents plus RAG, Agent Editor for no-code adjustments), Vercel AI SDK 6 (Apache-2.0, Agent abstraction, durable workflows, MCP, DevTools), and Inngest (Apache-2.0, queue-based durable step functions, event-driven and scheduled triggers). These three together with `@sentropic` define the functional gap surface for Phase 3 runtime safety work.
 
 ### The Autonomous General Ledger Pattern Reframes ERP Accounting Agent Architecture
 

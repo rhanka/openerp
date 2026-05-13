@@ -18,10 +18,10 @@ Apache-2.0 is compatible with the MIT-targeted OpenERP direction when notice and
 
 Cedar is most relevant to OpenERP as an entity-typed policy reference. Its useful functional lesson is that policy evaluation should know who is acting, which action is requested, which business object is affected, and which contextual facts constrain the action. That maps to OpenERP agent modes such as acting-as, service principal, and on-behalf-of delegation.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Integration Suitability With @entropiq: partial to strong.
-The fit is partial to strong. `@entropiq` is TypeScript and currently has no policy hook, while Cedar is recorded as a Rust policy language and engine. OpenERP could still use Cedar concepts through a service boundary or a separate policy layer, but the integration cost is higher than a native TypeScript library. The useful input for `@entropiq` is the typed authorization envelope, not the Cedar syntax.
+Integration Suitability With @sentropic: partial to strong.
+The fit is partial to strong. `@sentropic` is TypeScript and currently has no policy hook, while Cedar is recorded as a Rust policy language and engine. OpenERP could still use Cedar concepts through a service boundary or a separate policy layer, but the integration cost is higher than a native TypeScript library. The useful input for `@sentropic` is the typed authorization envelope, not the Cedar syntax.
 
 ## OpenERP Trust Tier Fit
 
@@ -41,4 +41,4 @@ no DSL surface syntax, no sandbox configuration template, no example library, an
 
 ## OpenERP Takeaways
 
-Cedar is useful for clarifying OpenERP's authorization vocabulary: actor, delegated actor, action, object, tenant, and context must be first-class policy facts. It should not drive OpenERP wording or syntax. The near-term design value is a cleaner identity and policy data model for `@entropiq` tool-call gating.
+Cedar is useful for clarifying OpenERP's authorization vocabulary: actor, delegated actor, action, object, tenant, and context must be first-class policy facts. It should not drive OpenERP wording or syntax. The near-term design value is a cleaner identity and policy data model for `@sentropic` tool-call gating.

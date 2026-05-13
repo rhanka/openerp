@@ -80,7 +80,7 @@ Toute spec détaillée devra garder noms d'objets, permissions, états, messages
 
 ## Enrichment 2026-05-12
 
-Cette passe d'enrichissement consolide les décisions agentiques transverses qui contraignent les 5 specs MVP (foundation, CRM, project, billing, reporting). Elle remplace la couche `Functional Depth` standard par une `Functional Surface` agentique, ajoute un benchmark cross-framework pour situer `@entropiq` dans le paysage, et matérialise les choix techniques transverses encore ouverts en un registre de décision destiné au decision-pack programme. La spec garde sa nature d'addendum: elle ne décrit pas un module MVP mais les invariants techniques qui doivent être pris en compte par chaque domaine.
+Cette passe d'enrichissement consolide les décisions agentiques transverses qui contraignent les 5 specs MVP (foundation, CRM, project, billing, reporting). Elle remplace la couche `Functional Depth` standard par une `Functional Surface` agentique, ajoute un benchmark cross-framework pour situer `@sentropic` dans le paysage, et matérialise les choix techniques transverses encore ouverts en un registre de décision destiné au decision-pack programme. La spec garde sa nature d'addendum: elle ne décrit pas un module MVP mais les invariants techniques qui doivent être pris en compte par chaque domaine.
 
 ### Functional Surface
 
@@ -97,57 +97,57 @@ Capabilities post-MVP explicitement reportées: canary deployment pour mini-modu
 
 ### Cross-Framework Benchmark
 
-Comparatif fonctionnel des frameworks référencés en `startups-deep-research.md` vs `@entropiq` (base agent runtime du projet, MIT interne sous évaluation cf. `license-posture.md`). Les frameworks externes sont en `cautious inspiration` ou `functional reference only` selon licence; aucun code, prompt, tool schema ou workflow definition n'est repris.
+Comparatif fonctionnel des frameworks référencés en `startups-deep-research.md` vs `@sentropic` (base agent runtime du projet, MIT interne sous évaluation cf. `license-posture.md`). Les frameworks externes sont en `cautious inspiration` ou `functional reference only` selon licence; aucun code, prompt, tool schema ou workflow definition n'est repris.
 
-| Capability | @entropiq (current) | LangGraph | CrewAI | AutoGen | Posture MVP |
+| Capability | @sentropic (current) | LangGraph | CrewAI | AutoGen | Posture MVP |
 | --- | --- | --- | --- | --- | --- |
-| Agent runtime (loop + state) | Présent (queue durable, états explicites) | Présent (state graph, MIT core) | Présent (crew/task, MIT) | Présent (conversation, MIT) | Required @entropiq, gap zero |
-| Tool registry typed | Présent (internal TS, pas de discovery) | Présent | Présent | Présent | Required @entropiq, OK |
-| MCP support (client + serveur) | Absent | Adapter présent | Adapter présent | Adapter présent | Gap à combler @entropiq (client puis serveur) |
-| Policy hooks pre/post call | Absent | Absent (deferred to host) | Absent | Absent | Gap à combler @entropiq (différenciation OpenERP) |
-| Sandbox integration | Absent | Absent | Absent | Absent | Gap à combler @entropiq (via couche externe E2B/gvisor/isolated-vm) |
-| Observability hooks | Trace par tour, base existante | LangSmith natif (BSL hosted) | Native limitée | Native limitée | Required @entropiq, à étendre OTel via OpenInference/OpenLLMetry |
-| Supervision API (pause/resume/approve) | Structure d'état, surface explicite absente | Interrupt/checkpoint présent | Limité | Limité | Gap à combler @entropiq (typed checkpoints OpenERP) |
-| Multi-agent orchestration | Présent (task-graph) | Présent (graph) | Présent (crew) | Présent (conversation) | Required @entropiq, OK pour MVP (mono-agent par defaut) |
+| Agent runtime (loop + state) | Présent (queue durable, états explicites) | Présent (state graph, MIT core) | Présent (crew/task, MIT) | Présent (conversation, MIT) | Required @sentropic, gap zero |
+| Tool registry typed | Présent (internal TS, pas de discovery) | Présent | Présent | Présent | Required @sentropic, OK |
+| MCP support (client + serveur) | Absent | Adapter présent | Adapter présent | Adapter présent | Gap à combler @sentropic (client puis serveur) |
+| Policy hooks pre/post call | Absent | Absent (deferred to host) | Absent | Absent | Gap à combler @sentropic (différenciation OpenERP) |
+| Sandbox integration | Absent | Absent | Absent | Absent | Gap à combler @sentropic (via couche externe E2B/gvisor/isolated-vm) |
+| Observability hooks | Trace par tour, base existante | LangSmith natif (BSL hosted) | Native limitée | Native limitée | Required @sentropic, à étendre OTel via OpenInference/OpenLLMetry |
+| Supervision API (pause/resume/approve) | Structure d'état, surface explicite absente | Interrupt/checkpoint présent | Limité | Limité | Gap à combler @sentropic (typed checkpoints OpenERP) |
+| Multi-agent orchestration | Présent (task-graph) | Présent (graph) | Présent (crew) | Présent (conversation) | Required @sentropic, OK pour MVP (mono-agent par defaut) |
 
-Lecture clé: `@entropiq` a le noyau (runtime + tool + multi-agent + traces base), les gaps sont MCP, policy, sandbox, supervision API. Les frameworks externes ne sont supérieurs sur aucune capability stratégique sauf adapter MCP déjà cablé (à reconstruire OpenERP-native). Skip explicite: pas de reuse code framework externe, contribution upstream MCP éventuelle uniquement.
+Lecture clé: `@sentropic` a le noyau (runtime + tool + multi-agent + traces base), les gaps sont MCP, policy, sandbox, supervision API. Les frameworks externes ne sont supérieurs sur aucune capability stratégique sauf adapter MCP déjà cablé (à reconstruire OpenERP-native). Skip explicite: pas de reuse code framework externe, contribution upstream MCP éventuelle uniquement.
 
 ### Tech Layer Options
 
 Huit décisions techniques agentiques transverses qui contraignent l'implémentation des 5 specs MVP. Chaque option garde dépendance explicite vers les specs concernées.
 
 1. Sandbox runtime
-   - Contexte: aucun sandbox dans `@entropiq` aujourd'hui; les mini-modules MVP sont internes et signés, mais l'isolation reste nécessaire pour limiter blast radius et préparer trust tiers ultérieurs.
-   - Options: (a) E2B cloud sandbox (Apache-2.0, self-hosting evidence pending); (b) gVisor self-host (Apache-2.0, OCI compatible, lourd ops); (c) Modal cloud (proprietary platform, exclu pour self-host); (d) isolated-vm in-process (ISC, lightweight, fit TS natif `@entropiq`); (e) hybride isolated-vm pour interne + gVisor pour tiers tiers post-MVP.
+   - Contexte: aucun sandbox dans `@sentropic` aujourd'hui; les mini-modules MVP sont internes et signés, mais l'isolation reste nécessaire pour limiter blast radius et préparer trust tiers ultérieurs.
+   - Options: (a) E2B cloud sandbox (Apache-2.0, self-hosting evidence pending); (b) gVisor self-host (Apache-2.0, OCI compatible, lourd ops); (c) Modal cloud (proprietary platform, exclu pour self-host); (d) isolated-vm in-process (ISC, lightweight, fit TS natif `@sentropic`); (e) hybride isolated-vm pour interne + gVisor pour tiers tiers post-MVP.
    - Reco: option (e) hybride. MVP démarre sur isolated-vm pour mini-modules privés tenant signés; gVisor cible explicite pour la roadmap curated/public.
    - Dépendances: foundation (loader + manifest), billing/project (modules sensibles doivent rester internes au MVP).
 
 2. Policy engine
-   - Contexte: `@entropiq` n'a aucun policy hook; OpenERP doit gater chaque tool call avant et après exécution.
+   - Contexte: `@sentropic` n'a aucun policy hook; OpenERP doit gater chaque tool call avant et après exécution.
    - Options: (a) OPA Rego DSL externe (Apache-2.0, sidecar mature); (b) Cedar entity-based (Apache-2.0, Rust, formal verification, intégration TS via service); (c) Casbin multi-model (Apache-2.0, biblio JS native); (d) native TS code OpenERP (zero DSL externe, vocabulaire ERP direct).
    - Reco: option (d) native TS au MVP pour vitesse + alignement vocabulaire OpenERP, avec abstraction `PolicyDecisionPoint` permettant de basculer vers Cedar ou OPA post-MVP si la complexité de règles explose.
    - Dépendances: foundation (point d'application + audit), billing (gates posting/close), CRM (gate envoi externe).
 
 3. Observability backend
-   - Contexte: traces base présentes `@entropiq`, mais corrélation policy/budget/supervision absente; OpenERP doit rester portable.
+   - Contexte: traces base présentes `@sentropic`, mais corrélation policy/budget/supervision absente; OpenERP doit rester portable.
    - Options: (a) Langfuse self-host (MIT open-core); (b) Helicone proxy (Apache-2.0, capture transport); (c) Phoenix Arize (Elastic-2.0, functional reference only); (d) OpenInference conventions (Apache-2.0, OTel-native); (e) Traceloop OpenLLMetry SDK (Apache-2.0, OTel-native).
    - Reco: combinaison (d)+(e). Convention OpenInference pour semantic + SDK OpenLLMetry pour emission OTel; backend Langfuse self-host en option opérateur, sans dépendance OpenERP sur Langfuse.
    - Dépendances: foundation (event log central), reporting (vues de relecture agent).
 
 4. Agent identity
-   - Contexte: `@entropiq` lie sessions à humains via passkey, pas de service principal ni d'on-behalf-of.
+   - Contexte: `@sentropic` lie sessions à humains via passkey, pas de service principal ni d'on-behalf-of.
    - Options: (a) SPIFFE/SVID (workload identity standard, lourd ops); (b) JWT signé avec delegation chain claim (léger, OpenERP-native); (c) OIDC subject claim avec `acting_for` extension (réutilise IdP existant tenant).
    - Reco: option (b) JWT signé OpenERP-native pour MVP, schéma de claims documenté (`tenant_id`, `agent_id`, `acting_as`, `acting_for`, `delegation_id`, `scope`, `exp`). Évolution post-MVP vers SPIFFE possible pour workloads multi-cluster.
    - Dépendances: foundation (provisioning + rotation), toutes specs (audit attribution).
 
 5. MCP registry
-   - Contexte: `@entropiq` absent côté MCP client et serveur; OpenERP doit décider tôt comment exposer ses outils ERP et consommer outils externes.
+   - Contexte: `@sentropic` absent côté MCP client et serveur; OpenERP doit décider tôt comment exposer ses outils ERP et consommer outils externes.
    - Options: (a) registry interne native OpenERP (table + service, contrôle total tenant); (b) registry public Anthropic/MCP officiel (Apache-2.0, discovery cross-vendor); (c) hybride registry interne + miroir vers public optionnel.
    - Reco: option (a) registry interne native au MVP, scope tenant-privé. Pas d'exposition publique avant signing + provenance + revocation + sandbox tier en place (post-MVP).
    - Dépendances: foundation (catalog), reporting (binding typed triggers vers tools approuvés).
 
 6. Supervision UI
-   - Contexte: pas de surface explicite pause/resume/approve dans `@entropiq`; supervision est Required MVP.
+   - Contexte: pas de surface explicite pause/resume/approve dans `@sentropic`; supervision est Required MVP.
    - Options: (a) approval inline dans flow utilisateur (banner dans la fiche concernée); (b) panneau séparé `/supervision` centralisé; (c) les deux, avec source de vérité unique.
    - Reco: option (c). Approval inline pour conversationnel (rapide), panneau `/supervision` central pour autonome + workflow-typed + audit. Notifications FR/EN dès le MVP.
    - Dépendances: foundation (état + notifications), CRM (banner dans lead/contact), billing (banner dans invoice draft + panel pour close), project (panel pour transfert finance).
@@ -249,14 +249,16 @@ Registre des décisions ouvertes au format YAML-like. Statut: `proposed` = reco 
 - id: AGT-D-12
   topic: entropiq-fork-vs-contribution
   decision: STRATEGIC OPEN - fork interne contrôlé pour MVP (gaps MCP/policy/sandbox/supervision) avec intention de contribution upstream best-effort sur capabilities génériques (MCP client/server, OTel hooks); différenciation OpenERP (policy ERP, identity, supervision business) reste fork interne
-  status: pending-program
+  status: RESOLVED
+  resolution: 2026-05-12, plain MIT adopted, name @sentropic
   owner: program-decision-pack
   blocks: [foundation-spec, all-specs]
 
 - id: AGT-D-13
   topic: entropiq-license-alignment
-  decision: amender license @entropiq vers MIT pur OU émettre waiver écrit commercial avant déploiement production OpenERP
-  status: pending-program
+  decision: amender license @sentropic vers MIT pur OU émettre waiver écrit commercial avant déploiement production OpenERP
+  status: RESOLVED
+  resolution: 2026-05-12, plain MIT adopted, name @sentropic
   owner: program-decision-pack
   blocks: [all-specs]
 

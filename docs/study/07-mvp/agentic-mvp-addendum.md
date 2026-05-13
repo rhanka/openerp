@@ -2,7 +2,7 @@
 
 ## Progress
 
-Fait: extension agentique cadrée à partir du corpus, des fiches d'agents, des design spaces runtime, et de l'audit `@entropiq`.
+Fait: extension agentique cadrée à partir du corpus, des fiches d'agents, des design spaces runtime, et de l'audit `@sentropic`.
 À faire: transformer ce périmètre en spécifications de modules après validation du MVP agentique.
 Attendu: garder l'agentique comme couche d'aide opérationnelle gouvernée, pas comme remplacement des workflows ERP/CRM.
 
@@ -42,9 +42,9 @@ Le MVP retient un sous-ensemble concret des fiches Task 10 et Task 11:
 
 Les autres fiches restent utiles comme backlog fonctionnel, mais ne sont pas nécessaires pour prouver le premier cycle valeur: lead -> projet -> temps -> facture -> rapprochement -> reporting -> décision objet.
 
-## MVP Runtime Posture (`@entropiq` Plus MCP And Policy Hooks)
+## MVP Runtime Posture (`@sentropic` Plus MCP And Policy Hooks)
 
-Le runtime MVP part de `@entropiq` comme base d'orchestration agentique: client LLM, tool calling typé, boucle agent persistée en queue, sessions chat, workflow state machine, streaming, et trace recording.
+Le runtime MVP part de `@sentropic` comme base d'orchestration agentique: client LLM, tool calling typé, boucle agent persistée en queue, sessions chat, workflow state machine, streaming, et trace recording.
 
 Deux ajouts sont obligatoires avant usage produit:
 

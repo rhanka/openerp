@@ -7,12 +7,12 @@ license, family treatment, agentic-specific risks, five anti-copy categories
 (prompts and tool schemas, workflow definitions, eval datasets and demos,
 marketplace and catalog UI, sandbox and policy configuration), reuse
 classification recipes by agentic candidate category, and anti-copy checklist;
-`@entropiq` custom license reality addressed with non-commercial path, commercial
+`@sentropic` custom license reality addressed with non-commercial path, commercial
 authorization requirement, and alignment recommendation.
 À faire: remaining Phase 1 artifacts (corpus update, proprietary references,
 startups deep research); Phase 1 completion at approximately 43%.
 Attendu: no decision needed from the user at this step. The commercial-use
-alignment item flagged in the `@entropiq` section requires attention before
+alignment item flagged in the `@sentropic` section requires attention before
 implementation planning begins, consistent with the finding in
 `docs/study/12-agentic/entropiq-audit.md`. Next action is Task 6 (corpus
 update), which is independent of this file.
@@ -30,7 +30,7 @@ specifications are not constrained by the upstream license of the studied
 material; only technical reuse of protected expression is constrained.
 
 The MIT target applies to the OpenERP codebase. It does not change the license
-of `@entropiq` or any other upstream project. It establishes the standard against
+of `@sentropic` or any other upstream project. It establishes the standard against
 which every reuse decision is assessed throughout this study.
 
 ## Family Treatment
@@ -401,9 +401,11 @@ each item confirmed clear:
   flow expression has been copied or closely adapted from any external MCP server
   implementation or MCP registry.
 
-## `@entropiq` License Considerations
+## `@sentropic` License Considerations
 
-The `@entropiq` runtime (`github.com/rhanka/entropiq`, HEAD `ab88a68`) carries a
+Note (2026-05-12): license simplifiée à plain MIT, restrictions levées.
+
+The `@sentropic` runtime (`github.com/rhanka/entropiq`, HEAD `ab88a68`) carries a
 custom "MIT License with Commercial Use Restrictions." This is not plain MIT. The
 license permits unrestricted use for non-profit organizations, public
 administrations, and — under an explicit evaluation and testing exception — for
@@ -416,9 +418,9 @@ The full details of this license finding are recorded in
 agentic study and for the future product are:
 
 **Non-commercial and evaluation path.** For the purposes of this study and for
-any non-production evaluation of agentic capabilities, `@entropiq` is treated as
+any non-production evaluation of agentic capabilities, `@sentropic` is treated as
 MIT-aligned. The evaluation exception in the license text explicitly covers this
-use. The study classifies `@entropiq` as `usable` under the owner's authority for
+use. The study classifies `@sentropic` as `usable` under the owner's authority for
 study purposes, consistent with the owner being the copyright holder.
 
 **Commercial deployment path.** When OpenERP moves from study and evaluation to
@@ -431,15 +433,15 @@ documented formally before any commercial deployment begins. Informal intent is
 not sufficient; a license amendment or a standing waiver on record is required.
 
 **Alignment recommendation.** The OpenERP product target license is MIT. The
-`@entropiq` runtime license is a commercial-restricted custom license. These are
+`@sentropic` runtime license is a commercial-restricted custom license. These are
 inconsistent postures for a product that will be offered to for-profit tenants
 under MIT terms. Before implementation planning begins, the copyright holder
-should resolve the discrepancy by either amending the `@entropiq` license to
+should resolve the discrepancy by either amending the `@sentropic` license to
 plain MIT — eliminating the commercial-use restriction — or by issuing a standing
 written waiver that explicitly covers the OpenERP product and its commercial
 tenants. A future legal review should confirm that the amended or waived license
 is consistent with the MIT product release and with any third-party dependencies
-that `@entropiq` itself carries. This alignment is a gate before commercial
+that `@sentropic` itself carries. This alignment is a gate before commercial
 deployment, not a blocker for the study.
 
 ## Cross-References
@@ -448,4 +450,4 @@ deployment, not a blocker for the study.
 - License risk matrix: [`docs/study/00-methodology/license-risk-matrix.md`](../00-methodology/license-risk-matrix.md)
 - Anti-copy dossier: [`docs/study/08-anti-copy/anti-copy-dossier.md`](../08-anti-copy/anti-copy-dossier.md)
 - Agentic glossary: [`docs/study/12-agentic/glossary.md`](glossary.md)
-- `@entropiq` audit: [`docs/study/12-agentic/entropiq-audit.md`](entropiq-audit.md)
+- `@sentropic` audit: [`docs/study/12-agentic/entropiq-audit.md`](entropiq-audit.md)

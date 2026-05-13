@@ -3,7 +3,7 @@
 Date: 2026-05-10
 Status: Approved design, pending user review before execution planning
 Target license for the future product: MIT
-Agent runtime base: `@entropiq` MIT (TypeScript, Node + Svelte compatible, queue-based, alpha)
+Agent runtime base: `@sentropic` MIT (TypeScript, Node + Svelte compatible, queue-based, alpha)
 
 ## 1. Purpose
 
@@ -51,7 +51,7 @@ The approved approach is a phased study, parallelized inside each phase, with a
 single final synthesis. It mirrors the discipline of the previous extensions but
 sequences work to keep dependencies clear:
 
-1. Phase 1, Foundations: agentic glossary, `@entropiq` audit, agentic open
+1. Phase 1, Foundations: agentic glossary, `@sentropic` audit, agentic open
    source corpus, deep research on startups and recent agent products, license
    posture for agentic sources.
 2. Phase 2, Functional, the headline phase: business agents functional map by
@@ -139,10 +139,10 @@ Runtime safety, identity, marketplace, MCP, observability, and supervision
 primitives are documented as enablers and constraints supporting the functional
 value, not as headline content.
 
-## 7. Runtime Base: `@entropiq`
+## 7. Runtime Base: `@sentropic`
 
 The OpenERP agent runtime base for the future product is the user-owned MIT
-TypeScript SDK named `@entropiq`. The kernel already provides an LLM client,
+TypeScript SDK named `@sentropic`. The kernel already provides an LLM client,
 typed tool calling, an agent loop, conversational memory, durability,
 streaming, and multi-agent supervision, with a queue rather than dedicated
 workers. The SDK is in alpha. Hosting can start on Vercel.
@@ -150,7 +150,7 @@ workers. The SDK is in alpha. Hosting can start on Vercel.
 The agentic extension must:
 
 - record current capabilities, dependencies, license, and verified revision in
-  an `@entropiq` audit document;
+  an `@sentropic` audit document;
 - document the gaps relative to OpenERP needs, primarily MCP support and
   policy hooks, plus multi-tenant identity primitives, marketplace publication
   primitives, and supervision integration points;
@@ -265,7 +265,7 @@ section 9 (identity) so that the design spaces remain consistent.
 
 The runtime safety bloc is studied through both a corpus angle (one fiche per
 notable open source candidate) and a functional map angle (the unified set of
-primitives OpenERP and `@entropiq` need together).
+primitives OpenERP and `@sentropic` need together).
 
 The primitives covered:
 

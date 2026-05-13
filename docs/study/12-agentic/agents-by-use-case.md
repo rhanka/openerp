@@ -198,7 +198,7 @@ Each use case below records: business problem, typical agent mode and trigger, d
 
 Finance, CRM, customer support, and automation products show a visible 2024-2026 public movement from generic copilots toward specialized agents with object context, tool access, and audit. The OpenERP fit is not a general assistant, but a set of small agents attached to CRM, project, billing, accounting, reporting, automation, and collaboration objects.
 
-The open source corpus provides reusable implementation primitives under permissive-first licenses: typed tool calling, durable agent loops, policy checks, MCP interop, sandbox isolation, and observability. These primitives should be integrated through OpenERP-written contracts and `@entropiq` extension points rather than by copying framework examples.
+The open source corpus provides reusable implementation primitives under permissive-first licenses: typed tool calling, durable agent loops, policy checks, MCP interop, sandbox isolation, and observability. These primitives should be integrated through OpenERP-written contracts and `@sentropic` extension points rather than by copying framework examples.
 
 The proprietary research repeatedly shows catalog, builder, and marketplace surfaces. Those are useful to understand business expectations, but they are high-risk expression surfaces. OpenERP should prioritize a private self-service catalog of governed, configurable agents before any authoring or marketplace publication surface.
 
@@ -220,4 +220,4 @@ For every use case, future implementation must begin from OpenERP-owned specs: d
 
 OpenERP's first agentic value should be object-bound and workflow-aware: qualify leads, draft customer follow-ups, classify time, prepare invoice drafts, assist AR/AP reconciliation, draft operational summaries, and summarize object-bound collaboration decisions.
 
-The MVP posture should combine `@entropiq` with added MCP and policy hooks, a private tenant catalog, human approval for customer-facing and accounting actions, and bilingual FR/EN drafts and audit messages. Authoring autonomy, partner publication, public community modules, and vertical pack agents should remain post-MVP.
+The MVP posture should combine `@sentropic` with added MCP and policy hooks, a private tenant catalog, human approval for customer-facing and accounting actions, and bilingual FR/EN drafts and audit messages. Authoring autonomy, partner publication, public community modules, and vertical pack agents should remain post-MVP.

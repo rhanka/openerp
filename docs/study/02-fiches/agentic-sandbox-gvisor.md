@@ -18,10 +18,10 @@ Apache-2.0 is compatible with the MIT-targeted OpenERP direction when notice and
 
 gVisor is the high-isolation sandbox candidate in this group. For OpenERP, its role is a reference for isolating public-community or otherwise high-risk mini-modules in container form, where process-level isolation is not enough and host kernel exposure must be reduced.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Integration Suitability With @entropiq: strong for the future public-community tier.
-The fit is strong for the future public-community tier but indirect for the current `@entropiq` runtime. `@entropiq` has no module loader or sandbox shim, so OpenERP would need an execution service that packages mini-modules as containers, applies tenant policy before launch, captures results and traces, and links failures to rollback and emergency stop controls.
+Integration Suitability With @sentropic: strong for the future public-community tier.
+The fit is strong for the future public-community tier but indirect for the current `@sentropic` runtime. `@sentropic` has no module loader or sandbox shim, so OpenERP would need an execution service that packages mini-modules as containers, applies tenant policy before launch, captures results and traces, and links failures to rollback and emergency stop controls.
 
 ## OpenERP Trust Tier Fit
 

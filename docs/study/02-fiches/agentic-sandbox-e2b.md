@@ -18,10 +18,10 @@ Apache-2.0 is compatible with the MIT-targeted OpenERP direction when notice and
 
 E2B is the corpus reference for sandboxed code execution in an agent context. For OpenERP, the relevant function is a bounded execution zone for mini-modules that need to run code without receiving direct access to the host application, tenant secrets, or broad network reach.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Integration Suitability With @entropiq: strong as a functional reference.
-The fit is strong as a functional reference because `@entropiq` lacks a sandboxing shim and already coordinates tool calls and queued work. A future integration would need an OpenERP-authored execution adapter, policy pre-check, secret scoping, result validation, trace capture, and failure handling. Direct dependency suitability remains pending because self-hosting evidence and exact runtime boundaries were not established in the provided corpus.
+Integration Suitability With @sentropic: strong as a functional reference.
+The fit is strong as a functional reference because `@sentropic` lacks a sandboxing shim and already coordinates tool calls and queued work. A future integration would need an OpenERP-authored execution adapter, policy pre-check, secret scoping, result validation, trace capture, and failure handling. Direct dependency suitability remains pending because self-hosting evidence and exact runtime boundaries were not established in the provided corpus.
 
 ## OpenERP Trust Tier Fit
 

@@ -21,11 +21,11 @@ The most relevant reusable idea is proxy-based capture: observing LLM traffic ne
 
 Helicone sits between an application and LLM providers, recording request and response activity, cost information, prompt variants, and experiment context.
 
-For OpenERP, this role is relevant where `@entropiq` calls multiple model providers and needs consistent per-tenant visibility without adding custom tracing code to every provider adapter.
+For OpenERP, this role is relevant where `@sentropic` calls multiple model providers and needs consistent per-tenant visibility without adding custom tracing code to every provider adapter.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Suitability is strong as an architectural option. `@entropiq` already has provider adapters and chat trace services; a proxy-inspired layer could capture model calls consistently across providers while the runtime emits richer agent and tool events internally.
+Suitability is strong as an architectural option. `@sentropic` already has provider adapters and chat trace services; a proxy-inspired layer could capture model calls consistently across providers while the runtime emits richer agent and tool events internally.
 
 The OpenERP design should decide whether transport capture, in-loop trace emission, or a hybrid posture fits tenant isolation, policy decisions, and rollback evidence.
 

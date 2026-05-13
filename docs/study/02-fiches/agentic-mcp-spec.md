@@ -21,13 +21,13 @@ The specification can guide protocol behavior, capability negotiation, authentic
 
 ## Functional Role
 
-MCP is the tool interop layer between `@entropiq`, OpenERP modules, and external tool providers. It defines how an agent runtime discovers available capabilities, invokes them, and authenticates to the server that owns the capability.
+MCP is the tool interop layer between `@sentropic`, OpenERP modules, and external tool providers. It defines how an agent runtime discovers available capabilities, invokes them, and authenticates to the server that owns the capability.
 
-For OpenERP, the specification matters in both directions: `@entropiq` needs an MCP client so agents can call external tools, and OpenERP needs an MCP server posture so selected ERP capabilities can be exposed through a controlled interface.
+For OpenERP, the specification matters in both directions: `@sentropic` needs an MCP client so agents can call external tools, and OpenERP needs an MCP server posture so selected ERP capabilities can be exposed through a controlled interface.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Suitability is strong at the design level because the `@entropiq` audit identifies MCP as the largest missing interop primitive. The current runtime has internal typed tool calls, but no MCP client, no MCP server, and no protocol-level discovery.
+Suitability is strong at the design level because the `@sentropic` audit identifies MCP as the largest missing interop primitive. The current runtime has internal typed tool calls, but no MCP client, no MCP server, and no protocol-level discovery.
 
 The integration should wrap existing tool contracts rather than rename them after any reference project. The runtime needs a client adapter, a server adapter, tenant-aware authentication, per-call policy checks, and trace emission around every MCP call.
 
@@ -39,13 +39,13 @@ Private-to-tenant use can start with closed discovery and tenant-bound tool expo
 
 ## Architecture Notes
 
-OpenERP should treat MCP as a boundary contract around tool exposure, not as a source of product vocabulary. The client side should call approved external tools through `@entropiq`; the server side should expose only tenant-approved ERP capabilities.
+OpenERP should treat MCP as a boundary contract around tool exposure, not as a source of product vocabulary. The client side should call approved external tools through `@sentropic`; the server side should expose only tenant-approved ERP capabilities.
 
 Policy checks should run before and after each tool call. Observability should record input source, target capability, tenant, acting identity, policy decision, latency, outcome, and rollback or escalation events where relevant.
 
 ## Self-Hosted And Kubernetes
 
-The specification is not a deployable service. The deployable OpenERP work is the client/server adapter inside the OpenERP and `@entropiq` services.
+The specification is not a deployable service. The deployable OpenERP work is the client/server adapter inside the OpenERP and `@sentropic` services.
 
 Kubernetes concerns belong to the hosting services: secret mounting, tenant isolation, egress controls, policy sidecars where used, and trace export. Any external MCP server must be treated as a separately governed integration.
 
@@ -57,7 +57,7 @@ OpenERP must use independently authored ERP capability names, tenant policy word
 
 ## OpenERP Takeaways
 
-- Build MCP support as a first-class `@entropiq` adapter pair: client and server.
+- Build MCP support as a first-class `@sentropic` adapter pair: client and server.
 - Keep OpenERP capability names and descriptions native to OpenERP business objects.
 - Treat registry, signing, identity, policy, and observability as required companion primitives before partner or community exposure.
 - Use the specification for compatibility, not product expression.

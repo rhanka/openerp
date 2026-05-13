@@ -13,7 +13,7 @@ specified in section 15 of
 `docs/superpowers/specs/2026-05-10-agentic-study-extension-design.md`. The
 corpus extension focuses on five categories of open source tooling that are
 directly relevant to building, governing, and observing specialized business
-agents in OpenERP using the `@entropiq` runtime: agent frameworks, policy
+agents in OpenERP using the `@sentropic` runtime: agent frameworks, policy
 engines, sandbox runtimes, MCP interop, and GenAI observability.
 
 The extension does not replace the existing ERP, CRM, and collaboration corpus.
@@ -106,7 +106,7 @@ is a TypeScript agent framework with built-in workflow definitions, memory,
 RAG integration, and tool binding. The open core under Apache-2.0 is the
 relevant study surface. The `ee/` directory under a proprietary Enterprise
 License covers authentication and advanced features not relevant to this study.
-The TypeScript-native design is directly relevant because `@entropiq` is also
+The TypeScript-native design is directly relevant because `@sentropic` is also
 TypeScript. For OpenERP, the relevant functional patterns are the workflow
 definition model and the memory management approach. Classification is
 `cautious inspiration` because of the mixed license structure; only the
@@ -117,7 +117,7 @@ configurations, or memory schemas may be copied.
 building AI-powered applications with streaming text generation, tool calling,
 and multi-step agent loops across multiple model providers. It is TypeScript-
 native and provider-agnostic, making it functionally adjacent to the
-`@entropiq` runtime. For OpenERP, the relevant patterns are the provider-
+`@sentropic` runtime. For OpenERP, the relevant patterns are the provider-
 agnostic tool-call abstraction and the streaming agent loop model. The
 Apache-2.0 license confirmed on 2026-05-11 makes this `usable`. No tool
 schemas, prompt templates, or streaming protocol expressions may be copied.
@@ -144,7 +144,7 @@ may be copied.
 language for defining structured LLM function interfaces with type-safe inputs
 and outputs, and a code generator that produces typed bindings for multiple
 languages. Its approach to treating LLM calls as typed functions is relevant
-to the tool definition model in `@entropiq`. For OpenERP, the relevant insight
+to the tool definition model in `@sentropic`. For OpenERP, the relevant insight
 is the separation between prompt structure and calling convention as a typed
 contract. The Apache-2.0 license confirmed on 2026-05-11 makes this `usable`.
 The DSL surface syntax, prompt templates, and generated function signatures
@@ -165,7 +165,7 @@ general-purpose declarative policy engine using the Rego policy language. It
 supports pre- and post-decision authorization, is embeddable as a library or
 sidecar, and produces structured audit decisions. For OpenERP, OPA is the most
 widely deployed reference for declarative per-tool-call policy enforcement —
-the primary capability gap identified in the `@entropiq` audit. The Apache-2.0
+the primary capability gap identified in the `@sentropic` audit. The Apache-2.0
 license confirmed on 2026-05-11 makes this `usable`. The Rego DSL syntax,
 policy example libraries, and built-in function signatures must not be copied;
 only the enforcement model and decision log structure may inform the OpenERP
@@ -215,7 +215,7 @@ may be copied.
 
 **isolated-vm** (`laverdet/isolated-vm`, ISC, `usable`) is a Node.js native
 addon that provides V8 isolate-based sandboxing with strict memory and CPU
-limits and inter-isolate message passing. Because `@entropiq` is TypeScript on
+limits and inter-isolate message passing. Because `@sentropic` is TypeScript on
 Node.js, isolated-vm is the most directly applicable candidate for in-process
 isolation of agent mini-modules at the private-to-tenant marketplace tier,
 where a full container boundary may be disproportionate. The ISC license
@@ -237,7 +237,7 @@ configuration files, runsc flags, or policy expression templates may be copied.
 Apache-2.0 transitioning from MIT, `usable`) is the canonical specification
 for the Model Context Protocol, the open interoperability standard for tool
 discovery, invocation, and authentication between agents and external tool
-servers. As identified in the `@entropiq` audit, MCP support is the most
+servers. As identified in the `@sentropic` audit, MCP support is the most
 significant technical gap in the current runtime relative to OpenERP needs.
 The specification defines the wire protocol, capability negotiation, and server
 and client posture that any OpenERP MCP implementation must follow. The
@@ -286,7 +286,7 @@ observability proxy that captures and annotates every request and response,
 with cost tracking, prompt templates, experiments, and a self-hosted
 deployment path. For OpenERP, the proxy-based interception model is relevant
 to the observability design: capturing LLM calls at the transport layer
-without modifying the `@entropiq` agent loop is an alternative to in-loop
+without modifying the `@sentropic` agent loop is an alternative to in-loop
 trace instrumentation. The Apache-2.0 license confirmed on 2026-05-11 makes
 this `usable`. No request logging schemas, cost model expressions, or prompt
 experiment configurations may be copied.
@@ -391,7 +391,7 @@ confined to three projects; for each, the open layer is sufficient for the
 study's purposes.
 
 The five categories of candidates map directly to the five capability gaps
-identified in the `@entropiq` audit: agent frameworks illuminate the design
+identified in the `@sentropic` audit: agent frameworks illuminate the design
 space for the agent loop and multi-agent coordination; policy engines provide
 the functional reference for declarative pre- and post-tool-call enforcement;
 sandbox runtimes address the isolation requirement by trust tier; MCP candidates
@@ -423,7 +423,7 @@ those fiches may draw on the candidates listed here.
 
 - Design specification: [`docs/superpowers/specs/2026-05-10-agentic-study-extension-design.md`](../../superpowers/specs/2026-05-10-agentic-study-extension-design.md)
 - License risk matrix: [`docs/study/00-methodology/license-risk-matrix.md`](../00-methodology/license-risk-matrix.md)
-- `@entropiq` audit (capability gaps mapped to corpus): [`docs/study/12-agentic/entropiq-audit.md`](../12-agentic/entropiq-audit.md)
+- `@sentropic` audit (capability gaps mapped to corpus): [`docs/study/12-agentic/entropiq-audit.md`](../12-agentic/entropiq-audit.md)
 - Agentic glossary (terminology): [`docs/study/12-agentic/glossary.md`](../12-agentic/glossary.md)
 - Anti-copy dossier: [`docs/study/08-anti-copy/anti-copy-dossier.md`](../08-anti-copy/anti-copy-dossier.md)
 - Full candidate inventory: [`docs/study/01-corpus/candidates.csv`](candidates.csv)

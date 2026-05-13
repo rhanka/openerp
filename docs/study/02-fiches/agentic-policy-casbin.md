@@ -18,10 +18,10 @@ Apache-2.0 is compatible with the MIT-targeted OpenERP direction when notice and
 
 Casbin is relevant to OpenERP as a compact access-control reference for RBAC and ABAC style policy. The OpenERP need is not to copy its model format, but to understand how tenant policy, actor attributes, object attributes, and requested actions can be evaluated consistently across modules and agent tool calls.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Integration Suitability With @entropiq: strong at the product boundary.
-The fit is strong at the product boundary because `@entropiq` is TypeScript and Casbin has broad language support, including JavaScript ecosystem relevance noted by the corpus. `@entropiq` would still need a new pre-call and post-call policy hook, a tenant-aware policy store, and audit output. OpenERP should own the adapter contract and avoid exposing external model terminology in user-facing configuration.
+Integration Suitability With @sentropic: strong at the product boundary.
+The fit is strong at the product boundary because `@sentropic` is TypeScript and Casbin has broad language support, including JavaScript ecosystem relevance noted by the corpus. `@sentropic` would still need a new pre-call and post-call policy hook, a tenant-aware policy store, and audit output. OpenERP should own the adapter contract and avoid exposing external model terminology in user-facing configuration.
 
 ## OpenERP Trust Tier Fit
 

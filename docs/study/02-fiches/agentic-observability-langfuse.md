@@ -23,9 +23,9 @@ Langfuse shows the shape of a self-hosted observability plane for LLM and agent 
 
 For OpenERP, the relevant role is trace review for agent actions that touch CRM, billing, accounting, projects, and customer communication.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Suitability is partial. The `@entropiq` audit notes existing chat trace services, so the runtime has a starting point. Missing pieces include explicit eval hooks, tenant-facing audit records, rollback hooks, and governance links from trace records to policy decisions.
+Suitability is partial. The `@sentropic` audit notes existing chat trace services, so the runtime has a starting point. Missing pieces include explicit eval hooks, tenant-facing audit records, rollback hooks, and governance links from trace records to policy decisions.
 
 An OpenERP integration should emit trace events from the existing agent loop, tool calls, and policy decisions, then store audit-relevant facts in OpenERP-owned tables. Langfuse should not dictate the trace object names or review UI.
 

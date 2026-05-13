@@ -1,4 +1,4 @@
-# `@entropiq` Audit
+# `@sentropic` Audit
 
 ## Progress
 
@@ -8,11 +8,11 @@ Attendu: no decision needed from the user at this step. The license finding belo
 
 ## Purpose
 
-This document records the current state of `@entropiq` — the user-owned TypeScript runtime that the OpenERP design specification (section 7 of `docs/superpowers/specs/2026-05-10-agentic-study-extension-design.md`) designates as the agent runtime base for the future product. The audit answers four questions: what exists today, what is missing relative to OpenERP needs, what license posture applies, and what constraints flow from those findings into the agentic extension. It is a factual record for Phase 1 of the study, not a recommendation to adopt or replace the runtime. That decision belongs to implementation planning.
+This document records the current state of `@sentropic` — the user-owned TypeScript runtime that the OpenERP design specification (section 7 of `docs/superpowers/specs/2026-05-10-agentic-study-extension-design.md`) designates as the agent runtime base for the future product. The audit answers four questions: what exists today, what is missing relative to OpenERP needs, what license posture applies, and what constraints flow from those findings into the agentic extension. It is a factual record for Phase 1 of the study, not a recommendation to adopt or replace the runtime. That decision belongs to implementation planning.
 
 ## Evidence
 
-The repository examined is `https://github.com/rhanka/entropiq`, owned by GitHub user `rhanka` (Fabien Antoine). It is public, unfurked, and written in TypeScript. The HEAD commit at the time of this audit is `ab88a68ab8e149885a4f1d5b5ef46901f739dc04`, merged on 2026-05-09. No release tags are present; the project has not yet cut a versioned release. No npm package is published under the name `@entropiq` or `entropiq`; the npm registry returns a `MethodNotAllowedError` for the scoped name and a `Not found` for the unscoped name, confirming that npm publication has not yet occurred as of this audit date.
+The repository examined is `https://github.com/rhanka/entropiq`, owned by GitHub user `rhanka` (Fabien Antoine). It is public, unfurked, and written in TypeScript. The HEAD commit at the time of this audit is `ab88a68ab8e149885a4f1d5b5ef46901f739dc04`, merged on 2026-05-09. No release tags are present; the project has not yet cut a versioned release. No npm package is published under the name `@sentropic` or `entropiq`; the npm registry returns a `MethodNotAllowedError` for the scoped name and a `Not found` for the unscoped name, confirming that npm publication has not yet occurred as of this audit date.
 
 The root workspace manifest (`package.json`) declares the monorepo name as `entropic-workspace` and a private flag, meaning no package in the workspace is currently intended for direct public consumption. The application server package (`api/package.json`) carries the name `top-ai-ideas-api` at version `0.1.0`. The README identifies the planned publishable packages as `@entropic/llm-mesh` (model access), `@entropic/chat` (chat surface), `@entropic/flow` (agentic workflow engine), and `@entropic/ui` (template layer), none of which are extracted yet. The extraction roadmap is tracked as branch sequence BR-14c → BR-14b → BR-14a in the project's `PLAN.md`.
 
@@ -22,11 +22,13 @@ Top-level layout (overview only): configuration directories, application roots (
 
 ## Declared License
 
+> **Update 2026-05-12**: License has been simplified to plain MIT and the SDK renamed `@sentropic`. The analysis below describes the prior state for historical record. Resolution: AGT-D-13 closed.
+
 The `LICENSE` file at the repository root is titled "MIT License with Commercial Use Restrictions." It is based structurally on the MIT License but adds a Section 3 that prohibits commercial use by for-profit entities without prior written permission from the copyright holder (Fabien Antoine). Non-profit organizations and public administrations receive unrestricted free use. An evaluation and testing exception grants all entities, including for-profit companies, unrestricted use for internal testing, proof-of-concept development, and non-production evaluation.
 
 This license is not standard MIT. It is a custom source-available license, which places it in the "Proprietary / restricted-source" row of the `docs/study/00-methodology/license-risk-matrix.md` posture grid for purposes of third-party use. However, the copyright holder is the same individual who owns the OpenERP study, which means the constraint is self-imposed and can be waived by the holder for the OpenERP product. The study treats the runtime as `usable` for the OpenERP product under the owner's own authority, while noting that the license text as written would prohibit any commercial for-profit partner, tenant, or mini-module publisher from bundling or depending on the package without a separate written agreement. This has direct implications documented in the Marketplace Implications section below.
 
-The design specification (section 7) refers to `@entropiq` as "MIT (TypeScript, Node + Svelte compatible, queue-based, alpha)." The license file retrieved from the repository is not plain MIT; the user should either simplify the license to plain MIT before any external-facing npm publication or document the explicit waiver that covers OpenERP commercial deployment. This is flagged as a known-facts discrepancy — pending resolution by the maintainer.
+The design specification (section 7) refers to `@sentropic` as "MIT (TypeScript, Node + Svelte compatible, queue-based, alpha)." The license file retrieved from the repository is not plain MIT; the user should either simplify the license to plain MIT before any external-facing npm publication or document the explicit waiver that covers OpenERP commercial deployment. This is flagged as a known-facts discrepancy — pending resolution by the maintainer.
 
 ## Capabilities Present
 
@@ -52,7 +54,7 @@ The runtime already operates as a functioning application backend for the "Top A
 
 The OpenERP agentic design specification (section 7) identifies two primary gaps — MCP support and policy hooks — along with three further categories: multi-tenant identity primitives, marketplace publication primitives, and supervision integration points. The evidence from the repository confirms all five gaps as absent from the current codebase.
 
-**MCP (Model Context Protocol) — client and server.** No MCP client, no MCP server surface, and no protocol-level tool-discovery mechanism exists in the repository. Tool invocation is currently internal, via direct TypeScript function calls registered within the application. For OpenERP, MCP is the required interop standard between the `@entropiq` runtime and external tool providers, and OpenERP must also be able to expose its ERP surface as an MCP server. Both the client posture and the server posture are absent. This is the most significant technical gap relative to the Phase 3 runtime safety and interop requirements.
+**MCP (Model Context Protocol) — client and server.** No MCP client, no MCP server surface, and no protocol-level tool-discovery mechanism exists in the repository. Tool invocation is currently internal, via direct TypeScript function calls registered within the application. For OpenERP, MCP is the required interop standard between the `@sentropic` runtime and external tool providers, and OpenERP must also be able to expose its ERP surface as an MCP server. Both the client posture and the server posture are absent. This is the most significant technical gap relative to the Phase 3 runtime safety and interop requirements.
 
 **Policy hooks.** No pre-call or post-call policy evaluation mechanism is present. The runtime does not enforce declarative rules on tool invocations; access control is handled at the HTTP route layer, not at the agent-loop layer. OpenERP requires a policy engine that can intercept each tool call, evaluate tenant-defined constraints (amount limits, resource types, schedule windows, prohibited action classes), and either permit, block, or escalate the call before execution. This layer is entirely absent.
 
@@ -66,13 +68,13 @@ The OpenERP agentic design specification (section 7) identifies two primary gaps
 
 The current runtime is built for a single-product, multi-user SaaS where all users share the same tenant context (the "Top AI Ideas" application). Workspace isolation is implemented at the data-query layer using `workspace_id` filters, but there is no cryptographic tenant boundary, no per-tenant key store, and no runtime-level guarantee that one tenant's agent cannot access another tenant's data through a misconfigured tool.
 
-For OpenERP, which is a multi-tenant ERP/CRM, every agent identity must be scoped to a specific tenant, every tool call must be validated against that tenant's data perimeter, and tenant secrets (API keys, credentials, connection strings) must be stored and rotated per-tenant rather than per-application. The service principal identity pattern — a non-human identity with explicit tenant-scoped grants — does not exist in the current runtime. Building multi-tenancy onto `@entropiq` will require extending the identity and permission model substantially before any agent can act on behalf of an OpenERP tenant in a safe and auditable way.
+For OpenERP, which is a multi-tenant ERP/CRM, every agent identity must be scoped to a specific tenant, every tool call must be validated against that tenant's data perimeter, and tenant secrets (API keys, credentials, connection strings) must be stored and rotated per-tenant rather than per-application. The service principal identity pattern — a non-human identity with explicit tenant-scoped grants — does not exist in the current runtime. Building multi-tenancy onto `@sentropic` will require extending the identity and permission model substantially before any agent can act on behalf of an OpenERP tenant in a safe and auditable way.
 
 The license restriction noted in the Declared License section also has a multi-tenant implication: if tenants or third-party publishers are commercial for-profit entities, they could be considered downstream users of the runtime and subject to the commercial use clause. The copyright holder's intent and any commercial-use waiver must be documented explicitly before the runtime is exposed to external tenants or partner publishers.
 
 ## Marketplace Implications
 
-The mini-module publication model requires a runtime that can load, validate, and isolate third-party agent extensions at runtime without allowing one extension to interfere with another or with the host application. The current `@entropiq` codebase has no equivalent of a module loader, a manifest validator, or a sandboxing shim. All agent-like behavior is authored directly into the application service layer.
+The mini-module publication model requires a runtime that can load, validate, and isolate third-party agent extensions at runtime without allowing one extension to interfere with another or with the host application. The current `@sentropic` codebase has no equivalent of a module loader, a manifest validator, or a sandboxing shim. All agent-like behavior is authored directly into the application service layer.
 
 The three-tier marketplace model defined in section 8 of the design specification — private to tenant, curated partners, public community — each requires progressively stricter primitives: signed manifests, registry integration, trust-proportional sandboxing, and automated compliance checks. None of these exist today. Designing and building them is the primary work of Phase 3, Marketplace Design Space (`docs/study/12-agentic/marketplace-design-space.md`), which will specify requirements independently of any chosen runtime implementation.
 
@@ -84,7 +86,7 @@ The workflow and task-graph machinery already in the runtime provides the struct
 
 For conversational agents, an approval-in-the-loop primitive must be added: the agent loop must be able to pause after generating an action proposal, emit a structured approval request to the calling session, and resume only after a human decision is received. For autonomous agents, a canary deployment mechanism must allow a new agent or policy version to run on a bounded fraction of events before full activation, with a rollback hook that can revert to the previous version without manual intervention. For workflow-typed agents, typed checkpoints must allow the agent step to signal success, failure, or escalation back to the typed automation layer in a format the downstream step can interpret deterministically.
 
-None of these supervision connectors exist in the current runtime. They are the primary targets of the human supervision design space (`docs/study/12-agentic/human-supervision-design-space.md`) in Phase 3, and their absence from `@entropiq` today does not block the study — it defines the design work ahead.
+None of these supervision connectors exist in the current runtime. They are the primary targets of the human supervision design space (`docs/study/12-agentic/human-supervision-design-space.md`) in Phase 3, and their absence from `@sentropic` today does not block the study — it defines the design work ahead.
 
 ## Anti-Copy Notes
 

@@ -16,12 +16,12 @@ ISC is compatible with the MIT-targeted OpenERP direction when attribution oblig
 
 ## Functional Role
 
-isolated-vm is the most directly relevant sandbox candidate for a TypeScript and Node.js runtime because `@entropiq` is TypeScript-based. For OpenERP, its role is a possible private-to-tenant or internal extension boundary when a full container boundary is disproportionate and the module does not require broad system access.
+isolated-vm is the most directly relevant sandbox candidate for a TypeScript and Node.js runtime because `@sentropic` is TypeScript-based. For OpenERP, its role is a possible private-to-tenant or internal extension boundary when a full container boundary is disproportionate and the module does not require broad system access.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Integration Suitability With @entropiq: strong for early design.
-The fit is strong for early design because it matches the Node.js runtime family and can be considered near the agent-loop process. `@entropiq` would still need an OpenERP-authored module loader, policy hook, data envelope, resource limit policy, timeout handling, result validation, and audit trace. It is not sufficient for highly untrusted public community modules by itself.
+Integration Suitability With @sentropic: strong for early design.
+The fit is strong for early design because it matches the Node.js runtime family and can be considered near the agent-loop process. `@sentropic` would still need an OpenERP-authored module loader, policy hook, data envelope, resource limit policy, timeout handling, result validation, and audit trace. It is not sufficient for highly untrusted public community modules by itself.
 
 ## OpenERP Trust Tier Fit
 
@@ -41,4 +41,4 @@ no DSL surface syntax, no sandbox configuration template, no example library, an
 
 ## OpenERP Takeaways
 
-isolated-vm is a practical technical match for lightweight `@entropiq` extension isolation, especially before a broader marketplace exists. It should be paired with OpenERP-owned policy, identity, secrets, and audit controls, and reserved for lower-trust-depth tiers unless container or OS-level isolation is layered around it.
+isolated-vm is a practical technical match for lightweight `@sentropic` extension isolation, especially before a broader marketplace exists. It should be paired with OpenERP-owned policy, identity, secrets, and audit controls, and reserved for lower-trust-depth tiers unless container or OS-level isolation is layered around it.

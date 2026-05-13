@@ -105,8 +105,8 @@ Chaque PR touchant aux agents doit répondre oui/non à ces questions avant merg
 | GPL / AGPL | Functional reference only for agent capabilities, UI concepts and runtime primitives. |
 | Source-available / proprietary | Public benchmark only; no code, prompt, schema, UI, demo, trace or config reuse. |
 
-## Anchor-Specific Notes (`@entropiq` And External Frameworks)
+## Anchor-Specific Notes (`@sentropic` And External Frameworks)
 
-`@entropiq` is the user-owned runtime anchor for OpenERP and can be used as the implementation base subject to the license posture already documented in `docs/study/12-agentic/entropiq-audit.md` and `docs/study/12-agentic/license-posture.md`. The commercial restriction noted there must be resolved before treating it as ordinary MIT-compatible distribution material.
+`@sentropic` is the user-owned runtime anchor for OpenERP and can be used as the implementation base subject to the license posture already documented in `docs/study/12-agentic/entropiq-audit.md` and `docs/study/12-agentic/license-posture.md`. The commercial restriction noted there must be resolved before treating it as ordinary MIT-compatible distribution material.
 
 External frameworks, protocol references, policy engines, sandbox systems, observability tools and marketplaces may inform functional requirements only unless a separate technical reuse decision is recorded. OpenERP must author its own prompts, tools, schemas, traces, catalog language, policy wording, sandbox requirements and user-facing FR/EN strings.

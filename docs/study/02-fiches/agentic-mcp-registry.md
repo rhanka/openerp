@@ -25,9 +25,9 @@ The MCP registry is the discovery layer for available MCP servers. In OpenERP te
 
 For the agentic extension, registry design sits between marketplace governance and runtime tool interop.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Suitability is partial because the `@entropiq` audit confirms that registry interfaces, signing, provenance, module manifests, and version pinning do not exist today. The registry can guide the missing discovery layer, but OpenERP must own the tenant and marketplace rules.
+Suitability is partial because the `@sentropic` audit confirms that registry interfaces, signing, provenance, module manifests, and version pinning do not exist today. The registry can guide the missing discovery layer, but OpenERP must own the tenant and marketplace rules.
 
 The integration should add a registry abstraction around approved MCP endpoints, then connect it to identity delegation, policy checks, sandbox posture, and trace capture. The first production path should be tenant-private before any partner or public community exposure.
 
@@ -41,7 +41,7 @@ Public community: require registry controls for public visibility, broader prove
 
 ## Architecture Notes
 
-OpenERP should model the registry as governance metadata plus runtime resolution. The metadata side records publisher identity, license posture, allowed tenants, approved versions, revocation state, and required sandbox depth. The runtime side resolves an approved MCP endpoint for `@entropiq` at call time.
+OpenERP should model the registry as governance metadata plus runtime resolution. The metadata side records publisher identity, license posture, allowed tenants, approved versions, revocation state, and required sandbox depth. The runtime side resolves an approved MCP endpoint for `@sentropic` at call time.
 
 Registry discovery must not bypass tenant approval, budget controls, secrets scoping, or policy checks. Every activation and deactivation should leave an audit trail.
 

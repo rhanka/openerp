@@ -21,11 +21,11 @@ The project is most valuable as a reference for using standard telemetry plumbin
 
 OpenLLMetry instruments LLM provider calls and agent frameworks so traces and spans can be sent to OpenTelemetry-compatible backends.
 
-For OpenERP, the functional role is to keep agent observability portable: `@entropiq` should emit standard telemetry events that can reach the backend chosen by an OpenERP operator.
+For OpenERP, the functional role is to keep agent observability portable: `@sentropic` should emit standard telemetry events that can reach the backend chosen by an OpenERP operator.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Suitability is strong for instrumentation design. `@entropiq` has model providers, tool orchestration, queue-backed execution, streaming, and chat traces. Those events can be mapped into OTel spans without binding OpenERP to one observability product.
+Suitability is strong for instrumentation design. `@sentropic` has model providers, tool orchestration, queue-backed execution, streaming, and chat traces. Those events can be mapped into OTel spans without binding OpenERP to one observability product.
 
 The integration should separate telemetry emission from audit persistence. OTel traces help operations and debugging; OpenERP audit records remain the legal and business record.
 
@@ -60,5 +60,5 @@ OpenERP must author its own telemetry event names and redaction rules in OpenERP
 
 - Prefer OTel-native observability for portability across backends.
 - Keep telemetry and legal audit records as related but separate concerns.
-- Instrument `@entropiq` model calls, tool calls, policy decisions, and supervision outcomes.
+- Instrument `@sentropic` model calls, tool calls, policy decisions, and supervision outcomes.
 - Use the SDK as a design reference unless a later legal review approves source import.

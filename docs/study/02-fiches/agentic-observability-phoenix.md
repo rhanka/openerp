@@ -23,9 +23,9 @@ Phoenix represents a full observability workbench for agent and LLM execution re
 
 The useful lesson is that business agents need more than logs; they need structured execution records tied to model calls, tool calls, evaluation outcomes, and human decisions.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Suitability is limited to design comparison. `@entropiq` already records chat traces, but it lacks explicit eval hooks, durable tenant audit trails, and rollback hooks. Phoenix can help frame those missing capabilities, but its license keeps it outside the implementation path.
+Suitability is limited to design comparison. `@sentropic` already records chat traces, but it lacks explicit eval hooks, durable tenant audit trails, and rollback hooks. Phoenix can help frame those missing capabilities, but its license keeps it outside the implementation path.
 
 OpenERP should implement Phoenix-like needs through OpenERP-owned data models and permissive telemetry standards.
 

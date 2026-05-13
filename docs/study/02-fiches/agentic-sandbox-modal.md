@@ -18,10 +18,10 @@ Modal is not a reuse candidate for OpenERP runtime implementation because the pl
 
 Modal is useful as a public benchmark for managed execution: it illustrates how a platform can package code, run it remotely, schedule it, and attach specialized compute. For OpenERP, the relevant functional question is which of those capabilities are needed for agent mini-modules, and which must remain self-hosted or tenant-controlled.
 
-## Integration Suitability With `@entropiq`
+## Integration Suitability With `@sentropic`
 
-Integration Suitability With @entropiq: weak for direct integration.
-The fit is weak for direct OpenERP integration because the `@entropiq` audit and design posture require self-hostable runtime primitives for a governed OpenERP product, while Modal is recorded as proprietary cloud-only. It can still help frame what an execution adapter would need to expose: job submission, bounded runtime, result capture, failure reporting, and audit linkage.
+Integration Suitability With @sentropic: weak for direct integration.
+The fit is weak for direct OpenERP integration because the `@sentropic` audit and design posture require self-hostable runtime primitives for a governed OpenERP product, while Modal is recorded as proprietary cloud-only. It can still help frame what an execution adapter would need to expose: job submission, bounded runtime, result capture, failure reporting, and audit linkage.
 
 ## OpenERP Trust Tier Fit
 
