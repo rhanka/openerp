@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: extension agentique cadrée à partir du corpus, des fiches d'agents, des design spaces runtime, et de l'audit `@sentropic`.
-À faire: transformer ce périmètre en spécifications de modules après validation du MVP agentique.
-Attendu: garder l'agentique comme couche d'aide opérationnelle gouvernée, pas comme remplacement des workflows ERP/CRM.
+Fait: extension agentique cadrée à partir du corpus, fiches d'agents, design spaces runtime, audit `@sentropic`. Specs MVP enrichies et arbitrées 2026-05-14 (cf. `decision-pack.md`). AGT-D-01 (sandbox) pushé à `@sentropic`, AGT-D-04 (identity) aligné RFC 8693 + SPIFFE post-MVP, AGT-D-12 (évolution) reformulé en PR processus normal (PR #151 mergée).
+À faire: implémenter agentique après foundation impl gate (lot 6) ; consommer capabilities `@sentropic` (MCP, policy hooks, identity primitives) issues de PR #151 / BR-26.
+Attendu: agentique reste couche d'aide opérationnelle gouvernée, dépendant de foundation. Pas de remplacement des workflows ERP/CRM.
 
 ## Purpose
 
