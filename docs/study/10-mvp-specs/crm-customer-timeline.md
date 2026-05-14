@@ -584,5 +584,20 @@ Localization rule: every screen renders labels from translation keys; no English
     - Single label fallback — rejected: regression vs spec localization requirements
   impacts: [pipeline admin UI, stage rendering, timeline rendering]
   reversible: soft
+  reco: Per-stage FR/EN translation keys, not a global toggle
+  resolution: 2026-05-14, status: RESOLVED, chosen: table dédiée PipelineStageTranslation {pipeline_stage_id, locale, label}. Libellés en DB (donnée tenant), pas dans catalogue i18n. Anti-pattern key dynamique avec tenant_id rejeté
 ```
+
+### Décisions programme impactantes (PG)
+
+Décisions transverses arbitrées au niveau programme (decision-pack global) qui contraignent ou habilitent l'implémentation CRM :
+
+- **PG-02 — UserIdentity + OrganizationMember**. Sépare l'identité utilisateur globale (UserIdentity, SSO/IdP) de l'appartenance tenant (OrganizationMember, scopes RBAC). Impacte `owner_user_id`, `team_id`, et toute permission `crm.*.{own|team|organization}`.
+- **PG-03 — RLS + abstraction TenantIsolationStrategy**. Isolation multi-tenant Postgres via Row-Level Security, derrière une abstraction `TenantIsolationStrategy` (pluggable schema-per-tenant en option). Toutes les requêtes CRM doivent passer par le contexte tenant injecté ; aucune query bypass RLS.
+- **PG-05 — ICU JSON nested + TranslationKey**. Catalogue i18n statique en JSON ICU nested, table `TranslationKey` pour traçabilité ; libellés de DONNÉES tenant (stages, tags, loss reasons custom) restent en DB via tables `*Translation` dédiées, séparées du catalogue applicatif.
+- **PG-06 article 3 — CrmActivity séparé**. La famille « Activity » est éclatée par domaine : `CrmActivity`, `ProjectTask`, `ServiceActivity`, `AgentRun`. Chaque entité a son propre cycle de vie, ses propres événements, sa propre table. Conséquence directe sur D-CRM-03 (révoqué) et sur les sections Data Entities, Events, Permissions, API Expectations de cette spec — à aligner en aval.
+- **PG-06 article 1 — Money type foundation**. Type valeur `Money { amount: decimal, currency: ISO4217 }` partagé au niveau foundation. `Opportunity.expected_value` + `Opportunity.currency` doivent être remplacés par un champ `expected_value: Money` à l'implémentation.
+- **PG-07 — ApprovalRequest pour close-won threshold**. Le mécanisme d'approbation au-dessus du seuil tenant (`AC-F-03`, workflow close-won étape 7) repose sur l'entité `ApprovalRequest` fournie par foundation. CRM émet une `ApprovalRequest` typée `crm.opportunity.close_won`, ne gère pas la file d'approbation lui-même.
+- **PG-08 — Idempotency-Key sur import commit, opportunity create**. Header `Idempotency-Key` obligatoire sur `POST /crm/import-jobs/{id}/commit` (déjà spécifié via import_job_id) et étendu à `POST /crm/opportunities`, `POST /crm/leads/{id}/convert`, `POST /crm/opportunities/{id}/close-won` pour rejouer les requêtes côté client sans duplication.
+- **PG-12 — Anti-copy hotspots**. Trois hotspots confirmés au niveau programme et déjà flaggés dans la section Cross-ERP Benchmark : Twenty `ObjectMetadata` (couvert par D-CRM-04), Odoo `mail.activity` / `mail.message` split (couvert par PG-06 article 3 — CrmActivity reste un domaine isolé), Odoo `Chatter` (couvert par TimelineEntry et la grammaire d'événements D-CRM-05). Tout PR touchant ces zones déclenche revue anti-copy obligatoire.
 

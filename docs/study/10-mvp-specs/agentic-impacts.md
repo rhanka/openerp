@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: impacts agentiques + enrichissement 2026-05-12 (15 décisions AGT-D-01→15, dont AGT-D-12 et AGT-D-13 marquées RESOLVED après rename `@entropiq` → `@sentropic` plain MIT). 8 axes techno transverses (sandbox, policy, observability, identity, MCP, supervision).
-À faire: arbitrage porteur produit sur les 6 décisions transverses agentiques restantes (approval threshold, rate-limit triplet, budget defaults, irreversible actions, supervision UI placement, MCP audit), aligner sandbox MVP scope (codex conteste isolated-vm si code tiers hostile).
-Attendu: figer après foundation (AuditEvent étendu + identité JWT agent + ApprovalRequest) ; supervision banner imposée comme contrainte UI à toutes les surfaces métier.
+Fait: spec enrichie + 15 décisions AGT-D-XX arbitrées 2026-05-14. AGT-D-01 (sandbox) revoked vers @sentropic. AGT-D-04 (identity) étendu RFC 8693 + SPIFFE. AGT-D-12 (évolution @sentropic) reformulé en PR processus normal.
+À faire: PR @sentropic ouverte via ~/src/entropiq (MCP + OTel + policy hooks + identity + marketplace + sandbox API), foundation impl (RFC 8693 token exchange + ApprovalRequest + AuditEvent étendu), supervision banner imposée dans toutes les UI métier.
+Attendu: agentic est dépendant de @sentropic + foundation. PR @sentropic ouverte, autre agent continue dev. Impl agentic OpenERP démarre après ces deux dépendances.
 
 ## Purpose
 
@@ -175,108 +175,148 @@ Registre des décisions ouvertes au format YAML-like. Statut: `proposed` = reco 
 - id: AGT-D-01
   topic: sandbox-runtime
   decision: hybride isolated-vm (MVP interne) + gVisor (roadmap tiers)
-  status: proposed
+  reco: hybride isolated-vm (MVP interne) + gVisor (roadmap tiers)
+  resolution: 2026-05-14, status: RESOLVED, chosen: SANDBOX = RESPONSABILITÉ @sentropic. Drop isolated-vm/gVisor/Modal/E2B du scope OpenERP MVP. OpenERP EXIGE de @sentropic : API sandbox + capability manifest. Si manquant côté @sentropic → feature request via PR sur @sentropic. Revert de la décision initiale isolated-vm
+  status: RESOLVED
   owner: foundation-spec
   blocks: [billing-spec, project-spec]
 
 - id: AGT-D-02
   topic: policy-engine
   decision: native TS OpenERP avec abstraction PolicyDecisionPoint
-  status: proposed
+  reco: native TS OpenERP avec abstraction PolicyDecisionPoint
+  resolution: 2026-05-14, status: RESOLVED, chosen: native TS MVP (hooks pre/post tool call), Cedar ou OPA en pack post-MVP
+  status: RESOLVED
   owner: foundation-spec
   blocks: [billing-spec, crm-spec, reporting-spec]
 
 - id: AGT-D-03
   topic: observability-backend
   decision: OpenInference conventions + OpenLLMetry SDK + Langfuse self-host optionnel
-  status: proposed
+  reco: OpenInference conventions + OpenLLMetry SDK + Langfuse self-host optionnel
+  resolution: 2026-05-14, status: RESOLVED, chosen: OpenInference + OpenLLMetry MVP, abstraction pour Langfuse/Helicone/Phoenix swappable post-MVP
+  status: RESOLVED
   owner: foundation-spec
   blocks: [reporting-spec]
 
 - id: AGT-D-04
   topic: agent-identity
   decision: JWT signé OpenERP-native avec claims tenant_id/agent_id/acting_as/acting_for/delegation_id/scope/exp
-  status: proposed
+  reco: RFC 8693 token exchange MVP (act + may_act claims) + SPIFFE/SVID post-MVP via abstraction IdentityProvider (PG-09); cookie humains + JWT signé agents; User.actor_type = human | agent | system; chaîne délégation human → agent_definition → tool_call; ApprovalRequest comme issuance du JWT agent; AuditEvent étendu (acting_principal + on_behalf_of + policy_decision_id + approval_request_id)
+  resolution: 2026-05-14, status: RESOLVED, chosen: RFC 8693 token exchange MVP (act + may_act claims) + SPIFFE/SVID post-MVP via abstraction IdentityProvider (PG-09). Cookie humains + JWT signé agents. User.actor_type = human | agent | system. Chaîne délégation : human → agent_definition → tool_call. ApprovalRequest comme issuance du JWT agent. AuditEvent étendu (acting_principal + on_behalf_of + policy_decision_id + approval_request_id)
+  status: RESOLVED
   owner: foundation-spec
   blocks: [all-specs]
 
 - id: AGT-D-05
   topic: mcp-registry
   decision: registry interne native OpenERP, tenant-privé au MVP, pas d'expo publique avant post-MVP
-  status: proposed
+  reco: registry interne native OpenERP, tenant-privé au MVP, pas d'expo publique avant post-MVP
+  resolution: 2026-05-14, status: RESOLVED, chosen: interne native MVP, public registry (Anthropic) post-MVP
+  status: RESOLVED
   owner: foundation-spec
   blocks: [reporting-spec]
 
 - id: AGT-D-06
   topic: supervision-ui
   decision: hybride inline (conversationnel) + panneau /supervision central (autonome + workflow-typed)
-  status: proposed
+  reco: hybride inline (conversationnel) + panneau /supervision central (autonome + workflow-typed)
+  resolution: 2026-05-14, status: RESOLVED, chosen: hybride inline + panneau /supervision. CONTRAINTE TRANSVERSE : tout écran métier réserve zone "supervision banner" (cf. CRM, project, billing, reporting)
+  status: RESOLVED
   owner: foundation-spec
   blocks: [crm-spec, billing-spec, project-spec]
 
 - id: AGT-D-07
   topic: sandbox-snapshot-restore
   decision: rollback niveau objet métier au MVP; snapshot sandbox post-MVP
-  status: proposed
+  reco: rollback niveau objet métier au MVP; snapshot sandbox post-MVP
+  resolution: 2026-05-14, status: RESOLVED, chosen: rollback niveau objet métier au MVP; snapshot sandbox post-MVP
+  status: RESOLVED
   owner: foundation-spec
   blocks: [billing-spec, project-spec]
 
 - id: AGT-D-08
   topic: audit-mcp-calls
   decision: audit unifié foundation avec champ source [human|agent|system]
-  status: proposed
+  reco: audit unifié foundation avec champ source [human|agent|system]
+  resolution: 2026-05-14, status: RESOLVED, chosen: unifié dans AuditEvent foundation avec colonnes optionnelles agentiques (source, agent_id, tool_call_id, policy_decision_id, delegation_id) — cf. PG-09 stack identité
+  status: RESOLVED
   owner: foundation-spec
   blocks: [reporting-spec]
 
 - id: AGT-D-09
   topic: approval-threshold-default
   decision: hybride par rôle (default) + override par tool (escalation rule) + override par tenant policy
-  status: pending-program
+  reco: hybride par rôle (default) + override par tool (escalation rule) + override par tenant policy
+  resolution: 2026-05-14, status: RESOLVED, chosen: hybride rôle + tool + tenant. Configurable via ApprovalPolicy {tenant_id, subject_type, threshold_amount, approvers} foundation (PG-07)
+  status: RESOLVED
   owner: program-decision-pack
   blocks: [billing-spec, crm-spec, project-spec]
 
 - id: AGT-D-10
   topic: rate-limit-agent
   decision: triplet [par tenant (budget global), par user (Acting-As), par agent definition (Service Principal)]
-  status: pending-program
+  reco: triplet [par tenant (budget global), par user (Acting-As), par agent definition (Service Principal)]
+  resolution: 2026-05-14, status: RESOLVED, chosen: tenant + user + agent_definition. Foundation expose RateLimit primitive
+  status: RESOLVED
   owner: program-decision-pack
   blocks: [foundation-spec, reporting-spec]
 
 - id: AGT-D-11
   topic: bilingual-supervision-notification
   decision: FR-CA prioritaire dès MVP, EN en parallèle obligatoire, pas de fallback unilingue
-  status: proposed
+  reco: FR-CA prioritaire dès MVP, EN en parallèle obligatoire, pas de fallback unilingue
+  resolution: 2026-05-14, status: RESOLVED, chosen: FR-CA prioritaire dès MVP, EN en parallèle obligatoire, pas de fallback unilingue
+  status: RESOLVED
   owner: foundation-spec
   blocks: [all-specs]
 
 - id: AGT-D-12
-  topic: entropiq-fork-vs-contribution
-  decision: STRATEGIC OPEN - fork interne contrôlé pour MVP (gaps MCP/policy/sandbox/supervision) avec intention de contribution upstream best-effort sur capabilities génériques (MCP client/server, OTel hooks); différenciation OpenERP (policy ERP, identity, supervision business) reste fork interne
+  topic: sentropic-evolution
+  decision: TOUTES capabilities OpenERP (MCP + OTel + policy hooks + multi-tenant identity primitives + marketplace primitives + sandbox API) intégrées dans @sentropic main via PR processus normal depuis ~/src/entropiq, en respect du plan @sentropic. Wording "fork interne + best-effort upstream" SUPPRIMÉ : l'utilisateur est upstream, il n'y a pas de fork.
+  reco: TOUTES capabilities OpenERP (MCP + OTel + policy hooks + multi-tenant identity primitives + marketplace primitives + sandbox API) dans @sentropic main. PR ouverte via ~/src/entropiq en respect du plan @sentropic. Pas de push direct main, processus PR normal. L'autre agent (codex) continue le dev process.
+  resolution: 2026-05-14, status: RESOLVED, chosen: TOUTES capabilities OpenERP (MCP + OTel + policy hooks + multi-tenant identity primitives + marketplace primitives + sandbox API) dans @sentropic main. PR ouverte via ~/src/entropiq en respect du plan @sentropic. Pas de push direct main, processus PR normal. L'autre agent (codex) continue le dev process. Wording "fork interne + best-effort upstream" SUPPRIMÉ (n'a pas de sens : utilisateur est upstream)
   status: RESOLVED
-  resolution: 2026-05-12, plain MIT adopted, name @sentropic
   owner: program-decision-pack
   blocks: [foundation-spec, all-specs]
 
 - id: AGT-D-13
-  topic: entropiq-license-alignment
+  topic: sentropic-license-alignment
   decision: amender license @sentropic vers MIT pur OU émettre waiver écrit commercial avant déploiement production OpenERP
+  reco: plain MIT adopted, name @sentropic
+  resolution: 2026-05-14, status: RESOLVED, chosen: plain MIT adopted, name @sentropic (déjà résolu 2026-05-12, confirmé 2026-05-14)
   status: RESOLVED
-  resolution: 2026-05-12, plain MIT adopted, name @sentropic
   owner: program-decision-pack
   blocks: [all-specs]
 
 - id: AGT-D-14
   topic: agent-execution-budget-default
   decision: budget par tenant (cap absolu) + budget par agent_definition (cap relatif) + circuit breaker sur dépassement
-  status: pending-program
+  reco: budget par tenant (cap absolu) + budget par agent_definition (cap relatif) + circuit breaker sur dépassement
+  resolution: 2026-05-14, status: RESOLVED, chosen: cap tenant + cap agent + circuit breaker. Liaisons billing + reporting
+  status: RESOLVED
   owner: program-decision-pack
   blocks: [foundation-spec, reporting-spec, billing-spec]
 
 - id: AGT-D-15
   topic: irreversible-action-policy
   decision: aucune action irréversible en mode autonome au MVP (posting, send externe, close period); workflow-typed avec checkpoint humain obligatoire
-  status: proposed
+  reco: aucune action irréversible en mode autonome au MVP (posting, send externe, close period); workflow-typed avec checkpoint humain obligatoire
+  resolution: 2026-05-14, status: RESOLVED, chosen: zéro action irréversible autonome MVP (posting, send externe, close, void). ApprovalRequest humain obligatoire (PG-07). Contrainte transverse billing + CRM
+  status: RESOLVED
   owner: program-decision-pack
   blocks: [billing-spec, crm-spec]
 ```
+
+### Décisions programme impactantes (PG)
+
+Les décisions programme transverses suivantes contraignent ou complètent les arbitrages AGT-D-XX ci-dessus. Elles sont gérées au niveau du decision-pack programme, mais référencées ici pour cohérence agentique.
+
+- **PG-01 — Licence @sentropic plain MIT** : résolu 2026-05-12 (cf. AGT-D-13). Plain MIT adopté, nom `@sentropic`, plus aucune restriction commerciale. Confirmé 2026-05-14.
+- **PG-02 — UserIdentity humain vs AgentIdentity séparée** : foundation distingue `UserIdentity` (humain, passkey/cookie session) de `AgentIdentity` (agent, JWT signé RFC 8693). `User.actor_type = human | agent | system` pivot ; toute table métier référence l'identité via cette abstraction et non un user_id direct.
+- **PG-06 article 3 — AgentRun préfixé et séparé** : `AgentRun` est un objet propre, jamais fusionné avec `CrmActivity`, `ProjectTask`, ou `ServiceActivity`. Liaison via `AuditEvent` + `correlation_id`. Évite pollution sémantique des objets métier humains.
+- **PG-06 article 2 — AuditEvent étendu agentic** : `AuditEvent` foundation porte les colonnes optionnelles agentiques (`source`, `agent_id`, `tool_call_id`, `policy_decision_id`, `delegation_id`, `acting_principal`, `on_behalf_of`, `approval_request_id`). Aligne AGT-D-08.
+- **PG-07 — ApprovalRequest foundation** : primitive foundation `ApprovalRequest {tenant_id, subject_type, subject_id, requested_by, approver_role, threshold_amount, status, decision_at, decided_by}` couvre approval threshold (AGT-D-09) ET irreversible actions (AGT-D-15). Issuance du JWT agent passe par ApprovalRequest.
+- **PG-09 — Stack identité agent (RFC 8693 + SPIFFE)** : aligne AGT-D-04. Abstraction `IdentityProvider` pour permettre swap RFC 8693 token exchange (MVP) → SPIFFE/SVID (post-MVP multi-cluster) sans casse foundation. `act` et `may_act` claims standardisés.
+- **PG-12 — Anti-copy frameworks externes** : LangGraph, CrewAI, AutoGen sont `functional reference only` ou `cautious inspiration`. Aucun code, prompt, tool schema, workflow definition, eval dataset, trace, ou config runtime jamais copié. Implémentation OpenERP-native obligatoire, contribution upstream MCP/OTel via @sentropic uniquement.
 

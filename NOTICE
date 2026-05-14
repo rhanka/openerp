@@ -1,0 +1,41 @@
+OpenERP
+Copyright 2026 Fabien Antoine
+
+This product includes software developed by third parties under the following licenses.
+
+== Apache License 2.0 dependencies ==
+
+The following Apache-2.0 projects inspire or are consumed by OpenERP design and implementation. Attribution is provided per Apache-2.0 §4(d).
+
+- Kill Bill (https://killbill.io) — subscription billing reference for OpenERP billing module
+- OpenMeter (https://openmeter.io) — usage metering reference for OpenERP billing module
+- Apache Superset (https://superset.apache.org) — BI reference for OpenERP reporting module
+- Node-RED (https://nodered.org) — workflow automation reference for OpenERP reporting/automation module
+- OpenTelemetry (https://opentelemetry.io) — observability standard consumed by @sentropic runtime
+- OpenInference (https://github.com/Arize-ai/openinference) — LLM telemetry standard
+- OpenLLMetry (https://github.com/traceloop/openllmetry) — LLM telemetry SDK
+- Anthropic MCP SDK (https://github.com/modelcontextprotocol) — Model Context Protocol
+
+== MIT License dependencies ==
+
+The following MIT-licensed runtime SDKs are bundled or consumed by OpenERP. Attribution is preserved per MIT terms.
+
+- @sentropic (https://github.com/rhanka/entropiq) — agent runtime, plain MIT, owned by Fabien Antoine
+- dolanmiu/docx (https://github.com/dolanmiu/docx) — consumed via @sentropic/docx-templating
+
+== Reference-only references ==
+
+The following projects are referenced for functional study only. No source code, schema, UI text, or workflow has been copied. See docs/study/03-shortlist/shortlist.md and docs/study/08-anti-copy/ for detailed posture.
+
+- Odoo (LGPLv3)
+- Twenty (AGPL)
+- ERPNext (GPLv3)
+- Dolibarr (GPLv3)
+- EspoCRM (AGPL)
+- SuiteCRM (AGPL)
+- Kimai (AGPL)
+- OpenProject (GPLv3)
+- Frappe HR (GPLv3)
+- Crater (AGPL)
+- FacturaScripts (LGPLv3)
+- InvoicePlane (mixed)

@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: spec drafted + enrichissement 2026-05-12 (14 décisions YAML, 13 écrans originaux, 7 axes techno). Posture Apache (Superset, Node-RED) explicitement notice-conditionnée, pas de copy canvas/explorer.
-À faire: arbitrage porteur produit (R-1 à R-6 + PG-10 BI stack + PG-11 PDF), assouplir scope dashboards en team-scope (désaccord reviewer : admin-curated only trop strict), aligner sur queue PG-04.
-Attendu: figer après foundation (RBAC objet-level utilisé pour row-level reporting) + après billing (subscription/recurring schedule share pgmq).
+Fait: spec enrichie + décisions rep-XXX arbitrées 2026-05-14. rep-007 assoupli en visibility=team MVP avec rôle performance opérationnelle. PDF passé à @sentropic/pdf-templating.
+À faire: confirmer scope @sent-tech (tokens + composants charts ?), dispatch veille charts Svelte (layerchart, svelte-echarts, chart.js, observable plot), impl reporting après foundation + primitive Widget.
+Attendu: bloque sur foundation (RBAC, Widget) + extraction @sentropic/pdf-templating. Veille charts non bloquante.
 
 ## Objective
 
@@ -103,6 +103,12 @@ Rules:
 - workflow actions cannot exceed configured actor/admin scope;
 - webhooks require organization-level manage permission;
 - secrets are never returned by API.
+
+Note (visibility 2026-05-14): pour les dashboards et reports, Visibility levels = organization (admin-curated), team (rôle 'performance opérationnelle'), personal (post-MVP).
+
+Note (events automation 2026-05-14): Workflow runs émettent DomainEvent (PG-06 article 2), historique en TimelineEntry, compliance en AuditEvent.
+
+Note (idempotency 2026-05-14): Idempotency-Key sur POST /workflow-runs, POST /reports/run, POST /exports (PG-08).
 
 ## Workflows
 
@@ -372,6 +378,8 @@ Apache reuse from Superset and Node-RED requires NOTICE preservation, attributio
 
 No Superset chart explorer or Node-RED flow canvas is rebuilt. UI text and screen names are original.
 
+Note (visibility 2026-05-14): pour les dashboards et reports, Visibility levels = organization (admin-curated), team (rôle 'performance opérationnelle'), personal (post-MVP).
+
 ### Tech Layer Options
 
 1. BI engine
@@ -494,16 +502,32 @@ decisions:
     decision: log_exports_schedules_workflow_activations_webhook_changes
     deferred: read_event_for_every_dashboard_view
     rationale: bounded audit volume; revisit if compliance demands view-level trail
+    resolution: 2026-05-14, status: RESOLVED, chosen: log_exports_schedules_workflow_activations_webhook_changes
 
   - id: rep-013
     topic: workflow_loop_protection
     decision: hard_event_chain_depth_limit_plus_error_code
     error_code: automation.loop_detected
+    resolution: 2026-05-14, status: RESOLVED, chosen: hard_event_chain_depth_limit_plus_error_code
 
   - id: rep-014
     topic: pdf_rendering
     decision: server_side_template_engine_no_headless_browser_in_mvp
     rationale: avoid superset_screenshot_dependency_surface
+    resolution: 2026-05-14, status: RESOLVED, chosen: @sentropic/pdf-templating (PG-11) — extraction depuis @sentropic en cours. Pas de headless browser MVP
 ```
 
 Apache reuse from Superset and Node-RED requires NOTICE inclusion, dependency-license review, and zero copy of UI text, chart configuration schemas, flow JSON conventions, or node palette names. LGPL Odoo reporting material remains functional inspiration only.
+
+### Décisions programme impactantes (PG)
+
+- PG-02 (multi-tenant) : team-scope dashboards par OrganizationMember.
+- PG-03 (RLS) : Row Level Security PostgreSQL sur reports/dashboards/workflows.
+- PG-04 (pgmq) : pgmq pour scheduled deliveries + workflow runs (abstraction JobQueue).
+- PG-05 (ICU JSON) : labels dashboards/reports localisés via ICU JSON.
+- PG-06 article 2 (events) : séparation DomainEvent + TimelineEntry + AuditEvent.
+- PG-07 (ApprovalRequest) : approbation requise pour publication dashboard org-level.
+- PG-08 (Idempotency-Key) : sur workflow runs / report runs / exports.
+- PG-10 (primitive foundation) : Widget/Dashboard primitive foundation — coordination @sent-tech à clarifier (tokens + composants charts).
+- PG-11 (pdf-templating) : @sentropic/pdf-templating pour PDF exports.
+- PG-12 (anti-copy) : Superset chart controls + Selenium PDF, Node-RED node palette.

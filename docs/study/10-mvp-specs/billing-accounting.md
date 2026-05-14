@@ -568,6 +568,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Un seul livre par tenant; états open/closing/closed.
     Correction en période close via reversing entry.
+  resolution: 2026-05-14, status: RESOLVED, chosen: single-book-open-closed-states-mvp
 
 - id: BA-DEC-012
   topic: invoice-numbering
@@ -577,6 +578,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Tenant configure prefix, padding, reset annuel, séquence per registration.
     Sequence policy stockée et auditée; aucune réutilisation autorisée.
+  resolution: 2026-05-14, status: RESOLVED, chosen: per-tenant-configurable-sequence
 
 - id: BA-DEC-013
   topic: accounts-payable-ap
@@ -586,6 +588,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     AP (factures fournisseurs, paiements sortants) reporté post-MVP.
     MVP centré AR + cycle facturable. AP triage agentique inscrit pour phase 2.
+  resolution: 2026-05-14, status: RESOLVED, chosen: post-mvp
 
 - id: BA-DEC-014
   topic: notice-attribution
@@ -596,5 +599,21 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
     Si Kill Bill et/ou OpenMeter inspirent des patterns API ou data model,
     NOTICE racine doit contenir attribution Apache-2.0 + lien repo.
     Aucun verbatim Odoo, Dolibarr, FacturaScripts, Crater, InvoicePlane.
+  resolution: 2026-05-14, status: RESOLVED, chosen: NOTICE racine repo créé au démarrage impl (Kill Bill, OpenMeter, Superset, Node-RED)
 ```
+
+### Décisions programme impactantes (PG)
+
+Décisions transverses programme ancrées dans cette spec lors de l'arbitrage 2026-05-14 :
+
+- **PG-02** : multi-tenant book per Organization (un livre par tenant, cohérent BA-DEC-011).
+- **PG-03** : RLS sur `invoices`, `journal_entries`, `payments` (isolation tenant niveau Postgres).
+- **PG-04** : pgmq pour recurring billing scheduler (BA-DEC-008 ; abstraction `JobQueue` obligatoire, scheduler ne touche jamais pgmq directement).
+- **PG-05** : ICU JSON pour invoice templates labels (FR-CA / EN, pluriels, genres, dates).
+- **PG-06 article 1** : Money type partagé `{amount_minor: int, currency: string(3), scale: int}` — appliqué à tous les champs monétaires Invoice/Payment/JournalEntryLine.
+- **PG-06 article 2** : `JournalEntry` = DomainEvent dédié + projection lisible (AuditEvent ≠ DomainEvent ≠ TimelineEntry).
+- **PG-07** : `ApprovalRequest` foundation pour void/write-off/period close (manager-level approval auditable).
+- **PG-08** : `Idempotency-Key` obligatoire sur invoice issue + payment register (anti-doublons via PSP retry, ré-émission API).
+- **PG-11** : `@sentropic/pdf-templating` pour invoices statutaires FR-CA (dépendance bloquante avant impl).
+- **PG-12** : anti-copy — hotspots Odoo `account.move`, `account.move.line`, `account.journal` ; Dolibarr tables `llx_*` ; FacturaScripts (audit noms de champs obligatoire avant impl).
 
