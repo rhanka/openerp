@@ -2,9 +2,9 @@
 
 ## Avancement
 
-Fait: etude corpus, fiches, shortlist, Graphify wave A, extension collaboration, extension agentique, carte fonctionnelle, recommandation MVP, dossier anti-copy, recherche Canada/Quebec et specs MVP initiales termines.
-À faire: lancer la phase implementation planning puis le scaffold applicatif; phase d'etude initiale, extension collaboration et extension agentique terminees.
-Attendu: valider le passage en implementation avec un premier plan sur foundation/security/i18n, car ce module conditionne CRM, projet, facturation, reporting, collaboration objet, automation et agents supervises.
+Fait: etude corpus, fiches, shortlist, Graphify wave A, extension collaboration, extension agentique, carte fonctionnelle, recommandation MVP, dossier anti-copy, recherche Canada/Quebec, specs MVP enrichies, decision-pack arbitrage 2026-05-14 cloturé (12 decisions programme + 30 decisions spec), shared-entities canon v1, NOTICE, anti-copy-grep script, veille charts, PR @sentropic mergee, plan d'implementation foundation publie.
+À faire: démarrer le sprint impl foundation (lot 0 à 6 du plan `2026-05-14-foundation-implementation.md`); les decisions sont figees, le canon transverse `shared-entities-v1.md` sert de contrat.
+Attendu: relais dev par autre agent (codex) sur PR `@sentropic` BR-26 + lots foundation OpenERP; toi en supervision/audit.
 
 ## Decision Produit
 
@@ -226,29 +226,45 @@ The product must expose version state, preflight checks, backup requirement, mig
 | Agentic design space | `docs/study/12-agentic/` |
 | Canada/Quebec research | `docs/study/09-canada-quebec/statutory-research.md` |
 | MVP specs | `docs/study/10-mvp-specs/` |
+| Decision pack (MD + PPTX) | `docs/study/10-mvp-specs/decision-pack.md` / `.pptx` |
+| Shared entities canon v1 | `docs/study/10-mvp-specs/shared-entities-v1.md` |
+| Charts Svelte veille | `docs/study/10-mvp-specs/charts-svelte-watch.md` |
+| Foundation impl plan | `docs/superpowers/plans/2026-05-14-foundation-implementation.md` |
+| NOTICE racine | `NOTICE` |
+| Anti-copy CI script | `tools/anti-copy-grep.sh` |
 | Final PPTX | `docs/study/11-final-package/openerp-final-synthesis.pptx` |
 
-## Decisions A Prendre
+## Decisions Prises 2026-05-14
 
-1. Confirmer que le premier sprint implementation commence par foundation/security/i18n.
-2. Choisir le style API initial: REST/OpenAPI, GraphQL, ou REST d'abord avec event contracts.
-3. Choisir le modele d'isolation tenant initial: shared DB avec tenant_id strict, schema per tenant, ou database per tenant pour certains plans.
-4. Choisir le premier fournisseur ou format d'integration payroll Quebec/Canada.
-5. Confirmer le premier pilot target: service company, recurring-service company, ou small manufacturer with services.
-6. Confirmer les premiers objets collaboration: customer, opportunity, project, task, time entry, invoice et support case.
-7. Confirmer le sous-ensemble agentique MVP et le sequence apres foundation/security/i18n.
+Le decision-pack (`docs/study/10-mvp-specs/decision-pack.md` + `.pptx`) consolide 12 decisions programme arbitrees, toutes RESOLVED. Resumé :
+
+1. **PG-01 License @sentropic** : plain MIT (resolved 2026-05-12 via rename @entropiq → @sentropic).
+2. **PG-02 Identite multi-tenant** : `UserIdentity` global + `OrganizationMember` par tenant.
+3. **PG-03 Isolation multi-tenant** : row-level RLS Postgres + abstraction `TenantIsolationStrategy` switchable.
+4. **PG-04 Queue engine** : pgmq MVP + interface `JobQueue` abstraite.
+5. **PG-05 i18n catalogue** : ICU JSON nested + table `TranslationKey`.
+6. **PG-06 Canon entites partagees** : 4 articles (Organization+Money, AuditEvent/DomainEvent/TimelineEntry, Activity prefixage, frontieres inter-modules).
+7. **PG-07 ApprovalRequest** : entite foundation partagee, 3 surfaces (REST + MCP tool + SDK).
+8. **PG-08 Idempotency-Key universel** : header obligatoire sur toute POST/DELETE side-effect.
+9. **PG-09 Identite agent** : JWT + RFC 8693 token exchange MVP + SPIFFE post-MVP via abstraction `IdentityProvider`.
+10. **PG-10 Stack BI** : primitive foundation `Widget`/`Dashboard` native SvelteKit (LayerChart tete de classement veille).
+11. **PG-11 Templating** : extraction `@sentropic/docx-templating` + `@sentropic/pdf-templating`.
+12. **PG-12 Anti-copy** : owner par defaut = porteur produit + script CI `tools/anti-copy-grep.sh`.
+
+Decisions par spec (foundation, CRM, project, billing, reporting, agentic) gravees inline dans chaque spec MVP avec `status: RESOLVED, resolution: 2026-05-14, chosen: <option>`.
 
 ## Updated Next Step
 
-Ecrire le plan d'implementation de foundation/security/i18n puis scaffold applicatif. La transition post-etude agentique arrive ensuite: planifier le MVP agentique supervise apres la base foundation/security/i18n, car les agents dependent de permissions, audit, FR/EN, identity modes, policy hooks, traces et supervision.
+Phase cadrage cloturee 2026-05-14. Le plan d'implementation foundation est publie dans `docs/superpowers/plans/2026-05-14-foundation-implementation.md` (7 lots, dependances `@sentropic` BR-26 tracees, exit criteria par lot).
 
-1. repo app structure;
-2. Svelte/TypeScript frontend;
-3. TypeScript backend;
-4. PostgreSQL schema/migrations;
-5. auth/roles/permissions/audit;
-6. FR/EN i18n baseline;
-7. CI/test/build pipeline;
-8. Kubernetes/self-hosted skeleton;
-9. primitives collaboration objet: comments, mentions, files, decisions, approvals, notifications and search hooks;
-10. cadrage implementation du MVP agentique supervise: `@sentropic` integration, MCP, policy hooks, self-service catalog interne, traces et checkpoints humains.
+Trajectoire :
+
+1. **Lot 0 — Workspace baseline** : Node monorepo + SvelteKit shell + Postgres + pgmq + Vitest + Playwright + anti-copy CI.
+2. **Lot 1 — Identite & multi-tenant** : `UserIdentity` + `OrganizationMember` + RLS row-level.
+3. **Lot 2 — Auth + RBAC + i18n** : passkey/WebAuthn direct + permissions objet-level + ICU JSON.
+4. **Lot 3 — Money + AuditEvent triple-layer** : type `Money` + `AuditEvent`/`DomainEvent`/`TimelineEntry`.
+5. **Lot 4 — ApprovalRequest + Idempotency + JobQueue** : entite partagee + middleware + pgmq impl.
+6. **Lot 5 — Integration `@sentropic`** : consommer capabilities PR #151 (MCP, OTel, policy hooks, identity primitives) + AuditEvent etendu agentic.
+7. **Lot 6 — Foundation gate** : suite tests + doc + handoff aux specs CRM/project/billing/reporting/agentic.
+
+Le relais dev est pris par un autre agent (codex). Le porteur produit reste en supervision/audit.
