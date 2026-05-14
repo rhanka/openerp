@@ -111,6 +111,13 @@ export interface AuditEvent {
   ipHash: string | null;
   userAgentHash: string | null;
   createdAt: string;
+  // Agentic extension (canon PG-09 / shared-entities-v1.md), optional for backward compat
+  source?: ActorSource | null;
+  agentId?: string | null;
+  toolCallId?: string | null;
+  policyDecisionId?: string | null;
+  delegationId?: string | null;
+  approvalRequestId?: string | null;
 }
 
 export interface FileObject {
@@ -234,4 +241,120 @@ export function createPermissionKey(
 
 export function requiresAudit(eventType: string): boolean {
   return AUDITED_EVENTS.has(eventType);
+}
+
+// =============================================================================
+// Canon entities (shared-entities-v1.md) — added 2026-05-14 per arbitrage closure
+// PG-02 (identity), PG-06 (canon entities), PG-07 (ApprovalRequest), PG-08 (Idempotency)
+// =============================================================================
+
+export type ActorSource = "human" | "agent" | "system";
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "escalated" | "expired";
+export type ApprovalUrgency = "low" | "normal" | "high";
+export type MfaState = "not_configured" | "passkey" | "totp";
+
+/** Money — canon PG-06 article 1.
+ *  amountMinor stored as number in TS payloads; use bigint/decimal at DB layer.
+ *  Example: USD 12.34 = { amountMinor: 1234, currency: "USD", scale: 2 } */
+export interface Money {
+  amountMinor: number;
+  currency: string;
+  scale: number;
+}
+
+/** FxRateSnapshot — canon PG-06 article 1.
+ *  Rate stored as decimal string for precision. Foundation service currency.resolve() returns this. */
+export interface FxRateSnapshot {
+  id: string;
+  organizationId: string;
+  sourceCurrency: string;
+  targetCurrency: string;
+  rate: string;
+  effectiveAt: string;
+  source: string;
+}
+
+/** UserIdentity — canon PG-02. Global identity (auth/email/MFA). Distinct from membership per tenant. */
+export interface UserIdentity {
+  id: string;
+  email: string;
+  displayName: string;
+  preferredLocale: LocaleCode;
+  mfaState: MfaState;
+  status: UserStatus;
+  actorType: ActorSource;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string | null;
+}
+
+/** OrganizationMember — canon PG-02. Per-tenant membership (statut, locale override, rôles). */
+export interface OrganizationMember {
+  id: string;
+  userIdentityId: string;
+  organizationId: string;
+  status: UserStatus;
+  preferredLocale: LocaleCode | null;
+  joinedAt: string;
+  updatedAt: string;
+}
+
+/** TimelineEntry — canon PG-06 article 2. Projection lisible par humain (vs AuditEvent compliance + DomainEvent intégration). */
+export interface TimelineEntry {
+  id: string;
+  organizationId: string;
+  resourceType: string;
+  resourceId: string;
+  actorUserIdentityId: string | null;
+  entryType: string;
+  payloadSummary: PayloadSummary;
+  occurredAt: string;
+}
+
+/** ApprovalRequest — canon PG-07. Entité foundation partagée, exposée via REST + MCP tool + SDK. */
+export interface ApprovalRequest {
+  id: string;
+  organizationId: string;
+  requesterUserIdentityId: string;
+  approverUserIdentityId: string | null;
+  approverRoleId: string | null;
+  subjectType: string;
+  subjectId: string;
+  reason: string;
+  urgency: ApprovalUrgency;
+  status: ApprovalStatus;
+  decisionReason: string | null;
+  decidedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+/** IdempotencyRecord — canon PG-08. Middleware foundation pour POST/DELETE side-effect. TTL 24h. */
+export interface IdempotencyRecord {
+  organizationId: string;
+  key: string;
+  requestHash: string;
+  responseBodyHash: string;
+  statusCode: number;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** Build a Money value with minor units. Throws if currency code is not 3 chars. */
+export function makeMoney(amountMinor: number, currency: string, scale = 2): Money {
+  if (currency.length !== 3) {
+    throw new Error(`Money currency must be ISO 4217 (3 chars), got '${currency}'`);
+  }
+  if (!Number.isInteger(amountMinor)) {
+    throw new Error(`Money amountMinor must be an integer, got ${amountMinor}`);
+  }
+  if (!Number.isInteger(scale) || scale < 0) {
+    throw new Error(`Money scale must be a non-negative integer, got ${scale}`);
+  }
+  return { amountMinor, currency: currency.toUpperCase(), scale };
+}
+
+/** Check that two Money values share the same currency before arithmetic. */
+export function sameCurrency(a: Money, b: Money): boolean {
+  return a.currency === b.currency && a.scale === b.scale;
 }
