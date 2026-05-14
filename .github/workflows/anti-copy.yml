@@ -1,0 +1,20 @@
+name: Anti-copy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  grep:
+    name: anti-copy grep (PG-12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run anti-copy grep
+        run: bash tools/anti-copy-grep.sh
+
+      - name: Validate NOTICE present
+        run: test -f NOTICE && echo "NOTICE OK" || (echo "NOTICE missing"; exit 1)

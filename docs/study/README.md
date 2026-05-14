@@ -2,9 +2,9 @@
 
 ## Current Status
 
-Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, initial Canada/Quebec statutory research, initial MVP spec package, and final synthesis are drafted and pushed.
-À faire: move to implementation planning and app scaffold; study package completion 100%.
-Attendu: start the foundation/security/i18n implementation plan next, because every MVP module depends on tenant, role, audit, locale, and update foundations.
+Fait: methodology, license matrix, candidate corpus, 27/27 evidence fiches, shortlist v1, proprietary public-reference map, Graphify wave A, global functional map, MVP recommendation, anti-copy dossier, Canada/Quebec statutory research, MVP spec package enriched and engraved with arbitrage 2026-05-14, decision-pack (MD + PPTX) closed (12 programme decisions RESOLVED), shared-entities canon v1 published, NOTICE + anti-copy CI script + GitHub workflows, foundation implementation plan, `@sentropic` PR #151 merged.
+À faire: execute foundation implementation plan (lots 0-6) per `docs/superpowers/plans/2026-05-14-foundation-implementation.md`.
+Attendu: handoff to dev agent (codex / other). Porteur produit in supervision/audit mode.
 
 ## Artifact Index
 
@@ -28,5 +28,12 @@ Attendu: start the foundation/security/i18n implementation plan next, because ev
 | `10-mvp-specs/project-time-to-invoice.md` | implementation-ready MVP project, time, approval, and invoice proposal spec. |
 | `10-mvp-specs/billing-accounting.md` | implementation-ready MVP billing and accounting operations spec. |
 | `10-mvp-specs/reporting-automation.md` | implementation-ready MVP reporting and typed automation spec. |
-| `11-final-package/final-synthesis.md` | final written synthesis and decisions for implementation planning. |
+| `10-mvp-specs/agentic-impacts.md` | agentic MVP impacts (transverse addendum). |
+| `10-mvp-specs/decision-pack.md` + `.pptx` | arbitrage 2026-05-14: 12 programme decisions RESOLVED, ready-to-present pack. |
+| `10-mvp-specs/shared-entities-v1.md` | transverse canon contract (PG-06): User/Organization, Money, AuditEvent triple-layer, Activity prefixing, inter-module boundaries. |
+| `10-mvp-specs/charts-svelte-watch.md` | Svelte chart library research for PG-10 (LayerChart top-pick). |
+| `11-final-package/final-synthesis.md` | final synthesis (closure of cadrage phase 2026-05-14). |
 | `11-final-package/openerp-final-synthesis.pptx` | final presentation deck for the study package. |
+| Root `NOTICE` | Apache attribution per PG-11 (Kill Bill, OpenMeter, Superset, Node-RED, OpenTelemetry, etc.). |
+| Root `tools/anti-copy-grep.sh` | anti-copy CI script per PG-12. |
+| Root `docs/superpowers/plans/2026-05-14-foundation-implementation.md` | foundation implementation roadmap (7 lots, exit criteria). |
