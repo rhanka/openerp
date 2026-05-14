@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: MVP recommendation drafted from the global functional map, shortlist, and Graphify anchor syntheses.
-À faire: Write module-level implementation specs for the selected MVP slices and finish anti-copy plus Canada/Quebec statutory dossiers; overall study is about 98% complete.
-Attendu: Start implementation planning from this MVP boundary, not from a full ERP clone, because the first product must be narrow enough to build and broad enough to prove service-company value.
+Fait: MVP recommendation drafted from global functional map, shortlist, and Graphify anchor syntheses; module-level specs enriched and engraved with arbitrage 2026-05-14 (12 programme decisions RESOLVED); decision-pack closed (MD + PPTX); shared-entities canon v1 published; foundation implementation plan ready.
+À faire: execute foundation implementation lots 0-6 per `docs/superpowers/plans/2026-05-14-foundation-implementation.md`; consume `@sentropic` capabilities (PR #151 merged) for MCP + OTel + policy hooks + multi-tenant identity + marketplace primitives + sandbox API.
+Attendu: dev relay on foundation impl; porteur produit in supervision/audit mode. Cadrage phase closed 2026-05-14.
 
 ## Recommendation
 
@@ -195,12 +195,17 @@ Functional requirements:
 
 ## First Implementation Spec Candidates
 
-1. Foundation/security/i18n module spec.
-2. CRM and customer timeline module spec.
-3. Project/time-to-invoice module spec.
-4. Billing/accounting operations module spec.
-5. Typed automation and reporting module spec.
-6. Anti-copy dossier and Canada/Quebec statutory research plan.
+All 6 module specs are written, enriched, and engraved with arbitrage 2026-05-14. The implementation order is now driven by the foundation plan (`docs/superpowers/plans/2026-05-14-foundation-implementation.md`):
+
+1. **Lot 0** — Workspace baseline (Node monorepo, SvelteKit, Postgres, pgmq, CI).
+2. **Lot 1** — Identity + multi-tenant (`UserIdentity`, `OrganizationMember`, RLS row-level).
+3. **Lot 2** — Auth (passkey/WebAuthn) + RBAC + i18n (ICU JSON + `TranslationKey`).
+4. **Lot 3** — Money type + `AuditEvent` triple-layer.
+5. **Lot 4** — `ApprovalRequest` + `Idempotency-Key` + `JobQueue` abstraction (pgmq impl).
+6. **Lot 5** — `@sentropic` integration (MCP, OTel, policy hooks, identity primitives — from PR #151).
+7. **Lot 6** — Foundation gate (suite tests + handoff to CRM/project/billing/reporting/agentic specs).
+
+After foundation gate, CRM → project → billing → reporting → agentic impl follow per their respective MVP specs. Anti-copy dossier + Canada/Quebec statutory research are already done.
 
 ## Agentic Addendum
 
