@@ -80,6 +80,8 @@ Toute spec détaillée devra garder noms d'objets, permissions, états, messages
 
 ## Enrichment 2026-05-12
 
+> **Update 2026-05-14**: 14 décisions agentiques arbitrées. AGT-D-01 (sandbox) revoked → responsabilité @sentropic. AGT-D-04 (identity) étendu RFC 8693 + SPIFFE. AGT-D-12 (évolution @sentropic) reformulé : capabilities dans main via PR processus normal.
+
 Cette passe d'enrichissement consolide les décisions agentiques transverses qui contraignent les 5 specs MVP (foundation, CRM, project, billing, reporting). Elle remplace la couche `Functional Depth` standard par une `Functional Surface` agentique, ajoute un benchmark cross-framework pour situer `@sentropic` dans le paysage, et matérialise les choix techniques transverses encore ouverts en un registre de décision destiné au decision-pack programme. La spec garde sa nature d'addendum: elle ne décrit pas un module MVP mais les invariants techniques qui doivent être pris en compte par chaque domaine.
 
 ### Functional Surface
@@ -120,6 +122,7 @@ Huit décisions techniques agentiques transverses qui contraignent l'implémenta
    - Contexte: aucun sandbox dans `@sentropic` aujourd'hui; les mini-modules MVP sont internes et signés, mais l'isolation reste nécessaire pour limiter blast radius et préparer trust tiers ultérieurs.
    - Options: (a) E2B cloud sandbox (Apache-2.0, self-hosting evidence pending); (b) gVisor self-host (Apache-2.0, OCI compatible, lourd ops); (c) Modal cloud (proprietary platform, exclu pour self-host); (d) isolated-vm in-process (ISC, lightweight, fit TS natif `@sentropic`); (e) hybride isolated-vm pour interne + gVisor pour tiers tiers post-MVP.
    - Reco: option (e) hybride. MVP démarre sur isolated-vm pour mini-modules privés tenant signés; gVisor cible explicite pour la roadmap curated/public.
+   - **Revoked 2026-05-14**. Sandbox responsabilité @sentropic. OpenERP exige API sandbox + capability manifest exposés par @sentropic. Drop isolated-vm/gVisor/Modal/E2B du scope OpenERP MVP. Si manquant côté @sentropic → feature request via PR sur @sentropic (cf. AGT-D-12).
    - Dépendances: foundation (loader + manifest), billing/project (modules sensibles doivent rester internes au MVP).
 
 2. Policy engine
@@ -136,9 +139,9 @@ Huit décisions techniques agentiques transverses qui contraignent l'implémenta
 
 4. Agent identity
    - Contexte: `@sentropic` lie sessions à humains via passkey, pas de service principal ni d'on-behalf-of.
-   - Options: (a) SPIFFE/SVID (workload identity standard, lourd ops); (b) JWT signé avec delegation chain claim (léger, OpenERP-native); (c) OIDC subject claim avec `acting_for` extension (réutilise IdP existant tenant).
-   - Reco: option (b) JWT signé OpenERP-native pour MVP, schéma de claims documenté (`tenant_id`, `agent_id`, `acting_as`, `acting_for`, `delegation_id`, `scope`, `exp`). Évolution post-MVP vers SPIFFE possible pour workloads multi-cluster.
-   - Dépendances: foundation (provisioning + rotation), toutes specs (audit attribution).
+   - Options: (a) SPIFFE/SVID (workload identity standard, lourd ops); (b) JWT signé avec delegation chain claim (léger, OpenERP-native); (c) OIDC subject claim avec `acting_for` extension (réutilise IdP existant tenant); (d) RFC 8693 OAuth 2.0 Token Exchange avec claims `act`/`may_act` (standard IETF, sémantique délégation native).
+   - Reco: **Updated 2026-05-14** — RFC 8693 token exchange au MVP avec claims `act` (acting principal) + `may_act` (delegation chain) + cookie session humain + JWT signé agent. `User.actor_type = human | agent | system`. Chaîne de délégation : `human → agent_definition → tool_call`. ApprovalRequest matérialise l'issuance du JWT agent. AuditEvent étendu (`acting_principal`, `on_behalf_of`, `policy_decision_id`, `approval_request_id`). Évolution post-MVP vers SPIFFE/SVID via abstraction `IdentityProvider` (cf. PG-09) pour workloads multi-cluster.
+   - Dépendances: foundation (provisioning + rotation + IdentityProvider abstraction), toutes specs (audit attribution).
 
 5. MCP registry
    - Contexte: `@sentropic` absent côté MCP client et serveur; OpenERP doit décider tôt comment exposer ses outils ERP et consommer outils externes.

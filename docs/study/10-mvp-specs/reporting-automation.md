@@ -421,6 +421,7 @@ decisions:
     reuse_posture: superset_apache_functional_inspiration_only
     notice_required_if_reused: true
     revisit_when: self_service_bi_demand_validated
+    resolution: 2026-05-14, status: RESOLVED, chosen: native SvelteKit dashboard + primitive foundation Widget/Dashboard (PG-10). Coordination tokens/composants avec @sent-tech à clarifier. Superset/Grafana en pack post-MVP optionnel
 
   - id: rep-002
     topic: automation_engine
@@ -429,54 +430,64 @@ decisions:
     reuse_posture: node_red_apache_pattern_inspiration_only
     notice_required_if_reused: true
     revisit_when: advanced_pack_planned
+    resolution: 2026-05-14, status: RESOLVED, chosen: typed YAML DSL + TS handlers MVP. Node-RED canvas REJETÉ MVP (anti-copy défensif)
 
   - id: rep-003
     topic: scheduled_reports
     decision: cron_default_plus_event_driven_via_automation
     rationale: covers operational rhythm and reactive integrations without two UIs
+    resolution: 2026-05-14, status: RESOLVED, chosen: pgmq cron (PG-04 abstraction JobQueue)
 
   - id: rep-004
     topic: export_formats_mvp
     decision: csv_xlsx_pdf
     deferred: [json, parquet]
+    resolution: 2026-05-14, status: RESOLVED, chosen: CSV + PDF MVP, XLSX + JSON post-MVP
 
   - id: rep-005
     topic: drill_down_strategy
     decision: live_sql_with_filter_defaults_and_caps
     fallback: selective_materialized_views_for_heavy_reports
     deferred: olap_cube
+    resolution: 2026-05-14, status: RESOLVED, chosen: live SQL MVP, vues matérialisées post-MVP
 
   - id: rep-006
     topic: reporting_permissions
     decision: reuse_foundation_rbac
     rationale: queries run as caller; no parallel ACL surface
+    resolution: 2026-05-14, status: RESOLVED, chosen: foundation RBAC (PG-10 reuse, refus couche ACL parallèle)
 
   - id: rep-007
     topic: dashboard_authoring_scope
     decision: admin_curated_dashboards_user_saved_views
     rationale: prevents superset_like_authoring_creep
+    resolution: 2026-05-14, status: RESOLVED, chosen: visibility=team MVP en plus de organization (revoked admin-curated only). Rôle 'performance opérationnelle' (process défini, KPIs définis, proche mesure marché). Agent assistant aide à cadrer KPIs et générer dashboards aide à la décision
 
   - id: rep-008
     topic: multi_source_data_mvp
     decision: primary_db_only
     deferred: [stripe, plaid, generic_warehouse_connector]
+    resolution: 2026-05-14, status: RESOLVED, chosen: primary_db_only
 
   - id: rep-009
     topic: alerting_channels_mvp
     decision: email_plus_generic_webhook
     deferred: [slack_first_class, ms_teams_first_class]
     rationale: slack/teams reachable today via webhook action
+    resolution: 2026-05-14, status: RESOLVED, chosen: email_plus_generic_webhook
 
   - id: rep-010
     topic: automation_rate_limit
     decision: configurable_per_organization_with_safe_default
     safe_default_per_minute: 60
     rationale: avoids hardcoded throttles surprising tenants
+    resolution: 2026-05-14, status: RESOLVED, chosen: configurable_per_organization_with_safe_default
 
   - id: rep-011
     topic: dashboard_workflow_versioning
     decision: published_snapshot_per_definition
     rationale: workflow_run already references definition_version; full edit history is post-MVP
+    resolution: 2026-05-14, status: RESOLVED, chosen: published_snapshot_per_definition
 
   - id: rep-012
     topic: report_read_audit_trail

@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: spec drafted + enrichissement 2026-05-12 (functional depth, cross-ERP benchmark, UI screen inventory, tech layer options, decision register). 6 décisions P0 transverses identifiées (canon entités, RLS, queue, i18n, identité multi-tenant, Idempotency-Key) remontées au decision-pack.
-À faire: arbitrage porteur produit via `decision-pack.md` (PG-02/03/05/06/07/08 bloquent foundation), puis gravage des décisions inline dans cette spec.
-Attendu: figer foundation en premier — bloque toutes les autres specs (RLS, AuditEvent étendu agentic, ApprovalRequest, Money type, i18n catalog).
+Fait: spec enrichie + 12 décisions programme arbitrées 2026-05-14. Décisions gravées inline (status RESOLVED, chosen, resolution). Section "Décisions programme impactantes (PG)" listée à la fin du bloc Enrichment.
+À faire: création shared-entities-v1.md (canon PG-06), implémentation foundation (UserIdentity + OrganizationMember + RLS + RBAC + ICU + Money + ApprovalRequest + Idempotency-Key + AuditEvent étendu), création tools/anti-copy-grep.sh.
+Attendu: foundation est le bloquant amont — implémenter en premier, autre agent (codex) peut continuer le dev process.
 
 ## Objective
 
@@ -421,6 +421,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
      - Hierarchical roles (role inherits from parent): elegant for admin trees, but evaluation cost and audit traceability suffer; risks Odoo group-tree mimicry (anti-copy hotspot).
      - ABAC (attribute-based with conditions): future-proof, expressive, but high complexity for MVP; conditions become hard to audit and test.
    - Reco: Flat role x permission with optional `conditions` JSON on `PermissionGrant` reserved for future scopes; do not implement role inheritance in MVP.
+   - Note (arbitrage 2026-05-14): permission granularité = objet seulement MVP, hook record-policy réservé post-MVP.
    - Dépendance: every later module spec depends on this shape; audit log schema must store the resolved grant id.
 
 2. Multi-tenant isolation.
@@ -431,6 +432,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
      - Row-level with `organization_id` + middleware enforcement + DB row policies: low operational cost, scales well, requires disciplined middleware and integration tests; main MVP candidate.
      - DB-per-tenant: maximum isolation and noisy-neighbor protection; highest ops cost, hard to query across tenants for the system operator.
    - Reco: Row-level with mandatory `organization_id` on every business row, middleware-bound tenant claim, and Postgres row-level security policies as defense in depth.
+   - Note (arbitrage 2026-05-14): RLS row-level + abstraction `TenantIsolationStrategy` supportant schema-per-tenant et DB-per-tenant dès le contrat foundation, switch par config sans réécriture downstream (cf. PG-03).
    - Dépendance: all entities, all migrations, all query builders, and the audit and export pipelines.
 
 3. Auth transport.
@@ -451,6 +453,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
      - Gettext-style `.po` per module: mature ecosystem, mirrors Odoo layout (anti-copy hotspot), heavy tooling.
      - Flat JSON with manual plural keys: simple, but plural and gender become brittle.
    - Reco: ICU JSON nested by namespace; export/import via CSV for translation review.
+   - Note (arbitrage 2026-05-14): ICU JSON nested + table `TranslationKey` foundation (cf. PG-05). Aligne tous les modules ; project doit corriger `ServiceActivity.fr_label/en_label` en TranslationKey.
    - Dépendance: every UI screen, notification templates, document rendering, error catalog.
 
 5. Audit log destination.
@@ -471,6 +474,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
      - Business-level dedup keys (e.g. invitation token, email + state): less explicit, leaks into domain code.
      - None in MVP: cheapest, but tenant provisioning and invitations are exactly where double-submit happens.
    - Reco: `Idempotency-Key` header on the small set of sensitive endpoints (tenant create, invitation create, role change, password reset request) with 24h replay window.
+   - Note (arbitrage 2026-05-14): obligatoire sur toute POST/DELETE à side-effect métier, TTL 24h, table `IdempotencyRecord` foundation (cf. PG-08).
    - Dépendance: API contract shared by every module; agentic runtime tool-call replay.
 
 7. Password and MFA shape.
@@ -481,6 +485,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
      - Passkey-only: best security, breaks legacy clients and recovery flows.
      - Hybrid password + passkey + TOTP: flexible, more code paths and recovery edge cases.
    - Reco: Password + TOTP MVP, TOTP mandatory on owner role; reserve WebAuthn adapter for post-MVP.
+   - Note (arbitrage 2026-05-14): passkey/WebAuthn direct MVP (drop password+TOTP MVP, élève l'asticot sécurité dès le départ).
    - Dépendance: account.profile screen, recovery flow, support-staff break-glass.
 
 ### Decision Register
@@ -498,6 +503,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: future-proof
       cons: high complexity, hard to test in MVP
   reco: Flat role x permission, with reserved `conditions` JSON for later
+  resolution: 2026-05-14, status: RESOLVED, chosen: Flat role x permission, with reserved `conditions` JSON for later
   impact:
     licence: none
     timeline: +0j
@@ -515,6 +521,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: maximum isolation
       cons: highest ops cost
   reco: Row-level with mandatory organization_id and Postgres RLS as defense in depth
+  resolution: 2026-05-14, status: RESOLVED, chosen: Row-level with mandatory organization_id and Postgres RLS as defense in depth
   impact:
     licence: none
     timeline: +0j
@@ -532,6 +539,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: balanced
       cons: two code paths
   reco: Cookie for MVP, hybrid reserved post-MVP when SDK ships
+  resolution: 2026-05-14, status: RESOLVED, chosen: Cookie for MVP, hybrid reserved post-MVP when SDK ships
   impact:
     licence: none
     timeline: +0j
@@ -549,6 +557,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: simple
       cons: brittle plural/gender
   reco: ICU JSON nested, CSV import/export for review
+  resolution: 2026-05-14, status: RESOLVED, chosen: ICU JSON nested, CSV import/export for review
   impact:
     licence: risk-mitigation (avoids Odoo .po per-module mimic)
     timeline: +0j
@@ -566,6 +575,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: scale + search
       cons: self-hosted dependency
   reco: Dedicated append-only table partitioned by month, migration path to external sink
+  resolution: 2026-05-14, status: RESOLVED, chosen: Dedicated append-only table partitioned by month, migration path to external sink
   impact:
     licence: none
     timeline: +0j
@@ -583,6 +593,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: cheapest
       cons: invitations and provisioning duplicate
   reco: Idempotency-Key on tenant create, invitation create, role change, password reset request (24h window)
+  resolution: 2026-05-14, status: RESOLVED, chosen: Idempotency-Key on tenant create, invitation create, role change, password reset request (24h window)
   impact:
     licence: none
     timeline: +1j
@@ -600,6 +611,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: flexible
       cons: more recovery edges
   reco: Password + TOTP MVP, WebAuthn adapter reserved post-MVP
+  resolution: 2026-05-14, status: RESOLVED, chosen: passkey/WebAuthn direct (drop password + TOTP MVP)
   impact:
     licence: none
     timeline: +0j
@@ -617,6 +629,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: cheap
       cons: pulls France phrasing, mismatches Quebec audience
   reco: fr-CA + en-CA from day one, NFC normalization at write boundary for emails and identifiers
+  resolution: 2026-05-14, status: RESOLVED, chosen: fr-CA + en-CA from day one, NFC normalization at write boundary for emails and identifiers
   impact:
     licence: none
     timeline: +0j
@@ -634,6 +647,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: pragmatic
       cons: small dual surface
   reco: Object-level in MVP, abstract record-policy hook reserved for sensitive fields post-MVP
+  resolution: 2026-05-14, status: RESOLVED, chosen: Object-level in MVP, abstract record-policy hook reserved for sensitive fields post-MVP
   impact:
     licence: risk-mitigation (avoids Odoo ir.model.fields mimic)
     timeline: +0j
@@ -651,6 +665,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: hard isolation
       cons: cookie/cors complexity, self-host friction
   reco: Persistent header selector with stale-tab protection
+  resolution: 2026-05-14, status: RESOLVED, chosen: Persistent header selector with stale-tab protection
   impact:
     licence: none
     timeline: +0j
@@ -668,6 +683,7 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: flexible, future-proof
       cons: more settings surface
   reco: Configurable per tenant, default 1 year, hard floor 90 days
+  resolution: 2026-05-14, status: RESOLVED, chosen: Configurable per tenant, default 1 year, hard floor 90 days
   impact:
     licence: none
     timeline: +1j
@@ -685,11 +701,26 @@ Each screen lists internal name, purpose, primary data, actions, components, ins
       pros: clean separation
       cons: longer wait
   reco: Post-MVP; record placeholder in TenantSettings for `branding_state = none` to avoid future migration
+  resolution: 2026-05-14, status: RESOLVED, chosen: Post-MVP; record placeholder in TenantSettings for `branding_state = none` to avoid future migration
   impact:
     licence: none
     timeline: +0j
     depend: tenant settings schema reservation
 ```
+
+### Décisions programme impactantes (PG)
+
+Références PG-XX du decision-pack qui touchent foundation :
+
+- PG-02 : UserIdentity + OrganizationMember (séparation identité globale / appartenance tenant, désambiguïsation multi-tenant).
+- PG-03 : RLS row-level + abstraction `TenantIsolationStrategy` (schema-per-tenant et DB-per-tenant supportés par contrat foundation).
+- PG-04 : pgmq + JobQueue abstrait (queue tâches asynchrones, abstraction switchable).
+- PG-05 : ICU JSON + TranslationKey table (alignement i18n tous modules).
+- PG-06 : canon entités — 4 articles, à graver dans shared-entities-v1.md.
+- PG-07 : ApprovalRequest entité foundation (workflow approbation cross-module).
+- PG-08 : Idempotency-Key universel (toute POST/DELETE à side-effect métier, table `IdempotencyRecord`).
+- PG-09 : RFC 8693 token exchange MVP + SPIFFE post-MVP (identité service-to-service).
+- PG-12 : anti-copy owner + script CI (`tools/anti-copy-grep.sh`).
 
 #### Anti-Copy Notes
 

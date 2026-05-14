@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: spec drafted + enrichissement 2026-05-12 (12 décisions D-CRM-01→12, 12 écrans CRM-S01→S12, 3 anti-copy hotspots Twenty/Odoo/HubSpot flaggés). Décisions clés remontées au decision-pack : custom fields JSON+declarative (ferme mimic Twenty), multi-currency par opportunité, frontière CRM/Billing QuoteHandoff.
-À faire: arbitrage porteur produit via `decision-pack.md` (C-1 à C-5 + PG-06 canon Activity), puis correction `pipeline_stage.{tenant_stage_id}.fr` en table dédiée (désaccord reviewer), puis gravage inline.
-Attendu: foundation arbitré en premier (multi-tenant + canon entités) avant de figer CRM ; lien projet ↔ opportunité 1:N à confirmer avec project spec.
+Fait: spec enrichie + 12 décisions D-CRM-01→12 arbitrées 2026-05-14. D-CRM-03 retournée (séparation Activity per PG-06). D-CRM-12 table dédiée. Décisions gravées inline (status RESOLVED).
+À faire: aligner D-CRM-03 Activity → CrmActivity dans le reste de la spec (Data Entities, Permissions), confirmer schéma PipelineStageTranslation, impl après foundation.
+Attendu: bloque sur foundation impl (multi-tenant, RBAC, Money, ApprovalRequest) ; CRM impl peut démarrer dès que foundation expose ces primitives.
 
 ## Objective
 
@@ -357,7 +357,7 @@ Localization rule: every screen renders labels from translation keys; no English
   1. Separate entities. Pros: clear API, explicit lifecycle, easy permission model. Cons: requires a conversion step and a join when reporting on funnel from origination.
   2. Unified with discriminator. Pros: single table, simpler reporting. Cons: mirrors Odoo's pattern too closely (anti-copy hotspot), permission and required-fields logic per type still needed.
   3. Unified without discriminator (HubSpot deal-only). Pros: simplest model. Cons: loses lead-qualification semantics and audit clarity on "when did this become real".
-- Recommendation. Option 1 (separate entities). Already in the spec. Reinforces anti-copy posture vs Odoo and matches roles section.
+- Recommendation. Option 1 (separate entities) — Lead et Opportunity séparés (Odoo-style en abstraction, pas verbatim). PG-06 article 3 confirmé : la séparation s'étend aussi à Activity (CrmActivity ≠ ProjectTask ≠ ServiceActivity ≠ AgentRun). Already in the spec. Reinforces anti-copy posture vs Odoo and matches roles section.
 - Dependencies. Conversion endpoint (`POST /crm/leads/{id}/convert`), timeline event chain, dedup logic at conversion time.
 
 #### Decision T-02 — Pipeline Stage Scope
@@ -387,7 +387,7 @@ Localization rule: every screen renders labels from translation keys; no English
   1. Native columns via `ALTER TABLE`. Pros: typed, indexable. Cons: per-tenant migrations are costly, locks at high scale, requires DDL privileges.
   2. JSON column `custom_fields jsonb`. Pros: zero-migration, simple. Cons: no typed indexes by default, validation in app layer.
   3. Metadata-driven engine (Twenty-style). Pros: most flexible, supports views and SDK generation. Cons: complex, slow to ship, and direct anti-copy hotspot vs Twenty even with rewritten code.
-- Recommendation. Option 2 (JSON column) for MVP. Add per-field metadata (label FR/EN, type, validation) in a side `CustomFieldDefinition` table — purely declarative, not a runtime engine. Defer engine-style features to post-MVP if a real need emerges.
+- Recommendation. Option 2 (JSON column) for MVP, aligné sur D-CRM-04 ci-dessous. Schéma `CustomFieldDefinition {tenant_id, resource_type, field_name, label_fr_key, label_en_key, type, validation_schema}` — purement déclaratif, PAS de runtime metadata engine (anti-copy hotspot vs Twenty ObjectMetadata). Defer engine-style features to post-MVP if a real need emerges.
 - Dependencies. Field admin screen (post-MVP), import wizard mapping, anti-copy review.
 
 #### Decision T-05 — Timeline Event Taxonomy
@@ -434,6 +434,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Unified without discriminator (HubSpot-style) — rejected: loses qualification semantics
   impacts: [API surface, timeline taxonomy, dedup at conversion]
   reversible: hard (data migration cost)
+  reco: Separate Lead and Opportunity entities with explicit conversion endpoint
+  resolution: 2026-05-14, status: RESOLVED, chosen: Separate Lead and Opportunity entities with explicit conversion endpoint
 
 - id: D-CRM-02
   topic: Pipeline stage scope
@@ -445,7 +447,9 @@ Localization rule: every screen renders labels from translation keys; no English
     - Per-team stages — deferred to post-MVP
     - Per-user stages — rejected: unmanageable
   impacts: [pipeline admin UI, reporting]
-  reversible: soft (additive)
+  reversible: soft
+  reco: Global stages per tenant; reserve nullable team_id for post-MVP per-team extension
+  resolution: 2026-05-14, status: RESOLVED, chosen: Global stages per tenant; reserve nullable team_id for post-MVP per-team extension (additive)
 
 - id: D-CRM-03
   topic: Activity vs Task entities
@@ -458,6 +462,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Polymorphic shared base — rejected: schema overhead
   impacts: [activity composer, timeline]
   reversible: medium
+  reco: Unified Activity with activity_type discriminator (call, meeting, note, task)
+  resolution: 2026-05-14, status: RESOLVED, chosen: SÉPARATION (revoked unification per PG-06 article 3) — CrmActivity ≠ ProjectTask ≠ ServiceActivity ≠ AgentRun. Cycle de vie distinct par type
 
 - id: D-CRM-04
   topic: Custom fields implementation
@@ -470,6 +476,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Metadata-driven engine — rejected: anti-copy hotspot, scope creep
   impacts: [import wizard mapping, screen rendering, post-MVP roadmap]
   reversible: medium
+  reco: JSON column custom_fields plus declarative CustomFieldDefinition table; no runtime metadata engine
+  resolution: 2026-05-14, status: RESOLVED, chosen: JSON column + CustomFieldDefinition declarative SIMPLE. PAS de runtime metadata engine MVP (anti-copy Twenty ObjectMetadata). Schema {tenant_id, resource_type, field_name, label_fr_key, label_en_key, type, validation_schema}
 
 - id: D-CRM-05
   topic: Timeline event taxonomy
@@ -482,6 +490,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Free text — rejected: ungovernable
   impacts: [event bus, timeline UI, downstream specs]
   reversible: soft
+  reco: Hybrid namespaced grammar <module>.<entity>.<verb>; validator enforces top-level categories
+  resolution: 2026-05-14, status: RESOLVED, chosen: Hybrid namespaced grammar <module>.<entity>.<verb>; validator enforces top-level categories
 
 - id: D-CRM-06
   topic: CSV import scope
@@ -494,6 +504,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Hybrid template-only — rejected: rigid
   impacts: [import wizard UI, validation catalog]
   reversible: soft
+  reco: Full wizard UI (upload, map, validate, commit) with idempotent commit by import_job_id
+  resolution: 2026-05-14, status: RESOLVED, chosen: Full wizard UI (upload, map, validate, commit) with idempotent commit by import_job_id
 
 - id: D-CRM-07
   topic: Email capture in MVP
@@ -506,6 +518,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - IMAP polling — rejected for MVP: stateful and security cost
   impacts: [non-goals, activity type catalog]
   reversible: soft
+  reco: Manual activity capture only in MVP; reserve email.inbound activity type for v1.1
+  resolution: 2026-05-14, status: RESOLVED, chosen: Manual activity capture only in MVP; reserve email.inbound activity type for v1.1
 
 - id: D-CRM-08
   topic: Tags vs Customer Segments
@@ -517,6 +531,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Two distinct concepts (tag and segment) — deferred
   impacts: [CustomerTag entity, reporting]
   reversible: soft
+  reco: One concept (CustomerTag) in MVP, with optional grouping by tag.category in post-MVP
+  resolution: 2026-05-14, status: RESOLVED, chosen: One concept (CustomerTag) in MVP, with optional grouping by tag.category in post-MVP
 
 - id: D-CRM-09
   topic: Quote handoff responsibility
@@ -528,6 +544,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Billing owns the handoff record too — rejected: blurs ownership and timeline source-of-truth
   impacts: [billing spec dependency, timeline events]
   reversible: medium
+  reco: CRM owns QuoteHandoff record (request, status, target_type); billing module owns quote document lifecycle and pricing
+  resolution: 2026-05-14, status: RESOLVED, chosen: CRM owns handoff event, Billing owns quote doc. Frontière inter-modules figée
 
 - id: D-CRM-10
   topic: Pipeline scoring
@@ -539,6 +557,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Rule-based score in MVP — rejected: low ROI before data exists
   impacts: [reporting, opportunity detail UI]
   reversible: soft
+  reco: Not in MVP; probability_band field on Opportunity is informational only (no automated score)
+  resolution: 2026-05-14, status: RESOLVED, chosen: Not in MVP; probability_band field on Opportunity is informational only (no automated score)
 
 - id: D-CRM-11
   topic: Multi-currency per opportunity
@@ -550,6 +570,8 @@ Localization rule: every screen renders labels from translation keys; no English
     - Tenant-single currency — rejected: blocks Quebec/Canada bilingual market reality
   impacts: [Opportunity entity, billing handoff payload]
   reversible: hard
+  reco: Yes — Opportunity.currency is mandatory and per-record; tenant default applies on creation
+  resolution: 2026-05-14, status: RESOLVED, chosen: ADOPTÉ MVP. Opportunity.currency par enregistrement. Foundation Money type partagé (PG-06 article 1). FxRateSnapshot service côté foundation pour résolution taux par billing
 
 - id: D-CRM-12
   topic: Bilingual labels on pipeline stages

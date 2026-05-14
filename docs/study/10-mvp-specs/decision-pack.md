@@ -4,22 +4,26 @@ Sprint de cadrage MVP OpenERP. Consolidation transverse des 6 specs MVP enrichie
 
 ## Statut
 
-- **Fait** : 6 specs MVP enrichies (commit `f163a16`, +1675 lignes), double revue (`tmp/claude-cross-review.md` 5300 mots + `tmp/codex-review.md` 1500 mots), decision-pack MD + PPTX (commits `c277be1` + `a499fd2` thème projet), sweep rename `@entropiq` → `@sentropic` plain MIT sur 30 docs (commit `54dede9`, 163 occurrences). Blocs `## Progress` des 6 specs synchronisés.
-- **À faire** : arbitrage porteur produit sur ce pack (6 décisions P0 bloquent code), gravage des décisions inline dans les 6 specs, création `NOTICE` racine, script CI anti-copy.
-- **Attendu** : tu arbitres ; je grave ; je passe en mode réalisation/audit. Push remote en attente de ton OK explicite.
+- **Fait** : 6 specs MVP enrichies, double revue Claude + codex, decision-pack MD + PPTX, sweep rename `@sentropic`, **12 décisions programme arbitrées 2026-05-14**, **décisions gravées inline dans les 6 specs**.
+- **À faire** : PR `@sentropic` (MCP + OTel + policy hooks + multi-tenant identity + marketplace + sandbox API) via `~/src/entropiq` en respect du plan @sentropic ; création `shared-entities-v1.md` (canon PG-06) ; `NOTICE` racine ; script CI anti-copy ; impl foundation (RLS + RBAC + ICU + Money + ApprovalRequest + Idempotency-Key).
+- **Attendu** : foundation impl démarrée + PR @sentropic ouverte, autre agent continue le dev. Toi en supervision/audit. Pas de nouvel arbitrage requis avant feedback impl.
 
-## Synthèse exécutive
+## Synthèse exécutive — arbitrage 2026-05-14
 
-État global : enrichissement sérieux, cohérence anti-copy forte, FR-CA/EN-CA priorisé partout. Reviewers d'accord sur **5 risques structurels** ; codex apporte **1 angle mort** important sur le modèle d'identité.
+État final : **12 décisions programme arbitrées**, toutes RESOLVED. Décisions gravées dans les 6 specs MVP.
 
-Risque résolu : **license `@sentropic` = plain MIT**, plus de blocant commercial (renvoie AGT-D-12, AGT-D-13, P-12 au statut RÉSOLU).
+Arbitrage des 5 risques structurels initiaux :
+1. ✓ Multi-tenant : UserIdentity + OrganizationMember (PG-02), RLS row-level + abstraction TenantIsolationStrategy (PG-03).
+2. ✓ Queue : pgmq MVP + interface JobQueue abstraite multi-backends (PG-04).
+3. ✓ Activity : préfixage canon `CrmActivity`, `ProjectTask`, `ServiceActivity`, `AgentRun` (PG-06 article 3).
+4. ✓ Events : 3 couches séparées `AuditEvent` / `DomainEvent` / `TimelineEntry` (PG-06 article 2).
+5. ✓ Anti-copy : owner programme + script CI `tools/anti-copy-grep.sh` ciblé patterns expression (PG-12).
 
-Risques majeurs persistants :
-1. Pas d'`Organization` membership formalisé (`User.organization_id` actuel casse le multi-tenant réel quand un humain appartient à plusieurs orgs).
-2. Chaque spec choisit implicitement son scheduler/queue ; programme doit trancher unique.
-3. `Activity` devient un fourre-tout dangereux entre CRM, project, agentic ; canon à figer.
-4. `AuditEvent` / `DomainEvent` / `TimelineEntry` divergent déjà ; trois couches à séparer.
-5. 23 anti-copy hotspots consolidés mais aucun owner programme + aucun script CI.
+Décision identité agentique élargie (PG-09) : RFC 8693 token exchange MVP + SPIFFE post-MVP via abstraction `IdentityProvider`. Chaîne délégation auditable de bout en bout.
+
+Décision templating (PG-11) : extraction `@sentropic/docx-templating` (immédiat) + `@sentropic/pdf-templating` (audit + roadmap Paged Media + FR-CA + statutaire).
+
+Sandbox agents (A-1) : pushé à `@sentropic`. OpenERP exige API sandbox + capability manifest. Feature request si manquant.
 
 ## Décisions programme — arbitrage
 
@@ -172,13 +176,19 @@ Rename `@sentropic` swept · NOTICE racine créé · script anti-copy CI · spec
 
 Liste complète (23 hotspots) dans `tmp/claude-cross-review.md` section 9.
 
-## Action porteur produit
+## Action — mode réalisation/audit
 
-1. Arbitrer les **6 décisions P0** (PG-02 à PG-06) — tout bloque sur ces choix.
-2. Valider le canon entités PG-06 en bloc — c'est le contrat transverse.
-3. Confirmer PG-04 queue + PG-05 i18n + PG-07 ApprovalRequest.
-4. Délégation reste : je grave les décisions inline dans les 6 specs, je sweep `@entropiq` → `@sentropic`, je passe en mode réalisation/audit.
+Arbitrage terminé 2026-05-14. Prochaines étapes :
+
+1. **PR `@sentropic`** via `~/src/entropiq` en respect du plan @sentropic. Scope : MCP client + server, OTel hooks, policy hooks, multi-tenant identity primitives (UserIdentity + acting_for), marketplace publication primitives, sandbox API + capability manifest. L'autre agent (codex) continue le dev process.
+2. **`shared-entities-v1.md`** créé comme contrat transverse (canon PG-06 articles 1-4).
+3. **`NOTICE` racine** créé (Kill Bill, OpenMeter, Superset, Node-RED Apache).
+4. **`tools/anti-copy-grep.sh`** créé (patterns Odoo `ir.*`, `account.move`, `mail.thread` + Twenty `ObjectMetadata` + Frappe `doctype` + Kimai `KEvent` + SuiteCRM `bean->`).
+5. **Implémentation foundation** (UserIdentity + OrganizationMember + RLS + RBAC + ICU JSON + Money + ApprovalRequest + Idempotency-Key + AuditEvent étendu).
+6. **Veille charts Svelte** dispatchée (layerchart, svelte-echarts, chart.js, observable plot) pour PG-10.
+
+Porteur produit en supervision/audit. Pas de nouvel arbitrage requis avant feedback impl.
 
 ---
 
-**Fin du decision-pack.** Version PPTX à venir dans la même PR.
+**Fin du decision-pack.** Version PPTX : `docs/study/10-mvp-specs/decision-pack.pptx`.

@@ -106,7 +106,7 @@ def add_header_bar(slide, section):
     add_text(slide, Inches(0.5), Inches(0.05), Inches(8), Inches(0.5),
              section, size=14, bold=True, color=WHITE, anchor=MSO_ANCHOR.MIDDLE)
     add_text(slide, Inches(9.5), Inches(0.05), Inches(3.5), Inches(0.5),
-             "MVP Decision Pack — 2026-05-13", size=11, color=GRAY_200,
+             "MVP Decision Pack — 2026-05-14", size=11, color=GRAY_200,
              align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
 
 
@@ -132,12 +132,12 @@ def slide_title(prs):
     add_text(slide, Inches(0.8), Inches(2.4), Inches(11.7), Inches(1.2),
              "MVP Decision Pack", size=60, bold=True, color=WHITE)
     add_text(slide, Inches(0.8), Inches(3.6), Inches(11.7), Inches(0.8),
-             "Sprint cadrage MVP OpenERP — arbitrage porteur produit",
+             "Sprint cadrage MVP OpenERP — synthèse arbitrage",
              size=22, color=GRAY_200)
     add_text(slide, Inches(0.8), Inches(5.8), Inches(11.7), Inches(0.5),
-             "2026-05-13", size=14, color=AMBER, bold=True)
+             "2026-05-14 · Toutes décisions programme RESOLVED", size=14, color=AMBER, bold=True)
     add_text(slide, Inches(0.8), Inches(6.2), Inches(11.7), Inches(0.5),
-             "6 specs MVP enrichies · double revue Claude + codex · 12 décisions programme",
+             "6 specs MVP enrichies · double revue Claude + codex · 12 décisions programme arbitrées",
              size=13, color=GRAY_200)
     return slide
 
@@ -154,22 +154,22 @@ def slide_statut(prs):
         ("Fait", GREEN, [
             "6 specs MVP enrichies (+1675 lignes)",
             "Double revue Claude + codex (6800 mots)",
-            "Decision-pack MD + PPTX généré",
             "Rename @entropiq → @sentropic plain MIT (30 docs)",
-            "Progress sections synchronisées",
+            "12 décisions programme arbitrées 2026-05-14",
+            "Décisions gravées dans 6 specs",
         ]),
         ("À faire", AMBER, [
-            "Arbitrage porteur sur 6 décisions P0",
-            "Gravage décisions inline dans 6 specs",
-            "Création NOTICE racine (Kill Bill, OpenMeter, Superset, Node-RED)",
-            "Script CI anti-copy",
-            "Push remote (8 commits en attente)",
+            "PR @sentropic : MCP + OTel + policy hooks + identité + marketplace + sandbox API",
+            "Création shared-entities-v1.md (canon PG-06)",
+            "NOTICE racine (Kill Bill, OpenMeter, Superset, Node-RED)",
+            "Script CI anti-copy (patterns expression seulement)",
+            "Foundation impl (RLS + RBAC + ICU + Money + ApprovalRequest)",
         ]),
         ("Attendu", NAVY_LIGHT, [
-            "Tu arbitres via cette présentation",
-            "Je grave dans les specs",
-            "Passage en mode réalisation / audit",
-            "Tu restes en supervision",
+            "Spec foundation figée → premier code",
+            "@sentropic PR ouverte, autre agent continue dev",
+            "Toi en supervision / audit",
+            "Pas de nouveau arbitrage requis avant feedback impl",
         ]),
     ]
 
@@ -199,13 +199,13 @@ def slide_synthese(prs):
     x_left = Inches(0.5)
     y_top = Inches(2.1)
     add_text(slide, x_left, y_top, Inches(6), Inches(0.4),
-             "Risques majeurs (réviseurs d'accord)", size=16, bold=True, color=RED)
+             "Risques traités par l'arbitrage", size=16, bold=True, color=GREEN)
     risques = [
-        "Pas de canon multi-tenant membership (User.organization_id casse multi-org)",
-        "Chaque spec choisit son scheduler/queue (3 queue engines risque)",
-        "Activity = fourre-tout entre CRM, project, agentic",
-        "AuditEvent / DomainEvent / TimelineEntry divergent (3 couches à séparer)",
-        "23 anti-copy hotspots sans owner + sans script CI",
+        "Multi-tenant : UserIdentity + OrganizationMember adopté (PG-02)",
+        "Queue : pgmq MVP + JobQueue abstrait pour migration (PG-04)",
+        "Activity : préfixage canon (CrmActivity, ProjectTask, ServiceActivity, AgentRun) (PG-06 art.3)",
+        "Events : 3 couches séparées AuditEvent / DomainEvent / TimelineEntry (PG-06 art.2)",
+        "Anti-copy : owner nommé + script CI tools/anti-copy-grep.sh (PG-12)",
     ]
     for i, r in enumerate(risques):
         add_text(slide, x_left + Inches(0.1), y_top + Inches(0.5) + Inches(0.55) * i,
@@ -217,17 +217,17 @@ def slide_synthese(prs):
              "Décisions programme à arbitrer", size=16, bold=True, color=NAVY_LIGHT)
     pgs = [
         ("PG-01", "License @sentropic", "RESOLVED"),
-        ("PG-02", "Identité multi-tenant", "P0"),
-        ("PG-03", "Isolation RLS", "P0"),
-        ("PG-04", "Queue engine unifié", "P0"),
-        ("PG-05", "Catalogue i18n", "P0"),
-        ("PG-06", "Canon entités partagées", "P0"),
-        ("PG-07", "ApprovalRequest entité", "P1"),
-        ("PG-08", "Idempotency-Key universel", "P1"),
-        ("PG-09", "Identité agent", "P1"),
-        ("PG-10", "Stack BI dashboard", "P1"),
-        ("PG-11", "Stack PDF rendering", "P2"),
-        ("PG-12", "Anti-copy review process", "P2"),
+        ("PG-02", "Identité multi-tenant", "RESOLVED"),
+        ("PG-03", "Isolation RLS", "RESOLVED"),
+        ("PG-04", "Queue engine unifié", "RESOLVED"),
+        ("PG-05", "Catalogue i18n", "RESOLVED"),
+        ("PG-06", "Canon entités partagées", "RESOLVED"),
+        ("PG-07", "ApprovalRequest entité", "RESOLVED"),
+        ("PG-08", "Idempotency-Key universel", "RESOLVED"),
+        ("PG-09", "Identité agent + délégation", "RESOLVED"),
+        ("PG-10", "Stack BI dashboard", "RESOLVED"),
+        ("PG-11", "Stack templating (docx + pdf)", "RESOLVED"),
+        ("PG-12", "Anti-copy review process", "RESOLVED"),
     ]
     for i, (k, name, status) in enumerate(pgs):
         y = y_top + Inches(0.5) + Inches(0.36) * i
@@ -447,10 +447,10 @@ def slide_action(prs):
              "Action porteur produit", size=36, bold=True, color=AMBER)
 
     steps = [
-        ("1", "Arbitre les 6 décisions P0", "PG-02 à PG-06 + confirmation PG-07/08. Tout le code en dépend."),
-        ("2", "Valide le canon entités PG-06 en bloc", "Organization, Money, AuditEvent / DomainEvent / TimelineEntry, Activity préfixé, frontière Project/Billing."),
-        ("3", "Confirme la pile technique", "PG-04 pgmq + PG-05 ICU JSON + PG-07 ApprovalRequest."),
-        ("4", "Délègue", "Je grave les décisions inline dans les 6 specs. Je passe en mode réalisation / audit."),
+        ("1", "Arbitrage terminé", "12 décisions programme arbitrées 2026-05-14. Décisions gravées inline dans les 6 specs MVP."),
+        ("2", "PR @sentropic", "Ouvrir PR via ~/src/entropiq pour MCP + OTel + policy hooks + multi-tenant identity + marketplace primitives + sandbox API. Respect du plan @sentropic. L'autre agent continue le dev."),
+        ("3", "Implémentation foundation", "Démarrer impl foundation (UserIdentity + OrganizationMember + RLS + RBAC + ICU + Money + ApprovalRequest + Idempotency-Key) + shared-entities-v1.md."),
+        ("4", "Mode supervision", "Toi en supervision / audit. Je suis en réalisation. Push à ton OK explicite."),
     ]
     y0 = Inches(1.9)
     for i, (num, title, body) in enumerate(steps):
@@ -481,7 +481,7 @@ def build():
     slide_synthese(prs)
 
     # 4 — Section divider décisions programme
-    slide_section_divider(prs, "Décisions programme", "12 décisions transverses · 1 résolue · 5 P0 bloquantes")
+    slide_section_divider(prs, "Décisions programme", "12 décisions transverses · toutes arbitrées 2026-05-14")
 
     # 5..16 — 12 décisions
     decisions = [
@@ -491,32 +491,32 @@ def build():
          "Plain MIT adopté. Tout déploiement commercial OpenERP est juridiquement clear côté runtime.",
          "Licence: aucun risque · Timeline: 0j · Action restante: sweep rename terminé (commit 54dede9)"),
 
-        ("PG-02", "Identité + membership multi-tenant", "P0",
+        ("PG-02", "Identité + membership multi-tenant", "RESOLVED",
          "User.organization_id (foundation actuel) casse le multi-tenant quand un humain est membre de plusieurs orgs (consultants, partenaires).",
          ["UserIdentity global + OrganizationMember par tenant (codex reco)",
           "Rester User.organization_id mono-org MVP",
           "Multi-org via table UserOrgLink"],
-         "Option (a) UserIdentity + OrganizationMember si humains multi-org attendus ; sinon (b) plus simple mais friction utilisateur quand multi-tenant arrive.",
+         "✓ Arbitré 2026-05-14 : option (a) UserIdentity + OrganizationMember. Multi-tenant dès MVP, refactor FK et JWT en conséquence.",
          "Foundation P0 · Change toutes FK et tous JWT · Bloque tout schéma métier"),
 
-        ("PG-03", "Isolation multi-tenant", "P0",
+        ("PG-03", "Isolation multi-tenant", "RESOLVED",
          "Foundation propose row-level organization_id + Postgres RLS. À acter formellement, bloque tous schémas et toutes migrations.",
          ["Row-level + Postgres RLS (foundation reco)",
           "Schema-per-tenant (migrations énormes)",
           "DB-per-tenant (ops lourd MVP)"],
-         "Row-level + Postgres RLS. Défense en profondeur, scaling acceptable, pattern standard.",
+         "✓ Arbitré 2026-05-14 : (a) RLS row-level MVP, avec abstraction TenantIsolationStrategy supportant (a/b/c) dès le contrat foundation. Switch par config sans réécriture downstream.",
          "Foundation P0 · Impacte toutes migrations · Reporting + Agentic dépendent de cette résolution"),
 
-        ("PG-04", "Queue engine unifié", "P0",
+        ("PG-04", "Queue engine unifié", "RESOLVED",
          "Billing propose pgmq. Reporting (scheduled delivery) et Agentic (agent runs) muets. Risque : 3 queue engines coexistants.",
          ["pgmq (Postgres-native, simple ops)",
           "BullMQ + Redis (Node mature)",
           "NATS JetStream (polyglot)",
           "Inngest managed (rejeté MVP)"],
-         "pgmq pour MVP self-host. Interface JobQueue abstraite pour migration future si volumétrie l'exige.",
-         "Touche billing récurrent + reporting scheduled + agentic runs · Pas d'arbitrage P0 → 3 queues séparées"),
+         "✓ Arbitré 2026-05-14 : (a) pgmq MVP, avec interface JobQueue abstraite supportant (a/b/c). Adapter pattern, scheduler ne touche jamais pgmq directement.",
+         "Touche billing récurrent + reporting scheduled + agentic runs · 3 implémentations possibles via le même contrat"),
 
-        ("PG-05", "Catalogue i18n unifié", "P0",
+        ("PG-05", "Catalogue i18n unifié", "RESOLVED",
          "Foundation propose ICU JSON nested. Project utilise fr_label/en_label colonnes SQL (anti-pattern). Incohérence à corriger.",
          ["ICU JSON nested + table TranslationKey foundation",
           "gettext .po per-module (anti-copy hotspot Odoo)",
@@ -524,61 +524,61 @@ def build():
          "ICU JSON nested + table TranslationKey foundation. Project corrige ServiceActivity pour utiliser keys au lieu de colonnes.",
          "Bloque build pipeline · Foundation owns + 5 specs alignées · FR-CA prioritaire EN-CA parité"),
 
-        ("PG-06", "Canon entités partagées", "P0",
-         "Codex propose un canon transverse cohérent à valider en bloc. Sans ce canon, chaque module réinvente.",
-         ["Organization (métier) + tenant (runtime), Money = {amount_minor, currency, scale}",
-          "AuditEvent / DomainEvent / TimelineEntry séparés (3 couches)",
-          "Activity préfixé : CrmActivity, ProjectTask, ServiceActivity, AgentRun",
-          "Company entité + customer = rôle ; Project owns InvoiceProposal, Billing owns Invoice"],
-         "Validation en bloc + création docs/study/10-mvp-specs/shared-entities-v1.md comme contrat transverse.",
+        ("PG-06", "Canon entités partagées (4 articles)", "RESOLVED",
+         "Codex propose un canon transverse cohérent à valider en bloc. Ce ne sont PAS des options alternatives mais les 4 articles du canon à graver. Sans ce canon, chaque module réinvente.",
+         ["Article 1 : Organization (métier) + tenant (runtime), Money = {amount_minor, currency(3), scale}",
+          "Article 2 : AuditEvent / DomainEvent / TimelineEntry séparés (3 couches)",
+          "Article 3 : Activity préfixé : CrmActivity, ProjectTask, ServiceActivity, AgentRun",
+          "Article 4 : Company entité + customer = rôle ; Project owns InvoiceProposal, Billing owns Invoice"],
+         "✓ Arbitré 2026-05-14 : canon adopté en bloc. Création docs/study/10-mvp-specs/shared-entities-v1.md comme contrat transverse à la prochaine étape.",
          "Contrat transverse · Bloque toutes specs · Empêche divergence terminologique pré-code"),
 
-        ("PG-07", "ApprovalRequest entité foundation", "P1",
+        ("PG-07", "ApprovalRequest entité foundation", "RESOLVED",
          "Foundation a action approve, project a TimeApproval, CRM a threshold, billing a void/write-off, agentic a approval-in-the-loop. 5 réinventions sans canon.",
          ["Chaque module réinvente (état actuel)",
           "Entité ApprovalRequest foundation partagée",
           "Workflow primitive externalisée vers reporting/automation"],
-         "Entité ApprovalRequest foundation : {request_id, requester, approver, subject_type, subject_id, status, decision_reason, decided_at}. Consommée par CRM, project, billing, agentic.",
+         "✓ Arbitré 2026-05-14 : (b) ApprovalRequest foundation, exposée via 3 surfaces — API REST, tool MCP request_approval(), SDK @sentropic/openerp-sdk. Codex et Claude consomment le même tool schema.",
          "Touche 5 specs · Économise 4 réimplémentations · Audit trail unifié"),
 
-        ("PG-08", "Idempotency-Key universel", "P1",
-         "Foundation propose Idempotency-Key sur 4 endpoints sensibles. Trop restrictif (les deux reviewers d'accord).",
+        ("PG-08", "Idempotency-Key universel", "RESOLVED",
+         "Header HTTP Idempotency-Key envoyé par le client sur POST/DELETE. Serveur stocke (key, response) en DB ; replay → cache hit. Évite double facturation, double agent run, double import sur retry réseau.",
          ["4 endpoints seulement (foundation actuel)",
           "Toute POST/DELETE à side-effect métier (extension)",
           "Aucune idempotence MVP (rejeté)"],
-         "Idempotency-Key header obligatoire sur toute POST/DELETE à side-effect métier. Pattern foundation, business id sert de seed.",
+         "✓ Arbitré 2026-05-14 : (b) Idempotency-Key obligatoire sur toute POST/DELETE à side-effect métier. TTL 24h, table IdempotencyRecord en foundation. Middleware pattern (Stripe).",
          "Touche toutes specs API · Sécurise retry agentic + automation + import CRM"),
 
-        ("PG-09", "Identité agent", "P1",
-         "Agentic propose JWT signé OpenERP-native. Foundation auth = cookie HTTP-only humain. Pont à formaliser.",
-         ["Hybride : cookie humains + JWT signé agents",
-          "SPIFFE / SVID (overkill MVP)",
-          "OIDC subject extension"],
-         "Hybride. User.actor_type = human | agent | system. Foundation expose verify JWT + claims acting_for / on_behalf_of.",
-         "Foundation + Agentic décident ensemble · Bloque tout flow d'agent autonome"),
+        ("PG-09", "Identité agent + délégation", "RESOLVED",
+         "JWT seul insuffisant. Délégation d'action et policy association = objectif clé pour enabler l'agentique. Audit-grade traceabilité requise.",
+         ["MVP : JWT + RFC 8693 token exchange (act / may_act claims)",
+          "Post-MVP : SPIFFE/SVID workload attestation (CNCF, aligné NIST SP 800-204)",
+          "Policy binding : AgentDefinition.allowed_tools, max_spend, requires_approval_above"],
+         "✓ Arbitré 2026-05-14 : stack hybride. MVP RFC 8693 token exchange + ApprovalRequest comme issuance. SPIFFE post-MVP via abstraction IdentityProvider. Cookie humains + JWT signé agents. AuditEvent étendu avec acting_principal + on_behalf_of + policy_decision_id.",
+         "Foundation + Agentic décident ensemble · Bloque tout flow d'agent autonome · Chaîne délégation auditable de bout en bout"),
 
-        ("PG-10", "Stack BI / dashboard", "P1",
+        ("PG-10", "Stack BI / dashboard", "RESOLVED",
          "Reporting propose native SvelteKit dashboard. CRM, project, billing ont besoin de dashboards sans engagement clair → risque dérive Superset-clone.",
          ["Native SvelteKit + primitive foundation Widget/Dashboard",
           "Superset embed iframe",
           "Grafana Apache embed (option pack)"],
-         "Native SvelteKit + primitive Widget foundation. Superset/Grafana en pack post-MVP optionnel. Évite Superset-clone tentation.",
-         "Touche reporting + CRM dashboards + project dashboards + billing dashboards · Économise dépendance Selenium/Chromium"),
+         "✓ Arbitré 2026-05-14 : (a) primitive Widget foundation, coordination tokens/composants avec @sent-tech à clarifier. Veille charts Svelte (layerchart, svelte-echarts, chart.js, observable plot) à dispatcher. Aspiration VizQL post-MVP.",
+         "Touche reporting + CRM dashboards + project dashboards + billing dashboards · Évite dépendance Selenium/Chromium"),
 
-        ("PG-11", "Stack PDF rendering", "P2",
-         "Reporting propose server-side template. Billing parle de PDF FR/EN sans préciser. Foundation muet.",
-         ["Typst ou React-PDF server-side",
-          "Headless browser (Playwright)",
-          "PDFKit programmatic"],
-         "Server-side template (Typst). Aligne reporting + billing + foundation. Évite Chromium en self-host.",
-         "Touche reporting exports + billing invoices + foundation receipts · Décision déploiement"),
+        ("PG-11", "Stack templating (docx + pdf)", "RESOLVED",
+         "Reporting propose server-side template ; billing parle de PDF FR/EN sans préciser ; foundation muet. @sentropic a déjà un moteur DOCX mature (dolanmiu/docx + couche maison patchDocument, syntaxe {{...}} + boucles, Word TOC) et un PDF plus basique.",
+         ["Extraction @sentropic : librariser docx + pdf, OpenERP consomme",
+          "Vivliostyle (CSS Paged Media, Node) — rejeté au profit de @sentropic",
+          "LaTeX — rejeté pour stack TS"],
+         "✓ Arbitré 2026-05-14 : extraction @sentropic en 2 packages — @sentropic/docx-templating (extractible immédiatement) + @sentropic/pdf-templating (audit + roadmap : Paged Media, FR-CA fonts, accessibilité, templates fiscaux statutaires). OpenERP consomme via npm.",
+         "Touche reporting exports + billing invoices + foundation receipts · Coordination avec roadmap @sentropic"),
 
-        ("PG-12", "Anti-copy review process", "P2",
-         "23 hotspots consolidés (Chatter Odoo, ObjectMetadata Twenty, account_move, etc.). Aucun owner programme. Aucun script CI.",
+        ("PG-12", "Anti-copy review process", "RESOLVED",
+         "23 hotspots consolidés. Aucun owner. Aucun script CI. Précision : noms business génériques (Company, Invoice, Project, Task, Currency) ne sont pas anti-copy — une pomme est une pomme, non copyrightable.",
          ["Revue spec par spec (atomisé, état actuel)",
-          "Revue programme transverse avec ownership unique",
-          "Script CI grep contre tables/UI strings interdits"],
-         "Combo (b) + (c) : un owner anti-copy nommé qui revoit chaque PR, plus tools/anti-copy-grep.sh CI sur les patterns interdits.",
+          "Owner anti-copy nommé + revue par PR",
+          "+ Script CI grep patterns expression-spécifiques (Odoo mail.thread, Twenty ObjectMetadata, etc.)"],
+         "✓ Arbitré 2026-05-14 : (b) owner anti-copy + (c) tools/anti-copy-grep.sh ciblé patterns expression seulement (pas les noms génériques business). Liste précise : Odoo ir.*, account.move, mail.thread + Twenty ObjectMetadata + Frappe doctype + Kimai KEvent + SuiteCRM bean->.",
          "Évite contamination LGPL/AGPL · Discipline pre-code obligatoire"),
     ]
     for d in decisions:
@@ -592,7 +592,7 @@ def build():
         ("F-1", "RBAC plat resource.action.scope confirmé"),
         ("F-2", "Étendre AuditEvent foundation avec colonnes optionnelles agentiques avant que les autres specs ne dépendent du schéma"),
         ("F-3", "Audit log = table append-only partitionnée par mois, rétention 1 an défaut, plancher 90j"),
-        ("F-4", "Auth MVP = password + TOTP. Passkey post-MVP."),
+        ("F-4", "Auth MVP = passkey / WebAuthn direct (drop password + TOTP MVP)"),
         ("F-5", "Permission granularity = objet uniquement MVP, hook record-policy réservé post-MVP"),
     ])
     slide_spec_decisions(prs, "CRM — Customer Timeline", NAVY_LIGHT, [
@@ -621,13 +621,13 @@ def build():
         ("R-2", "Automation = typed YAML DSL + TS handlers. Pas de Node-RED canvas MVP."),
         ("R-3", "Scheduled reports = pgmq cron (cf. PG-04)"),
         ("R-4", "Drill-down = live SQL MVP. Vues matérialisées post-MVP."),
-        ("R-5", "Permissions = via foundation RBAC + autoriser dashboards team-scope (vs admin-curated only)"),
+        ("R-5", "Permissions = foundation RBAC + visibility=team MVP. Rôle 'performance opérationnelle' (process défini, KPIs définis, proche mesure marché). Agent assistant aide à cadrer KPIs."),
     ])
     slide_spec_decisions(prs, "Agentic Impacts (transverse)", AMBER, [
-        ("A-1", "Sandbox = isolated-vm pour handlers internes signés. gVisor en pack vertical."),
+        ("A-1", "Sandbox = responsabilité @sentropic. OpenERP exige API sandbox + capability manifest. Feature request si manquant."),
         ("A-2", "Policy = native TS MVP. OPA en pack post-MVP."),
         ("A-3", "Observability = OpenInference + OpenLLMetry MVP"),
-        ("A-4", "Identity agent = JWT signé (cf. PG-09)"),
+        ("A-4", "Identity agent = RFC 8693 token exchange MVP + SPIFFE post-MVP (cf. PG-09)"),
         ("A-5", "MCP registry = interne native MVP. Public registry post-MVP."),
         ("A-6", "Supervision UI = hybride inline + panneau /supervision. Contrainte transverse : tout écran métier réserve zone supervision banner."),
     ])

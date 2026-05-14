@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: spec drafted + enrichissement 2026-05-12 (15 décisions PT-D-01→15, 10 écrans delivery.*, 8 axes techno). Décisions clés au decision-pack : approval per-week, tâche parent-enfant 1 niveau MVP, lien projet ↔ opportunité 1:N.
-À faire: arbitrage porteur produit (P-1 à P-5), corriger `ServiceActivity.fr_label/en_label` en TranslationKey (cohérence PG-05 i18n ICU JSON foundation), valider mode timer MVP (codex recommande post-MVP).
-Attendu: figer après foundation + CRM (dépend du canon Activity PG-06 et du multi-currency CRM C-3).
+Fait: spec enrichie + décisions PT-D-XX arbitrées 2026-05-14. Status RESOLVED gravé. Correction PG-05 : ServiceActivity utilise TranslationKey (drop fr_label/en_label colonnes SQL).
+À faire: impl après foundation (Money + ApprovalRequest + Idempotency-Key + ProjectTask canon).
+Attendu: bloque sur foundation + CRM (lien projet ↔ opportunité). Démarrage impl project quand foundation et CRM exposent leurs primitives.
 
 ## Objective
 
@@ -37,7 +37,7 @@ The module must:
 | --- | --- |
 | `Project` | id, organization_id, company_id, opportunity_id, contract_id, name, status, billing_mode, owner_user_id, manager_user_id, start_date, end_date, currency, budget_amount, budget_hours, created_at, updated_at. |
 | `Task` | id, organization_id, project_id, parent_task_id, name, status, priority, assignee_user_id, due_date, estimated_hours, billable_default, created_at, updated_at. |
-| `ServiceActivity` | id, organization_id, name, description, billable_default, default_rate_id, active, fr_label, en_label. |
+| `ServiceActivity` | id, organization_id, name, description, billable_default, default_rate_id, active, label_translation_key_id (TranslationKey FK vers table TranslationKey foundation, PG-05 ICU JSON nested FR-CA/EN-CA — anciennes colonnes SQL `fr_label`/`en_label` retirées per PG-05). |
 | `Assignment` | id, organization_id, project_id, user_id, role_label, allocation_percent, start_date, end_date, billable_rate_id. |
 | `TimeEntry` | id, organization_id, project_id, task_id, activity_id, user_id, work_date, duration_minutes, description, billable, approval_status, billing_status, rate_source, created_at, updated_at. |
 | `TimeApproval` | id, organization_id, approver_user_id, time_entry_id, status, decision_reason, decided_at. |
@@ -384,89 +384,116 @@ decisions:
     choice: manual_with_optional_timer
     scope: mvp
     rationale: duration-based logging suits consulting; timer optional via tenant flag.
+    resolution: 2026-05-14, status: RESOLVED, chosen: manual + timer optionnel (timer non bloquant MVP, codex réserve mais on garde optionnel)
 
   - id: PT-D-02
     topic: approval_workflow
     choice: per_entry_with_bulk_weekly_ui
     scope: mvp
     rationale: granular control with a weekly bulk path in the approval queue.
+    resolution: 2026-05-14, status: RESOLVED, chosen: per-week (per-entry trop granulaire, per-project trop coarse)
 
   - id: PT-D-03
     topic: invoice_trigger
     choice: manual_and_milestone_mix
     scope: mvp
     rationale: recurring billing handled by billing/accounting module post-MVP.
+    resolution: 2026-05-14, status: RESOLVED, chosen: mix manuel + milestone MVP, récurrent post-MVP
 
   - id: PT-D-04
     topic: task_hierarchy
     choice: parent_child_one_level
     scope: mvp
     rationale: enough structure without portfolio overhead.
+    resolution: 2026-05-14, status: RESOLVED, chosen: parent-enfant 1 niveau MVP, portfolio post-MVP
 
   - id: PT-D-05
     topic: project_opportunity_link
     choice: one_to_many_opportunity_to_projects
     scope: mvp
     rationale: traceable single source opportunity per project.
+    resolution: 2026-05-14, status: RESOLVED, chosen: 1:N (un projet peut consommer plusieurs opportunités)
 
   - id: PT-D-06
     topic: per_project_billing_mode
     choice: tm_and_fixed_with_cap_rule
     scope: mvp
     rationale: cap+T&M expressed as a project-level rule.
+    resolution: 2026-05-14, status: RESOLVED, chosen: tm_and_fixed_with_cap_rule
 
   - id: PT-D-07
     topic: resource_allocation
     choice: allocation_percent_per_user_readonly_view
     scope: mvp
     rationale: feeds utilization reporting without a scheduler.
+    resolution: 2026-05-14, status: RESOLVED, chosen: allocation_percent_per_user_readonly_view
 
   - id: PT-D-08
     topic: time_entry_rounding
     choice: tenant_configurable_default_none
     scope: mvp
     rationale: support 15-min billing shops and exact-duration shops with one setting.
+    resolution: 2026-05-14, status: RESOLVED, chosen: tenant_configurable_default_none
 
   - id: PT-D-09
     topic: multi_currency_per_project
     choice: yes
     scope: mvp
     rationale: project currency is set at creation and used for proposal lines; FX handled in billing/accounting module.
+    resolution: 2026-05-14, status: RESOLVED, chosen: yes (project currency at creation, FX handled in billing/accounting)
 
   - id: PT-D-10
     topic: subcontracted_time_with_vendor_bill
     choice: post_mvp
     scope: post_mvp
     rationale: vendor bill association handled by billing/accounting; MVP captures subcontractor time as non-billable-to-customer when needed.
+    resolution: 2026-05-14, status: RESOLVED, chosen: post_mvp
 
   - id: PT-D-11
     topic: time_off_integration
     choice: external_via_hr_module
     scope: mvp
     rationale: HR module owns leave; project module reads non-working days for utilization calculations only.
+    resolution: 2026-05-14, status: RESOLVED, chosen: external_via_hr_module
 
   - id: PT-D-12
     topic: mobile_time_entry
     choice: responsive_web_only
     scope: mvp
     rationale: responsive composer screen for phone use; no native mobile app in MVP.
+    resolution: 2026-05-14, status: RESOLVED, chosen: responsive_web_only
 
   - id: PT-D-13
     topic: approval_delegation
     choice: post_mvp
     scope: post_mvp
     rationale: per-policy delegation deferred; MVP allows reassigning approver per project as a workaround.
+    resolution: 2026-05-14, status: RESOLVED, chosen: post_mvp
 
   - id: PT-D-14
     topic: self_approval_policy
     choice: org_level_flag_default_false
     scope: mvp
     rationale: small teams need to enable self-approval; default forbids it to protect controls.
+    resolution: 2026-05-14, status: RESOLVED, chosen: org_level_flag_default_false
 
   - id: PT-D-15
     topic: idempotency_proposal_generation
     choice: hash_of_project_period_source_set
     scope: mvp
     rationale: avoid duplicate proposals when generation is retried.
+    resolution: 2026-05-14, status: RESOLVED, chosen: hash_of_project_period_source_set (Idempotency-Key sur POST /invoice-proposals per PG-08)
 ```
+
+### Décisions programme impactantes (PG)
+
+- **PG-02 (Identité multi-tenant)** : un consultant peut être `OrganizationMember` de plusieurs projets/orgs ; `Assignment.user_id` et `TimeEntry.user_id` référencent l'identité unique consolidée par PG-02, l'appartenance org/projet est portée par OrganizationMember.
+- **PG-03 (RLS)** : Row Level Security activée sur tous les schémas `project.*`, `time_entry.*`, `invoice_proposal.*` ; les policies filtrent par `organization_id` (et par `project_id` quand applicable) en s'appuyant sur le claim de session.
+- **PG-04 (pgmq)** : les rappels d'approbation hebdomadaire (per-week reminder consultant + manager) sont déposés dans une queue `pgmq` scheduled, consommée par un worker idempotent.
+- **PG-05 (TranslationKey ICU JSON)** : `ServiceActivity` n'a plus de colonnes SQL `fr_label`/`en_label` ; ses libellés référencent une `TranslationKey` (FK vers la table foundation `translation_key`) avec payload ICU JSON nested FR-CA/EN-CA. Anciennes colonnes SQL `fr_label`/`en_label` retirées per PG-05. Les `InvoiceProposalLine.description_key` suivent la même convention.
+- **PG-06 article 3 (Canon Activity)** : `Activity` est éclaté en `CrmActivity` (CRM) et `ProjectTask` (delivery). Toute mention historique d'`Activity` sans préfixe dans ce module est renommée `ProjectTask` per PG-06 article 3. `ServiceActivity` reste un catalogue distinct (nature de service facturable, pas une tâche).
+- **PG-06 article 1 (Money type)** : `Rate.amount`, `ProjectBillingRule.fixed_amount`, `InvoiceProposal` totaux, `InvoiceProposalLine.unit_price`/`amount` utilisent le type `Money` foundation (decimal + currency code ISO 4217), pas `numeric` nu.
+- **PG-07 (ApprovalRequest)** : l'approbation des `TimeEntry` (per-week) et la validation des `InvoiceProposal` passent par l'entité `ApprovalRequest` mutualisée (foundation), pas par des tables ad hoc ; `TimeApproval` devient une vue/projection au-dessus d'`ApprovalRequest`.
+- **PG-08 (Idempotency-Key)** : `POST /time-entries` et `POST /invoice-proposals` exigent un header `Idempotency-Key` ; la combinaison `(project_id, period_start, period_end, source_set_hash)` reste la clé fonctionnelle de déduplication pour la génération de proposal, conforme à PT-D-15.
+- **PG-12 (anti-copie)** : aucune entité, vue, route API, libellé ou template copié depuis Kimai (timesheet entities, rates UI, invoice renderers) ou OpenProject (work package, planner). Toute ressemblance fonctionnelle est documentée comme convergence, jamais comme dérivation.
 

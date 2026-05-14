@@ -2,9 +2,9 @@
 
 ## Progress
 
-Fait: spec drafted + enrichissement 2026-05-12 (14 décisions BA-DEC-001→014, 10 écrans, 8 axes techno, exigence Québec inscrite transverse). NOTICE Apache pour Kill Bill / OpenMeter explicitement requise (BA-DEC-014).
-À faire: arbitrage porteur produit (B-1 à B-5 + PG-04 queue + PG-07 ApprovalRequest), créer `NOTICE` racine du repo, revoir noms de champs comptables vs Odoo `account.move` avant code (anti-copy P-12).
-Attendu: figer après foundation (Money type PG-06 + multi-currency PG-?) et après CRM (multi-currency par opportunité C-3) ; subscription engine native MVP + interface Kill Bill compatible pour migration.
+Fait: spec enrichie + décisions BA-DEC arbitrées 2026-05-14. Multi-currency MVP confirmé. NOTICE racine cadré.
+À faire: NOTICE racine créé (Kill Bill, OpenMeter, Superset, Node-RED), audit anti-copy noms de champs vs Odoo account.move avant impl, impl après foundation (Money + ApprovalRequest + Idempotency-Key).
+Attendu: bloque sur foundation + @sentropic/pdf-templating pour invoices statutaires. Impl billing après ces deux dépendances.
 
 ## Objective
 
@@ -48,6 +48,12 @@ The MVP must:
 | `JournalEntryLine` | id, organization_id, journal_entry_id, account_id, debit_amount, credit_amount, currency, customer_company_id, tax_registration_id, source_line_id. |
 | `AccountingPeriod` | id, organization_id, fiscal_year, period_start, period_end, status, locked_at, locked_by. |
 | `FinanceExport` | id, organization_id, export_type, period_start, period_end, status, created_by, created_at, file_id. |
+
+**Notes foundation (ajoutées 2026-05-14)** :
+
+- `Account`, `JournalEntry`, `JournalEntryLine`, `AccountingPeriod` : alignées avec PG-06 article 2 : AuditEvent (compliance) ≠ DomainEvent (intégration) ≠ TimelineEntry (projection). JournalEntry est un DomainEvent dédié + projection lisible. Pas de copie verbatim Odoo `account.move`/`account.move.line` (anti-copy).
+- Tous les champs monétaires (`subtotal_amount`, `tax_amount`, `total_amount`, `balance_due`, `unit_price`, `debit_amount`, `credit_amount`, `amount`) : type Money foundation = `{amount_minor: int, currency: string(3), scale: int}` (PG-06 article 1).
+- Actions sensibles (Invoice issue, payment register, period close, void/write-off) : Idempotency-Key obligatoire (PG-08), ApprovalRequest pour void/write-off/period close (PG-07).
 
 ## States
 
@@ -464,6 +470,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
     MVP cible service-company; recurring simple suffit.
     Interface conçue pour migration Kill Bill / OpenMeter en phase 2.
   license_posture: n/a-natif
+  resolution: 2026-05-14, status: RESOLVED, chosen: native simple + interface compatible Kill Bill (Apache, NOTICE racine) pour migration
 
 - id: BA-DEC-002
   topic: chart-of-accounts-bootstrap
@@ -473,6 +480,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Démarrage rapide pour pilotes FR-CA, assistant reporté post-MVP.
     Aucun import de l10n_ca Odoo; comptes redigés en propre.
+  resolution: 2026-05-14, status: RESOLVED, chosen: pré-chargé CA/QC abstrait + révision juridique avant pilote
 
 - id: BA-DEC-003
   topic: tax-engine
@@ -482,6 +490,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Conforme à l'exigence spec (rate_version_id, source_configuration_id).
     Rule pack GST/QST versionné conforme `statutory-research.md`.
+  resolution: 2026-05-14, status: RESOLVED, chosen: pluggable interne versionné (GST/QST règles)
 
 - id: BA-DEC-004
   topic: multi-currency
@@ -491,6 +500,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Devise par facture supportée; tenue de livres une seule devise par tenant.
     Reporting devise base; FX gain/loss au paiement.
+  resolution: 2026-05-14, status: RESOLVED, chosen: ADOPTÉ MVP. Book tenant single, transactions multidevises. FxRateSnapshot foundation service pour résolution taux
 
 - id: BA-DEC-005
   topic: payment-integration
@@ -499,6 +509,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   status: proposed
   rationale: |
     Réduit scope initial; abstraction PSP interne pour ajouter Square/Moneris sans refactor.
+  resolution: 2026-05-14, status: RESOLVED, chosen: Stripe seul MVP, multi-PSP via abstraction PaymentProvider prête
 
 - id: BA-DEC-006
   topic: dunning-workflow
@@ -508,6 +519,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Sécurise communication client; reste auditable.
     Aucun envoi auto en MVP.
+  resolution: 2026-05-14, status: RESOLVED, chosen: hybrid-proposal-then-human-approve
 
 - id: BA-DEC-007
   topic: bank-reconciliation
@@ -516,6 +528,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   status: proposed
   rationale: |
     Couverture universelle MVP. Flinks (Canada) post-MVP.
+  resolution: 2026-05-14, status: RESOLVED, chosen: ofx-qfx-csv-import-with-rule-matching
 
 - id: BA-DEC-008
   topic: recurring-scheduler
@@ -525,6 +538,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Cohérent avec stack PG/pgmq. Idempotent.
     Interface compatible Kill Bill/OpenMeter conservée.
+  resolution: 2026-05-14, status: RESOLVED, chosen: pgmq (PG-04 abstraction JobQueue). Scheduler ne touche jamais pgmq directement
 
 - id: BA-DEC-009
   topic: fiscal-data-encryption
@@ -534,6 +548,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     Numéros TPS/TVQ, numéros bancaires, références PSP en chiffré colonne;
     autre données finance protégées par RLS + chiffrement disque global.
+  resolution: 2026-05-14, status: RESOLVED, chosen: column-level-at-rest-for-sensitive-tax-fields
 
 - id: BA-DEC-010
   topic: e-invoicing
@@ -543,6 +558,7 @@ Format YAML-like. Chaque décision capture l'option retenue par défaut MVP, les
   rationale: |
     PEPPOL/QC e-invoicing reporté; PDF FR/EN + portail client suffisent MVP.
     Capture exigence pour rule pack futur.
+  resolution: 2026-05-14, status: RESOLVED, chosen: post-mvp
 
 - id: BA-DEC-011
   topic: accounting-periods
