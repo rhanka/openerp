@@ -1,12 +1,24 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import type { ClientQueryable, PgPoolHandle } from "./pg-client";
+import type { Queryable } from "./client";
 
 // Minimal forward-only migration runner. Reads SQL files from a directory
 // ordered by filename, applies each in its own transaction, and records the
 // applied set in `_openerp_migrations`. Idempotent: re-running skips known
 // migrations.
+//
+// The runner only needs `query()` + `withClient()` — it stays decoupled from
+// the concrete PgPoolHandle so fake pools in unit tests (without a real
+// `raw: PoolClient`) can still drive it.
+
+export interface MigrationClient extends Queryable {
+  raw?: unknown;
+}
+
+export interface MigrationPool extends Queryable {
+  withClient<T>(fn: (client: MigrationClient) => Promise<T>): Promise<T>;
+}
 
 const MIGRATIONS_TABLE = "_openerp_migrations";
 
@@ -32,7 +44,7 @@ export interface RunMigrationsOptions {
 }
 
 export async function runMigrations(
-  pool: PgPoolHandle,
+  pool: MigrationPool,
   options: RunMigrationsOptions = {}
 ): Promise<{ applied: string[]; skipped: string[] }> {
   const directory = options.directory
@@ -60,7 +72,7 @@ export async function runMigrations(
     }
     const sql = readFileSync(join(directory, file), "utf8");
     const checksum = await sha256(sql);
-    await pool.withClient(async (client: ClientQueryable) => {
+    await pool.withClient(async (client: MigrationClient) => {
       await client.query("begin");
       try {
         await client.query(sql);

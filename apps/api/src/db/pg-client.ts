@@ -46,7 +46,7 @@ export function createPgPool(config: PgClientConfig = {}): PgPoolHandle {
       const result = await pool.query(text, values);
       return { rows: result.rows as T[] };
     },
-    async withClient<T>(fn) {
+    async withClient<T>(fn: (client: ClientQueryable) => Promise<T>): Promise<T> {
       const client = await pool.connect();
       try {
         const queryable: ClientQueryable = {

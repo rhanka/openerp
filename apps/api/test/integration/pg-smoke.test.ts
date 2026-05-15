@@ -17,7 +17,7 @@ describeOrSkip("pg-client + migrate (integration)", () => {
   let pool: PgPoolHandle;
 
   beforeAll(async () => {
-    pool = createPgPool({ connectionString: url });
+    pool = createPgPool({ connectionString: url! });
     // Hard reset: drop public schema and recreate. Migrations rebuild from 0001.
     await pool.query("drop schema if exists public cascade");
     await pool.query("create schema public");
