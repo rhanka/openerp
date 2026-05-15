@@ -35,7 +35,7 @@ export async function insertOrganizationMember(
      returning ${ORG_MEMBER_COLUMNS}`,
     [input.userIdentityId, context.organizationId, input.status, input.preferredLocale]
   );
-  return result.rows[0];
+  return result.rows[0]!;
 }
 
 export async function findOrganizationMember(

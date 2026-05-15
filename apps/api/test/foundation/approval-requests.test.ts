@@ -70,13 +70,13 @@ function makeFakeDb(initialRows: ApprovalRequest[] = []) {
         const idx = rows.findIndex((r) => r.id === id && r.organizationId === organizationId && r.status === "pending");
         if (idx === -1) return { rows: [] };
         rows[idx] = {
-          ...rows[idx],
+          ...rows[idx]!,
           status: decision,
           decisionReason,
           decidedAt,
-          approverUserIdentityId: rows[idx].approverUserIdentityId ?? approverFallback
+          approverUserIdentityId: rows[idx]!.approverUserIdentityId ?? approverFallback
         };
-        return { rows: [rows[idx] as unknown as T] };
+        return { rows: [rows[idx]! as unknown as T] };
       }
 
       if (t.includes("update approval_requests") && t.includes("'expired'")) {
@@ -84,7 +84,7 @@ function makeFakeDb(initialRows: ApprovalRequest[] = []) {
         const expired = rows.filter((r) => r.organizationId === organizationId
           && r.status === "pending"
           && r.expiresAt !== null
-          && r.expiresAt <= asOf);
+          && r.expiresAt! <= asOf);
         for (const e of expired) e.status = "expired";
         return { rows: expired.map((r) => ({ id: r.id })) as unknown as T[] };
       }
@@ -178,7 +178,7 @@ describe("ApprovalRequest repository (PG-07)", () => {
     });
     const pending = await listPendingApprovalsForApprover(fake.db, context, "uid_human");
     expect(pending).toHaveLength(1);
-    expect(pending[0].approverUserIdentityId).toBe("uid_human");
+    expect(pending[0]!.approverUserIdentityId).toBe("uid_human");
   });
 
   it("records a decision and transitions the request out of pending", async () => {

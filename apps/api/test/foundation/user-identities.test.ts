@@ -53,16 +53,16 @@ function makeFakeDb() {
         const [id, status] = values as [string, "invited" | "active" | "deactivated"];
         const idx = rows.findIndex((r) => r.id === id);
         if (idx === -1) return { rows: [] };
-        rows[idx] = { ...rows[idx], status };
-        return { rows: [rows[idx] as unknown as T] };
+        rows[idx] = { ...rows[idx]!, status };
+        return { rows: [rows[idx]! as unknown as T] };
       }
 
       if (t.includes("update user_identities") && t.includes("set last_login_at")) {
         const [id, at] = values as [string, string];
         const idx = rows.findIndex((r) => r.id === id);
         if (idx === -1) return { rows: [] };
-        rows[idx] = { ...rows[idx], lastLoginAt: at };
-        return { rows: [rows[idx] as unknown as T] };
+        rows[idx] = { ...rows[idx]!, lastLoginAt: at };
+        return { rows: [rows[idx]! as unknown as T] };
       }
 
       return { rows: [] };

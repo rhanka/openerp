@@ -146,7 +146,7 @@ export async function setApprovalRequestStatus(
         created_at as "createdAt"`,
     [approvalRequestId, context.organizationId, status, reason]
   );
-  const updated = result.rows[0];
+  const updated = result.rows[0]!;
   await emitApprovalAudit(db, context, {
     action: "approval_request.status_set",
     approvalRequestId,

@@ -1,0 +1,61 @@
+import { Hono } from "hono";
+
+import type { Queryable, TenantContext } from "../db/client";
+import { mountApprovalRequestRoutes } from "./handlers/approval-requests";
+
+// Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
+// The HTTP server itself is started by apps/api/src/server.ts via the
+// @hono/node-server adapter; this file owns the route surface only.
+
+export interface AppBindings {
+  Variables: {
+    db: Queryable;
+    tenant: TenantContext;
+  };
+}
+
+export interface BuildAppOptions {
+  /** Resolves a TenantContext from the inbound request. Auth wiring lives elsewhere; for MVP
+   *  the resolver can read trusted internal headers (x-organization-id / x-user-identity-id)
+   *  in tests, and be replaced with the JWT-backed implementation once Lot 1/PG-09 lands. */
+  resolveTenant: (request: Request) => Promise<TenantContext | null> | TenantContext | null;
+  db: Queryable;
+}
+
+export class TenantResolutionError extends Error {
+  readonly code = "TENANT_RESOLUTION_REQUIRED";
+  constructor() {
+    super("Could not resolve a tenant context for this request");
+  }
+}
+
+export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
+  const app = new Hono<AppBindings>();
+
+  app.use("*", async (c, next) => {
+    const tenant = await options.resolveTenant(c.req.raw);
+    if (!tenant) {
+      return c.json({ code: "TENANT_RESOLUTION_REQUIRED" }, 401);
+    }
+    c.set("db", options.db);
+    c.set("tenant", tenant);
+    await next();
+  });
+
+  app.get("/healthz", (c) => c.json({ status: "ok" }));
+
+  mountApprovalRequestRoutes(app);
+
+  return app;
+}
+
+/** Convenience tenant resolver for tests and internal dev: trusts `x-organization-id`
+ *  and `x-user-identity-id` (or `x-user-id`) headers. Production must replace this
+ *  with the JWT-backed resolver from PG-09. */
+export function headerTenantResolver(request: Request): TenantContext | null {
+  const organizationId = request.headers.get("x-organization-id");
+  const actorUserId =
+    request.headers.get("x-user-identity-id") ?? request.headers.get("x-user-id");
+  if (!organizationId || !actorUserId) return null;
+  return { organizationId, actorUserId };
+}

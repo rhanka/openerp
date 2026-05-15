@@ -65,8 +65,8 @@ function makeFakeDb() {
         ];
         const idx = approvals.findIndex((r) => r.id === id && r.organizationId === organizationId);
         if (idx === -1) return { rows: [] };
-        approvals[idx] = { ...approvals[idx], status, decisionReason: reason };
-        return { rows: [approvals[idx] as unknown as T] };
+        approvals[idx] = { ...approvals[idx]!, status, decisionReason: reason };
+        return { rows: [approvals[idx]! as unknown as T] };
       }
 
       if (t.includes("update approval_requests") && t.includes("decision_reason")) {
@@ -77,13 +77,13 @@ function makeFakeDb() {
           r.id === id && r.organizationId === organizationId && r.status === "pending");
         if (idx === -1) return { rows: [] };
         approvals[idx] = {
-          ...approvals[idx],
+          ...approvals[idx]!,
           status: decision,
           decisionReason,
           decidedAt,
-          approverUserIdentityId: approvals[idx].approverUserIdentityId ?? approverFallback
+          approverUserIdentityId: approvals[idx]!.approverUserIdentityId ?? approverFallback
         };
-        return { rows: [approvals[idx] as unknown as T] };
+        return { rows: [approvals[idx]! as unknown as T] };
       }
 
       if (t.includes("insert into audit_events")) {
@@ -119,9 +119,9 @@ describe("ApprovalService (PG-07)", () => {
       urgency: "normal"
     });
     expect(audits).toHaveLength(1);
-    expect(audits[0].action).toBe("approval_request.created");
-    expect(audits[0].resourceId).toBe(created.id);
-    expect(audits[0].afterSummary).toMatchObject({ status: "pending" });
+    expect(audits[0]!.action).toBe("approval_request.created");
+    expect(audits[0]!.resourceId).toBe(created.id);
+    expect(audits[0]!.afterSummary).toMatchObject({ status: "pending" });
   });
 
   it("emits audit event on decide with before/after status", async () => {
@@ -145,8 +145,8 @@ describe("ApprovalService (PG-07)", () => {
     expect(decided.status).toBe("approved");
     const decideAudits = audits.filter((a) => a.action === "approval_request.decided");
     expect(decideAudits).toHaveLength(1);
-    expect(decideAudits[0].beforeSummary).toMatchObject({ status: "pending" });
-    expect(decideAudits[0].afterSummary).toMatchObject({ status: "approved" });
+    expect(decideAudits[0]!.beforeSummary).toMatchObject({ status: "pending" });
+    expect(decideAudits[0]!.afterSummary).toMatchObject({ status: "approved" });
   });
 
   it("throws ApprovalNotPendingError when deciding an unknown or terminal request", async () => {

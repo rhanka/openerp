@@ -57,8 +57,8 @@ function makeFakeDb() {
         ];
         const idx = rows.findIndex((r) => r.id === memberId && r.organizationId === organizationId);
         if (idx === -1) return { rows: [] };
-        rows[idx] = { ...rows[idx], status };
-        return { rows: [rows[idx] as unknown as T] };
+        rows[idx] = { ...rows[idx]!, status };
+        return { rows: [rows[idx]! as unknown as T] };
       }
 
       return { rows: [] };
@@ -108,7 +108,7 @@ describe("OrganizationMember repository (PG-02, tenant-scoped)", () => {
     });
     const inOrg1 = await listOrganizationMembersByOrganization(db, context);
     expect(inOrg1).toHaveLength(1);
-    expect(inOrg1[0].organizationId).toBe("org_1");
+    expect(inOrg1[0]!.organizationId).toBe("org_1");
   });
 
   it("lists every org membership for a user identity (cross-org)", async () => {

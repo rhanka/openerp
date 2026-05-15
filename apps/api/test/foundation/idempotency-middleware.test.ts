@@ -32,8 +32,8 @@ function makeFakeDb() {
         ];
         const idx = rows.findIndex((r) => r.organizationId === organizationId && r.key === key);
         if (idx === -1) return { rows: [] };
-        rows[idx] = { ...rows[idx], responseBodyHash, statusCode };
-        return { rows: [rows[idx] as unknown as T] };
+        rows[idx] = { ...rows[idx]!, responseBodyHash, statusCode };
+        return { rows: [rows[idx]! as unknown as T] };
       }
       return { rows: [] };
     }
@@ -79,7 +79,7 @@ describe("withIdempotency wrapper (PG-08)", () => {
       () => "2026-05-14T12:00:00.000Z"
     );
     expect(outcome.replayed).toBe(false);
-    const stored = getRows()[0];
+    const stored = getRows()[0]!;
     expect(stored.statusCode).toBe(201);
     expect(stored.responseBodyHash).toMatch(/^sha256:/);
     const expectedExpiry = new Date(
@@ -114,8 +114,8 @@ describe("withIdempotency wrapper (PG-08)", () => {
         { ...baseRequest, headers: { "idempotency-key": "k1" } },
         async () => { throw new Error("boom"); })
     ).rejects.toThrow("boom");
-    expect(getRows()[0].statusCode).toBe(500);
-    expect(getRows()[0].responseBodyHash).toBe("");
+    expect(getRows()[0]!.statusCode).toBe(500);
+    expect(getRows()[0]!.responseBodyHash).toBe("");
   });
 
   it("treats the same request body in different key order as equivalent for the request hash", async () => {

@@ -46,8 +46,9 @@ function makeFakeDb() {
         const [asOf] = values as [string];
         const purged: Stored[] = [];
         for (let i = rows.length - 1; i >= 0; i--) {
-          if (rows[i].expiresAt <= asOf) {
-            purged.push(rows[i]);
+          const row = rows[i]!;
+          if (row.expiresAt <= asOf) {
+            purged.push(row);
             rows.splice(i, 1);
           }
         }

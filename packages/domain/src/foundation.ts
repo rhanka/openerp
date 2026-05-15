@@ -358,3 +358,7 @@ export function makeMoney(amountMinor: number, currency: string, scale = 2): Mon
 export function sameCurrency(a: Money, b: Money): boolean {
   return a.currency === b.currency && a.scale === b.scale;
 }
+
+// Re-export foundation abstraction contracts so consumers can import everything
+// from `@openerp/domain` without reaching into submodules.
+export * from "./contracts";

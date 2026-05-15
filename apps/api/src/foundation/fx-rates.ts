@@ -56,7 +56,7 @@ export async function insertFxRateSnapshot(
       input.source
     ]
   );
-  return result.rows[0];
+  return result.rows[0]!;
 }
 
 export async function findFxRateAt(

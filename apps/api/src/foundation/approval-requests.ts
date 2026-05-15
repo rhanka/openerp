@@ -73,7 +73,7 @@ export async function insertApprovalRequest(
       row.expiresAt
     ]
   );
-  return result.rows[0];
+  return result.rows[0]!;
 }
 
 export async function findApprovalRequestById(

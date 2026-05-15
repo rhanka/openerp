@@ -47,7 +47,7 @@ export async function insertUserIdentity(
       input.actorType
     ]
   );
-  return result.rows[0];
+  return result.rows[0]!;
 }
 
 export async function findUserIdentityById(
