@@ -1,11 +1,33 @@
 {
   "name": "@sentropic/openerp-i18n",
-  "private": true,
+  "version": "0.1.0",
+  "description": "OpenERP bilingual FR-CA/EN-CA catalog helpers for the foundation UI strings",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhanka/openerp.git",
+    "directory": "packages/i18n"
+  },
   "type": "module",
-  "main": "src/catalog.ts",
+  "main": "./dist/catalog.js",
+  "types": "./dist/catalog.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/catalog.d.ts",
+      "default": "./dist/catalog.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp src/*.json dist/",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   }
 }

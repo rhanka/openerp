@@ -1,11 +1,37 @@
 {
   "name": "@sentropic/openerp-domain",
-  "private": true,
+  "version": "0.1.0",
+  "description": "OpenERP domain canon entities and abstraction contracts (shared types for the @sentropic/openerp-* workspace)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhanka/openerp.git",
+    "directory": "packages/domain"
+  },
   "type": "module",
-  "main": "src/foundation.ts",
+  "main": "./dist/foundation.js",
+  "types": "./dist/foundation.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/foundation.d.ts",
+      "default": "./dist/foundation.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "default": "./dist/contracts.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   }
 }
