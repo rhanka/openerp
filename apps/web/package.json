@@ -9,8 +9,8 @@
     "test": "playwright test"
   },
   "dependencies": {
-    "@openerp/domain": "workspace:*",
-    "@openerp/i18n": "workspace:*"
+    "@openerp/domain": "*",
+    "@openerp/i18n": "*"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0",

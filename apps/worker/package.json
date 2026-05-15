@@ -8,8 +8,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@openerp/domain": "workspace:*",
-    "@openerp/i18n": "workspace:*"
+    "@openerp/domain": "*",
+    "@openerp/i18n": "*"
   },
   "devDependencies": {}
 }
