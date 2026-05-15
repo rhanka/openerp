@@ -27,6 +27,7 @@ create index jobs_status_scheduled_idx
 
 -- RLS (PG-03).
 alter table jobs enable row level security;
+alter table jobs force row level security;
 drop policy if exists jobs_tenant_select on jobs;
 drop policy if exists jobs_tenant_modify on jobs;
 create policy jobs_tenant_select on jobs for select

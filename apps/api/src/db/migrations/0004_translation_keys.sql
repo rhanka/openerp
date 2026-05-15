@@ -21,6 +21,7 @@ create index translation_keys_org_namespace_idx
 
 -- RLS scope (PG-03).
 alter table translation_keys enable row level security;
+alter table translation_keys force row level security;
 drop policy if exists translation_keys_tenant_select on translation_keys;
 drop policy if exists translation_keys_tenant_modify on translation_keys;
 create policy translation_keys_tenant_select on translation_keys for select

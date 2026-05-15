@@ -49,6 +49,10 @@ begin
     end if;
 
     execute format('alter table %I enable row level security', protected_table);
+    -- force row level security so table owners (and other BYPASSRLS roles) are
+    -- still subject to policies. Without this the connection user that owns the
+    -- table would bypass scoping entirely.
+    execute format('alter table %I force row level security', protected_table);
     execute format('drop policy if exists %I_tenant_select on %I', protected_table, protected_table);
     execute format('drop policy if exists %I_tenant_modify on %I', protected_table, protected_table);
     execute format(
