@@ -1,5 +1,5 @@
-import foundationEn from "./foundation.en.json";
-import foundationFr from "./foundation.fr.json";
+import foundationEn from "./foundation.en.json" with { type: "json" };
+import foundationFr from "./foundation.fr.json" with { type: "json" };
 
 export type LocaleCode = "en" | "fr";
 export type MessageCatalog = Record<string, string>;
