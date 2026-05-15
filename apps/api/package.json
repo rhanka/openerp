@@ -12,7 +12,9 @@
     "@hono/zod-validator": "^0.7.6",
     "@sentropic/openerp-domain": "*",
     "@sentropic/openerp-i18n": "*",
+    "@types/pg": "^8.20.0",
     "hono": "^4.12.18",
-    "jose": "^6.2.3"
+    "jose": "^6.2.3",
+    "pg": "^8.20.0"
   }
 }
