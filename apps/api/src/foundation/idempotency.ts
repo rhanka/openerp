@@ -68,6 +68,29 @@ export async function registerOrReplayIdempotencyRecord(
   return { replay, record };
 }
 
+export interface FinaliseIdempotencyInput {
+  key: string;
+  responseBodyHash: string;
+  statusCode: number;
+}
+
+/** After the handler runs, persist the actual response hash + status code. */
+export async function finaliseIdempotencyRecord(
+  db: Queryable,
+  context: TenantContext,
+  input: FinaliseIdempotencyInput
+): Promise<IdempotencyRecord | null> {
+  assertTenantContext(context);
+  const result = await db.query<IdempotencyRecord>(
+    `update idempotency_records
+        set response_body_hash = $3, status_code = $4
+      where organization_id = $1 and key = $2
+      returning ${IDEMPOTENCY_COLUMNS}`,
+    [context.organizationId, input.key, input.responseBodyHash, input.statusCode]
+  );
+  return result.rows[0] ?? null;
+}
+
 export async function findIdempotencyRecord(
   db: Queryable,
   context: TenantContext,
