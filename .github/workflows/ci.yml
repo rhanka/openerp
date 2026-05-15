@@ -21,8 +21,10 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build domain (consumed by api via dist)
-        run: npm run build -w @sentropic/openerp-domain
+      - name: Build domain + i18n (consumed by api/web via dist)
+        run: |
+          npm run build -w @sentropic/openerp-domain
+          npm run build -w @sentropic/openerp-i18n
 
       - name: check:workspace
         run: npm run check:workspace
@@ -69,8 +71,10 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build domain (consumed by api)
-        run: npm run build -w @sentropic/openerp-domain
+      - name: Build domain + i18n (consumed by api)
+        run: |
+          npm run build -w @sentropic/openerp-domain
+          npm run build -w @sentropic/openerp-i18n
 
       - name: Run pg integration smoke
         run: npm test -w @sentropic/openerp-api
