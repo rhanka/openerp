@@ -35,3 +35,39 @@ jobs:
 
       - name: build
         run: npm run build
+
+  integration:
+    name: pg integration smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: openerp_dev
+          POSTGRES_USER: openerp
+          POSTGRES_PASSWORD: openerp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U openerp -d openerp_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      OPENERP_INTEGRATION_DATABASE_URL: postgresql://openerp:openerp@127.0.0.1:5432/openerp_dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build domain (consumed by api)
+        run: npm run build -w @sentropic/openerp-domain
+
+      - name: Run pg integration smoke
+        run: npm test -w @sentropic/openerp-api
