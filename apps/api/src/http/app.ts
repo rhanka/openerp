@@ -1,7 +1,11 @@
 import { Hono } from "hono";
 
+import type { IdentityProvider } from "@sentropic/openerp-domain";
+
 import type { Queryable, TenantContext } from "../db/client";
+import type { PasskeyService } from "../foundation/passkey-service";
 import { mountApprovalRequestRoutes } from "./handlers/approval-requests";
+import { mountWebAuthnRoutes } from "./handlers/webauthn";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
 // The HTTP server itself is started by apps/api/src/server.ts via the
@@ -20,6 +24,17 @@ export interface BuildAppOptions {
    *  in tests, and be replaced with the JWT-backed implementation once Lot 1/PG-09 lands. */
   resolveTenant: (request: Request) => Promise<TenantContext | null> | TenantContext | null;
   db: Queryable;
+  passkey?: {
+    service: PasskeyService;
+    identityProvider: IdentityProvider;
+    sessionTtlSeconds?: number;
+  };
+}
+
+const PUBLIC_PATH_PREFIXES = ["/webauthn/"] as const;
+
+function isPublicPath(path: string): boolean {
+  return PUBLIC_PATH_PREFIXES.some((p) => path.startsWith(p));
 }
 
 export class TenantResolutionError extends Error {
@@ -33,6 +48,11 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
 
   app.use("*", async (c, next) => {
+    if (isPublicPath(c.req.path)) {
+      c.set("db", options.db);
+      await next();
+      return;
+    }
     const tenant = await options.resolveTenant(c.req.raw);
     if (!tenant) {
       return c.json({ code: "TENANT_RESOLUTION_REQUIRED" }, 401);
@@ -43,6 +63,17 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   });
 
   app.get("/healthz", (c) => c.json({ status: "ok" }));
+
+  if (options.passkey) {
+    mountWebAuthnRoutes(app, {
+      db: options.db,
+      passkeyService: options.passkey.service,
+      identityProvider: options.passkey.identityProvider,
+      ...(options.passkey.sessionTtlSeconds !== undefined
+        ? { sessionTtlSeconds: options.passkey.sessionTtlSeconds }
+        : {})
+    });
+  }
 
   mountApprovalRequestRoutes(app);
 

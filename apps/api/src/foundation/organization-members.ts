@@ -84,6 +84,30 @@ export async function listOrganizationMembersByUserIdentity(
   return result.rows;
 }
 
+/**
+ * Pre-auth lookup: returns every active membership for a user across all
+ * organizations. Uses the SECURITY DEFINER function `list_active_memberships_for_user`
+ * to bypass the RLS scope (since the caller hasn't selected an organization
+ * yet). Strictly bound to a verified user_identity_id from a passkey ceremony.
+ */
+export async function listActiveMembershipsForUser(
+  db: Queryable,
+  userIdentityId: string
+): Promise<OrganizationMember[]> {
+  const result = await db.query<OrganizationMember>(
+    `select id,
+            organization_id as "organizationId",
+            user_identity_id as "userIdentityId",
+            status,
+            preferred_locale as "preferredLocale",
+            joined_at as "joinedAt",
+            updated_at as "updatedAt"
+       from list_active_memberships_for_user($1)`,
+    [userIdentityId]
+  );
+  return result.rows;
+}
+
 export async function setOrganizationMemberStatus(
   db: Queryable,
   context: TenantContext,

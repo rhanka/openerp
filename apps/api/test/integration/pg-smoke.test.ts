@@ -54,7 +54,9 @@ describeOrSkip("pg-client + migrate (integration)", () => {
         "fx_rate_snapshots",
         "timeline_entries",
         "translation_keys",
-        "jobs"
+        "jobs",
+        "passkey_credentials",
+        "passkey_challenges"
       ]]
     );
     const tables = result.rows.map((r) => r.table_name).sort();
@@ -63,6 +65,8 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("approval_requests");
     expect(tables).toContain("jobs");
     expect(tables).toContain("translation_keys");
+    expect(tables).toContain("passkey_credentials");
+    expect(tables).toContain("passkey_challenges");
   });
 
   it("enforces RLS isolation between two organizations", async () => {
