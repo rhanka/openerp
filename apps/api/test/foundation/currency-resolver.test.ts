@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeMoney } from "@openerp/domain";
+import { makeMoney } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
 import { createCurrencyResolver } from "../../src/foundation/currency-resolver";
 import { insertFxRateSnapshot } from "../../src/foundation/fx-rates";

@@ -1,5 +1,5 @@
 // Minimal mirror of the foundation queue types so apps/worker stays free of a
-// direct workspace dependency on @openerp/api at this stage. Once apps/worker
+// direct workspace dependency on @sentropic/openerp-api at this stage. Once apps/worker
 // gets its first cross-package import, replace these with re-exports.
 
 export interface TenantContext {

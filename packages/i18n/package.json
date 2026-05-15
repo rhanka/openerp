@@ -1,5 +1,5 @@
 {
-  "name": "@openerp/i18n",
+  "name": "@sentropic/openerp-i18n",
   "private": true,
   "type": "module",
   "main": "src/catalog.ts",

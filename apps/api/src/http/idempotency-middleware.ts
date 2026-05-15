@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { IdempotencyRecord } from "@openerp/domain";
+import type { IdempotencyRecord } from "@sentropic/openerp-domain";
 import type { Queryable, TenantContext } from "../db/client";
 import {
   canonicalRequestPayload,

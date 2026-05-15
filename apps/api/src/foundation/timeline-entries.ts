@@ -1,4 +1,4 @@
-import type { PayloadSummary, TimelineEntry } from "@openerp/domain";
+import type { PayloadSummary, TimelineEntry } from "@sentropic/openerp-domain";
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 import { assertEntryType } from "./entry-type-grammar";

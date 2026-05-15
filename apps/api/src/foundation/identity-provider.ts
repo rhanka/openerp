@@ -7,7 +7,7 @@ import type {
   OrganizationMember,
   TokenExchangeRequest,
   UserIdentity
-} from "@openerp/domain";
+} from "@sentropic/openerp-domain";
 
 // IdentityProvider implementation backed by HS256 JWTs (PG-09, Lot 1).
 // Supports RFC 8693 token exchange via the `act` claim (acting entity) and an

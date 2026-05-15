@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OrganizationMember } from "@openerp/domain";
+import type { OrganizationMember } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
 import {
   findOrganizationMember,

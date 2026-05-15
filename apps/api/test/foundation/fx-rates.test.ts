@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FxRateSnapshot } from "@openerp/domain";
+import type { FxRateSnapshot } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
 import {
   findFxRateAt,

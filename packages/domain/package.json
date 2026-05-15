@@ -1,5 +1,5 @@
 {
-  "name": "@openerp/domain",
+  "name": "@sentropic/openerp-domain",
   "private": true,
   "type": "module",
   "main": "src/foundation.ts",

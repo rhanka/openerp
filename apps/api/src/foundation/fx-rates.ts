@@ -1,4 +1,4 @@
-import type { FxRateSnapshot } from "@openerp/domain";
+import type { FxRateSnapshot } from "@sentropic/openerp-domain";
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 

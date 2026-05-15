@@ -1,5 +1,5 @@
 {
-  "name": "@openerp/api",
+  "name": "@sentropic/openerp-api",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,8 +10,8 @@
   "dependencies": {
     "@hono/node-server": "^1.19.14",
     "@hono/zod-validator": "^0.7.6",
-    "@openerp/domain": "*",
-    "@openerp/i18n": "*",
+    "@sentropic/openerp-domain": "*",
+    "@sentropic/openerp-i18n": "*",
     "hono": "^4.12.18",
     "jose": "^6.2.3"
   }

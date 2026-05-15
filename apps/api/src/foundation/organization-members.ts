@@ -1,4 +1,4 @@
-import type { LocaleCode, OrganizationMember, UserStatus } from "@openerp/domain";
+import type { LocaleCode, OrganizationMember, UserStatus } from "@sentropic/openerp-domain";
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 

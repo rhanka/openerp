@@ -1,7 +1,7 @@
 // Worker runtime loop — polls the jobs table via claimNextJob, dispatches to
 // a handler keyed by job_type, and finalises with markJobSucceeded/Failed.
 //
-// Lives in apps/worker. Imports the foundation queue helpers from @openerp/api
+// Lives in apps/worker. Imports the foundation queue helpers from @sentropic/openerp-api
 // (workspace dependency to add when the worker package gains its first runtime
 // use; today the helpers are duplicated by interface to keep apps/worker
 // self-contained).

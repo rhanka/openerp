@@ -1,5 +1,5 @@
 {
-  "name": "@openerp/web",
+  "name": "@sentropic/openerp-web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,8 +9,8 @@
     "test": "playwright test"
   },
   "dependencies": {
-    "@openerp/domain": "*",
-    "@openerp/i18n": "*"
+    "@sentropic/openerp-domain": "*",
+    "@sentropic/openerp-i18n": "*"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0",

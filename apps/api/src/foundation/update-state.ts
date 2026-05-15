@@ -1,4 +1,4 @@
-import type { SupportWindow } from "@openerp/domain";
+import type { SupportWindow } from "@sentropic/openerp-domain";
 
 export function classifySupportWindow(monthsBehind: number): SupportWindow {
   if (monthsBehind < 12) return "under_12_months";

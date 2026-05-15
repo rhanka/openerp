@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { DomainEvent, PayloadSummary } from "@openerp/domain";
+import type { DomainEvent, PayloadSummary } from "@sentropic/openerp-domain";
 
 import type { Queryable } from "../../src/db/client";
 import {

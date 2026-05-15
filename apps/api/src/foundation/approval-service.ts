@@ -1,4 +1,4 @@
-import type { ApprovalRequest, ApprovalStatus, ApprovalUrgency } from "@openerp/domain";
+import type { ApprovalRequest, ApprovalStatus, ApprovalUrgency } from "@sentropic/openerp-domain";
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 import {

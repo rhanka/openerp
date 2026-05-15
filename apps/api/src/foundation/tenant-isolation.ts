@@ -1,5 +1,5 @@
 import type { Queryable } from "../db/client";
-import type { TenantContext, TenantIsolationStrategy } from "@openerp/domain";
+import type { TenantContext, TenantIsolationStrategy } from "@sentropic/openerp-domain";
 
 // Row-level RLS implementation of TenantIsolationStrategy (PG-03).
 // `applyScope` sets a session-local Postgres setting that all RLS policies on

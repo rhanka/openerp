@@ -1,5 +1,5 @@
 {
-  "name": "@openerp/worker",
+  "name": "@sentropic/openerp-worker",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,8 +8,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@openerp/domain": "*",
-    "@openerp/i18n": "*"
+    "@sentropic/openerp-domain": "*",
+    "@sentropic/openerp-i18n": "*"
   },
   "devDependencies": {}
 }

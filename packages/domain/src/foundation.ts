@@ -360,5 +360,5 @@ export function sameCurrency(a: Money, b: Money): boolean {
 }
 
 // Re-export foundation abstraction contracts so consumers can import everything
-// from `@openerp/domain` without reaching into submodules.
+// from `@sentropic/openerp-domain` without reaching into submodules.
 export * from "./contracts";

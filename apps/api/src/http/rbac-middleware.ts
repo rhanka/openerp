@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 
-import type { PermissionAction, PermissionScope } from "@openerp/domain";
+import type { PermissionAction, PermissionScope } from "@sentropic/openerp-domain";
 
 import type { AppBindings } from "./app";
 import {

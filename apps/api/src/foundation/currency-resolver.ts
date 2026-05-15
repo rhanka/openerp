@@ -1,5 +1,5 @@
-import type { CurrencyResolver, FxRateSnapshot, Money } from "@openerp/domain";
-import { makeMoney } from "@openerp/domain";
+import type { CurrencyResolver, FxRateSnapshot, Money } from "@sentropic/openerp-domain";
+import { makeMoney } from "@sentropic/openerp-domain";
 import type { Queryable, TenantContext } from "../db/client";
 import { findFxRateAt } from "./fx-rates";
 

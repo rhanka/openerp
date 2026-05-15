@@ -1,4 +1,4 @@
-import type { ActorSource, LocaleCode, MfaState, UserIdentity, UserStatus } from "@openerp/domain";
+import type { ActorSource, LocaleCode, MfaState, UserIdentity, UserStatus } from "@sentropic/openerp-domain";
 import type { Queryable } from "../db/client";
 
 // Repository for UserIdentity (PG-02). UserIdentity is GLOBAL — not tenant-scoped.

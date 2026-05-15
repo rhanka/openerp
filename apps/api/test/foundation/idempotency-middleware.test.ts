@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { IdempotencyRecord } from "@openerp/domain";
+import type { IdempotencyRecord } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
 import {
   IDEMPOTENCY_TTL_SECONDS,

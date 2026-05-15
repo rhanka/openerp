@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { PayloadSummary, TimelineEntry } from "@openerp/domain";
+import type { PayloadSummary, TimelineEntry } from "@sentropic/openerp-domain";
 
 import type { Queryable } from "../../src/db/client";
 import { InvalidEntryTypeError } from "../../src/foundation/entry-type-grammar";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { UserIdentity } from "@openerp/domain";
+import type { UserIdentity } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
 import {
   findUserIdentityByEmail,

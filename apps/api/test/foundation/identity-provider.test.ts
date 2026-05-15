@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import type { OrganizationMember, UserIdentity } from "@openerp/domain";
+import type { OrganizationMember, UserIdentity } from "@sentropic/openerp-domain";
 
 import {
   IdentityTokenInvalidError,

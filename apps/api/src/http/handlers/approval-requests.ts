@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 
-import type { ApprovalUrgency } from "@openerp/domain";
+import type { ApprovalUrgency } from "@sentropic/openerp-domain";
 
 import type { AppBindings } from "../app";
 import {

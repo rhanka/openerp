@@ -1,4 +1,4 @@
-import type { JobHandle, JobPayload, JobQueue, PayloadSummary } from "@openerp/domain";
+import type { JobHandle, JobPayload, JobQueue, PayloadSummary } from "@sentropic/openerp-domain";
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 

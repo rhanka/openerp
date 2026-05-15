@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { JobHandle, JobPayload, PayloadSummary } from "@openerp/domain";
+import type { JobHandle, JobPayload, PayloadSummary } from "@sentropic/openerp-domain";
 
 import type { Queryable } from "../../src/db/client";
 import {

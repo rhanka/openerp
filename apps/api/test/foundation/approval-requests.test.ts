@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { ApprovalRequest } from "@openerp/domain";
+import type { ApprovalRequest } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
 import {
   expireApprovalRequests,
