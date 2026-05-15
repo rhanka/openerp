@@ -46,7 +46,7 @@ L'impl peut démarrer en parallèle de BR-26 mais doit converger sur les contrat
 - Postgres + pgmq schema baseline
 - Vitest + Playwright config
 - Anti-copy CI hook : `tools/anti-copy-grep.sh` dans pre-commit + GitHub Actions
-- Exit lot 0 : `pnpm install && pnpm test` passe sur workspace vide ; `tools/anti-copy-grep.sh` exit 0
+- Exit lot 0 : `npm ci && npm test` passe sur workspace vide ; `tools/anti-copy-grep.sh` exit 0
 
 ### Lot 1 — Identity & multi-tenant (semaine 2)
 

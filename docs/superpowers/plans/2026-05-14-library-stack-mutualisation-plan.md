@@ -24,7 +24,7 @@ Deux objectifs combinés :
 
 À auditer dans chaque `package.json` (root + workspaces) :
 
-- **OpenERP `package.json` root** : `@types/node`, `typescript`, `vitest`, `pnpm@10.11.0`
+- **OpenERP `package.json` root** : `@types/node`, `typescript`, `vitest`, npm workspaces (migré depuis pnpm le 2026-05-14 pour aligner avec `@sentropic`)
 - **OpenERP `apps/*` et `packages/*`** : à inventorier au lot d'exécution
 - **`@sentropic/api/package.json`** : runtime LLM, providers (OpenAI, Anthropic, Gemini, Mistral, Cohere), docx, queue manager, etc.
 - **`@sentropic/ui/package.json`** : SvelteKit + deps frontend
@@ -42,9 +42,9 @@ Deux objectifs combinés :
 | **LLM client** | rien (consommateur futur) | `@sentropic/llm-mesh` (BR-14c published) | Réutiliser sans dupliquer | OpenERP installe `@sentropic/llm-mesh` |
 | **Charts** | rien (foundation à venir) | rien explicite | LayerChart (PG-10 veille tête de classement) + coordination tokens `@sent-tech` | Aligner choix avant impl lot 1+ foundation |
 | **Test framework** | Vitest | Vitest + Playwright | Aligné (déjà) | RAS |
-| **Workspace monorepo** | pnpm@10.11.0 | pnpm + workspace BR-14f mergé | Aligné (déjà) | RAS |
+| **Workspace monorepo** | npm workspaces (migré pnpm → npm 2026-05-14) | npm + workspace BR-14f mergé | Aligné (déjà) | RAS |
 | **Husky hooks** | absent | présent (vu `HUSKY=0` dans workflow) | Aligner : adopter Husky côté OpenERP | À configurer lot 0 foundation |
-| **Make targets** | absent | présent (`make commit MSG=...`) | À évaluer : adopter ou conserver pnpm scripts directs | Décision lot 0 foundation |
+| **Make targets** | absent | présent (`make commit MSG=...`) | À évaluer : adopter ou conserver npm scripts directs | Décision lot 0 foundation |
 | **CI workflows** | GitHub Actions `ci.yml` + `anti-copy.yml` créés 2026-05-14 | présent avec patterns spécifiques | Aligner la grille de jobs si pertinent | À examiner après lot 0 |
 | **Queue engine** | pgmq prévu (PG-04) | présent avec queue manager interne | À évaluer mutualisation | Décision impl lot 4 foundation |
 | **Identity / JWT** | RFC 8693 prévu (PG-09) | à ajouter via PR #151 (BR-26) | `@sentropic/identity` consommé par OpenERP | Sortie de BR-26 puis lot 5 foundation |
