@@ -17,3 +17,4 @@ playwright-report/
 !.env.example
 tmp/
 tools/.venv/
+**/pnpm-lock.yaml
