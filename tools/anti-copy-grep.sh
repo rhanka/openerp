@@ -66,9 +66,13 @@ TWENTY_PATTERNS=(
 )
 
 # ERPNext / Frappe (GPLv3) — framework idioms
+# Note: HTML5 `<!doctype html>` is universal markup, not Frappe-specific. We
+# only flag `doctype` in JSON model context (`"doctype":`) or as
+# `DocType`-class references.
 FRAPPE_PATTERNS=(
   '\bfrappe\.'
-  '\bdoctype\b'
+  '"doctype"\s*:'
+  '\bDocType\b'
   '\bnaming_series\b'
   '\bparenttype\b'
   'frappe\.db\.sql'

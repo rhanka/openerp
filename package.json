@@ -10,6 +10,8 @@
   "scripts": {
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:i18n": "node scripts/validate-i18n.mjs",
+    "check:anti-copy": "bash tools/anti-copy-grep.sh",
+    "check:foundation": "npm run check:workspace && npm run check:i18n && npm run check:anti-copy && npm run lint && npm test && npm run build",
     "test": "npm test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "build": "npm run build --workspaces --if-present"
