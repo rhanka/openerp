@@ -1,0 +1,14 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/foundation.ts", "src/contracts.ts"],
+  "out": "docs",
+  "name": "@sentropic/openerp-domain",
+  "readme": "README.md",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "sort": ["source-order"],
+  "navigationLinks": {
+    "GitHub": "https://github.com/rhanka/openerp/tree/main/packages/domain"
+  }
+}

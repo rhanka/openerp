@@ -12,6 +12,7 @@ coverage/
 build/
 test-results/
 playwright-report/
+packages/*/docs/
 .env
 .env.*
 !.env.example
