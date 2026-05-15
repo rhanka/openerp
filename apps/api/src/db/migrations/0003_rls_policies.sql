@@ -9,6 +9,26 @@
 -- Tables without organization_id (user_identities is global) are intentionally
 -- excluded from RLS.
 
+-- Application role — used by the runtime API for tenant-scoped queries. It has
+-- standard CRUD privileges but lacks BYPASSRLS and superuser flags so that
+-- forced row level security policies actually apply. The bootstrap connection
+-- (which may be superuser) keeps the right to perform schema migrations and
+-- seed data without scope.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'openerp_app') then
+    create role openerp_app nologin nobypassrls;
+  end if;
+end$$;
+
+grant usage on schema public to openerp_app;
+grant select, insert, update, delete on all tables in schema public to openerp_app;
+grant usage, select on all sequences in schema public to openerp_app;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to openerp_app;
+alter default privileges in schema public
+  grant usage, select on sequences to openerp_app;
+
 -- Helper: returns the current scope as UUID or NULL.
 create or replace function app_current_organization_id() returns uuid
 language sql stable
