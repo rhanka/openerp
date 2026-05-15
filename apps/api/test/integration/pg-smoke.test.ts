@@ -88,6 +88,9 @@ describeOrSkip("pg-client + migrate (integration)", () => {
           [alphaId, betaId]
         );
 
+        // Switch to the non-superuser application role so forced RLS applies.
+        await client.query("set local role openerp_app");
+
         await client.query("select set_config('app.current_organization_id', $1, true)", [alphaId]);
         const visibleAsAlpha = await client.query<{ label: string }>(
           `select label from translation_keys where namespace = 'crm.pipeline_stage'`,
