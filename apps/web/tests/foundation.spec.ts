@@ -15,3 +15,9 @@ test("settings page shows self-hosted update state", async ({ page }) => {
   await expect(page.getByText("Update support window")).toBeVisible();
   await expect(page.getByRole("cell", { name: "Supported", exact: true })).toBeVisible();
 });
+
+test("audit page falls back to demo data when OPENERP_DEV_* env is unset", async ({ page }) => {
+  await page.goto("/admin/audit");
+  await expect(page.getByRole("heading", { name: "Audit", exact: true })).toBeVisible();
+  await expect(page.locator(".status[data-source='demo']")).toContainText("Demo data");
+});
