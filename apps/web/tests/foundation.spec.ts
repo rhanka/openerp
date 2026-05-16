@@ -30,3 +30,23 @@ test("approvals page renders the pending queue with a decide form", async ({ pag
   await expect(page.getByRole("button", { name: "Approve" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reject" })).toBeVisible();
 });
+
+test("locale switcher toggles nav labels between FR and EN", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  // Force FR via cookie so the initial state is deterministic regardless of
+  // the Chromium default Accept-Language.
+  const url = new URL(baseURL ?? "http://127.0.0.1:4173");
+  await context.addCookies([{
+    name: "openerp_locale",
+    value: "fr",
+    url: url.toString()
+  }]);
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Utilisateurs" })).toBeVisible();
+  await expect(page.locator(".locale-button[data-active='true']")).toHaveText("FR");
+
+  // Switch to EN.
+  await page.locator(".locale-button", { hasText: "EN" }).click();
+  await expect(page.getByRole("link", { name: "Users" })).toBeVisible();
+  await expect(page.locator(".locale-button[data-active='true']")).toHaveText("EN");
+});

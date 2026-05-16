@@ -1,14 +1,22 @@
 <script lang="ts">
-  import { t } from "$lib/i18n";
+  import { page } from "$app/state";
 
-  const locale = "en";
-  const navItems = [
+  import { t, SUPPORTED_LOCALES, type LocaleCode } from "$lib/i18n";
+
+  import type { LayoutData } from "./$types";
+
+  let { data, children }: { data: LayoutData; children?: import("svelte").Snippet } = $props();
+
+  const locale: LocaleCode = $derived(data.locale);
+  const navItems = $derived([
     { href: "/admin/users", label: t(locale, "nav.users") },
     { href: "/admin/roles", label: t(locale, "nav.roles") },
     { href: "/admin/approvals", label: t(locale, "nav.approvals") },
     { href: "/admin/audit", label: t(locale, "nav.audit") },
     { href: "/admin/settings", label: t(locale, "nav.settings") }
-  ];
+  ]);
+
+  const currentPath = $derived(page.url?.pathname ?? "/");
 </script>
 
 <svelte:head>
@@ -29,10 +37,23 @@
         <a href={item.href}>{item.label}</a>
       {/each}
     </nav>
+    <form method="POST" action="/api/locale" class="locale-switcher" aria-label="Locale">
+      <input type="hidden" name="next" value={currentPath} />
+      {#each SUPPORTED_LOCALES as code}
+        <button
+          type="submit"
+          name="locale"
+          value={code}
+          class="locale-button"
+          aria-current={locale === code ? "true" : "false"}
+          data-active={locale === code}
+        >{code.toUpperCase()}</button>
+      {/each}
+    </form>
   </aside>
 
   <main class="content">
-    <slot />
+    {@render children?.()}
   </main>
 </div>
 
@@ -123,6 +144,33 @@
   nav a:focus-visible {
     background: #22372b;
     outline: none;
+  }
+
+  .locale-switcher {
+    margin-top: auto;
+    display: flex;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid #2a4232;
+  }
+  .locale-button {
+    flex: 1;
+    min-height: 30px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #c8d9cd;
+    cursor: pointer;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+  .locale-button[data-active="true"] {
+    background: #2d6a49;
+    color: #ffffff;
+  }
+  .locale-button:hover {
+    border-color: #4d6b58;
   }
 
   .content {
