@@ -1,4 +1,4 @@
-import type { AuditEvent } from "@sentropic/openerp-domain";
+import type { ApprovalRequest, AuditEvent } from "@sentropic/openerp-domain";
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -35,8 +35,17 @@ export function createApiClient(options: ApiClientOptions) {
     };
   }
 
-  async function request<T>(path: string): Promise<T> {
-    const response = await doFetch(`${options.baseUrl}${path}`, { headers: headers() });
+  async function request<T>(
+    path: string,
+    init: { method?: string; body?: unknown; idempotencyKey?: string } = {}
+  ): Promise<T> {
+    const reqHeaders = headers();
+    if (init.idempotencyKey) reqHeaders["idempotency-key"] = init.idempotencyKey;
+    const response = await doFetch(`${options.baseUrl}${path}`, {
+      method: init.method ?? "GET",
+      headers: reqHeaders,
+      body: init.body !== undefined ? JSON.stringify(init.body) : undefined
+    });
     if (!response.ok) {
       const body = (await safeJson(response)) as { code?: string } | null;
       const err = new Error(`API ${response.status} for ${path}`) as ApiError;
@@ -57,6 +66,32 @@ export function createApiClient(options: ApiClientOptions) {
       const suffix = params.size > 0 ? `?${params.toString()}` : "";
       const body = await request<{ data: AuditEvent[]; count: number }>(`/audit-events${suffix}`);
       return body.data;
+    },
+
+    async listPendingApprovalsForApprover(approverUserIdentityId: string): Promise<ApprovalRequest[]> {
+      const params = new URLSearchParams({ approver: approverUserIdentityId });
+      return request<ApprovalRequest[]>(`/approval-requests?${params.toString()}`);
+    },
+
+    async decideApprovalRequest(input: {
+      id: string;
+      decision: "approved" | "rejected" | "escalated";
+      decisionReason: string;
+      idempotencyKey: string;
+      approverUserIdentityId?: string;
+    }): Promise<ApprovalRequest | { code: string }> {
+      return request<ApprovalRequest | { code: string }>(
+        `/approval-requests/${encodeURIComponent(input.id)}/decide`,
+        {
+          method: "PATCH",
+          idempotencyKey: input.idempotencyKey,
+          body: {
+            decision: input.decision,
+            decisionReason: input.decisionReason,
+            approverUserIdentityId: input.approverUserIdentityId
+          }
+        }
+      );
     }
   };
 }

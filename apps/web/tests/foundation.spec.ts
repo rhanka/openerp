@@ -5,6 +5,7 @@ test("foundation shell exposes admin navigation without layout overlap", async (
   await expect(page.getByRole("heading", { name: "OpenERP" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Users" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Roles" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Approvals" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
 });
@@ -20,4 +21,12 @@ test("audit page falls back to demo data when OPENERP_DEV_* env is unset", async
   await page.goto("/admin/audit");
   await expect(page.getByRole("heading", { name: "Audit", exact: true })).toBeVisible();
   await expect(page.locator(".status[data-source='demo']")).toContainText("Demo data");
+});
+
+test("approvals page renders the pending queue with a decide form", async ({ page }) => {
+  await page.goto("/admin/approvals");
+  await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
+  await expect(page.locator(".status[data-source='demo']")).toContainText("Demo data");
+  await expect(page.getByRole("button", { name: "Approve" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reject" })).toBeVisible();
 });

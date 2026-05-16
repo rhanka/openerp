@@ -2,6 +2,7 @@
   "app.title": "OpenERP",
   "error.permissionDenied": "Vous n'avez pas la permission d'effectuer cette action.",
   "error.validation": "Certains champs doivent etre corriges.",
+  "nav.approvals": "Approbations",
   "nav.audit": "Audit",
   "nav.roles": "Roles",
   "nav.settings": "Parametres",

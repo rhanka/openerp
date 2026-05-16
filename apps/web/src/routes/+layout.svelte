@@ -5,6 +5,7 @@
   const navItems = [
     { href: "/admin/users", label: t(locale, "nav.users") },
     { href: "/admin/roles", label: t(locale, "nav.roles") },
+    { href: "/admin/approvals", label: t(locale, "nav.approvals") },
     { href: "/admin/audit", label: t(locale, "nav.audit") },
     { href: "/admin/settings", label: t(locale, "nav.settings") }
   ];
