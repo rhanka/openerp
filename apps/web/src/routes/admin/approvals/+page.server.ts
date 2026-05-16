@@ -30,10 +30,13 @@ const DEMO_FALLBACK: ApprovalRequest[] = [
   }
 ];
 
-function clientFromEnv(fetchImpl: typeof fetch) {
+function clientFromLocalsOrEnv(
+  fetchImpl: typeof fetch,
+  locals: App.Locals
+): { client: ReturnType<typeof createApiClient>; actorUserId: string } | null {
   const baseUrl = env.OPENERP_API_URL ?? "http://127.0.0.1:4000";
-  const organizationId = env.OPENERP_DEV_ORG_ID ?? "";
-  const actorUserId = env.OPENERP_DEV_USER_ID ?? "";
+  const organizationId = locals.session?.organizationId ?? env.OPENERP_DEV_ORG_ID ?? "";
+  const actorUserId = locals.session?.userIdentityId ?? env.OPENERP_DEV_USER_ID ?? "";
   if (!organizationId || !actorUserId) return null;
   return {
     client: createApiClient({
@@ -46,8 +49,8 @@ function clientFromEnv(fetchImpl: typeof fetch) {
   };
 }
 
-export const load: PageServerLoad = async ({ fetch }) => {
-  const session = clientFromEnv(fetch);
+export const load: PageServerLoad = async ({ fetch, locals }) => {
+  const session = clientFromLocalsOrEnv(fetch, locals);
   if (!session) {
     return { approvals: DEMO_FALLBACK, source: "demo" as const };
   }
@@ -64,7 +67,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 };
 
 export const actions: Actions = {
-  decide: async ({ request, fetch }) => {
+  decide: async ({ request, fetch, locals }) => {
     const form = await request.formData();
     const id = String(form.get("id") ?? "");
     const decision = String(form.get("decision") ?? "") as
@@ -78,7 +81,7 @@ export const actions: Actions = {
     }
     if (!decisionReason) return fail(400, { code: "REASON_REQUIRED", id });
 
-    const session = clientFromEnv(fetch);
+    const session = clientFromLocalsOrEnv(fetch, locals);
     if (!session) {
       return fail(503, { code: "DEMO_MODE_NO_API" });
     }

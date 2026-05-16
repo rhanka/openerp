@@ -31,6 +31,19 @@ test("approvals page renders the pending queue with a decide form", async ({ pag
   await expect(page.getByRole("button", { name: "Reject" })).toBeVisible();
 });
 
+test("login page renders the passkey form", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
+  await expect(page.getByPlaceholder("alice@northwind.local")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Se connecter avec une passkey/i })).toBeVisible();
+});
+
+test("register-passkey page renders the bootstrap form", async ({ page }) => {
+  await page.goto("/register-passkey");
+  await expect(page.getByRole("heading", { name: "Créer une passkey" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Enregistrer la passkey/i })).toBeVisible();
+});
+
 test("locale switcher toggles nav labels between FR and EN", async ({ page, context, baseURL }) => {
   await context.clearCookies();
   // Force FR via cookie so the initial state is deterministic regardless of

@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@sentropic/openerp-domain": "*",
-    "@sentropic/openerp-i18n": "*"
+    "@sentropic/openerp-i18n": "*",
+    "@simplewebauthn/browser": "^13.3.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0",

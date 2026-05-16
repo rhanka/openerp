@@ -9,13 +9,13 @@ import type { PageServerLoad } from "./$types";
 // When passkey-backed session cookies ship, the headers will be replaced by
 // a JWT lifted from the request cookie.
 
-export const load: PageServerLoad = async ({ fetch }) => {
-  const baseUrl = env.OPENERP_API_URL ?? "http://127.0.0.1:8787";
-  const organizationId = env.OPENERP_DEV_ORG_ID ?? "";
-  const actorUserId = env.OPENERP_DEV_USER_ID ?? "";
+export const load: PageServerLoad = async ({ fetch, locals }) => {
+  const baseUrl = env.OPENERP_API_URL ?? "http://127.0.0.1:4000";
+  // Session cookie wins (real login); OPENERP_DEV_* env stays as the
+  // pre-login dev convenience.
+  const organizationId = locals.session?.organizationId ?? env.OPENERP_DEV_ORG_ID ?? "";
+  const actorUserId = locals.session?.userIdentityId ?? env.OPENERP_DEV_USER_ID ?? "";
 
-  // If dev credentials are not configured, fall back to the static demo data
-  // so the page is still browsable in unconfigured dev / Playwright e2e runs.
   if (!organizationId || !actorUserId) {
     return { events: null as null, source: "demo" as const };
   }
