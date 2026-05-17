@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Alert, Button, Card, Form, FormGroup, Input } from "@sentropic/design-system-svelte";
   import { startRegistration } from "@simplewebauthn/browser";
 
   let email = $state("alice@northwind.local");
@@ -21,8 +22,6 @@
         message = beginBody?.code ?? `HTTP ${begin.status}`;
         return;
       }
-      // The API embeds the UserIdentity id inside options.user.id (base64url
-      // of the raw uuid). Decode it for the finish payload.
       const decoded = decodeUserId(beginBody?.user?.id ?? "");
       const attestation = await startRegistration({ optionsJSON: beginBody });
       const finish = await fetch("/register-passkey/finish", {
@@ -61,38 +60,62 @@
 </script>
 
 <section class="page">
-  <header class="page-header">
+  <header class="page__header">
     <div>
       <h1>Créer une passkey</h1>
-      <p class="lede">Première utilisation : enregistrez une passkey sur ce poste. La même clé sera utilisable pour vous connecter ensuite.</p>
+      <p class="page__lede">
+        Première utilisation : enregistrez une passkey sur ce poste. La même clé sera utilisable pour vous connecter ensuite.
+      </p>
     </div>
   </header>
 
-  <section class="panel" style="padding: 18px;">
-    <form
+  <Card>
+    <Form
+      submitting={status === "running"}
       onsubmit={(event) => {
         event.preventDefault();
         void register();
       }}
-      style="display: grid; gap: 12px; max-width: 420px;"
     >
-      <label style="display: grid; gap: 4px;">
-        <span>Adresse courriel (UserIdentity existante)</span>
-        <input type="email" bind:value={email} required style="padding: 8px 10px; border: 1px solid #b9c8bd; border-radius: 6px;" />
-      </label>
-      <label style="display: grid; gap: 4px;">
-        <span>Étiquette de la passkey</span>
-        <input type="text" bind:value={label} required style="padding: 8px 10px; border: 1px solid #b9c8bd; border-radius: 6px;" />
-      </label>
-      <button class="button primary" type="submit" disabled={status === "running"}>
-        {status === "running" ? "Enregistrement…" : "Enregistrer la passkey"}
-      </button>
+      <FormGroup legend="Identité">
+        <Input
+          name="email"
+          type="email"
+          label="Adresse courriel (UserIdentity existante)"
+          required
+          bind:value={email}
+        />
+      </FormGroup>
+      <FormGroup legend="Métadonnées">
+        <Input
+          name="label"
+          type="text"
+          label="Étiquette de la passkey"
+          required
+          bind:value={label}
+        />
+      </FormGroup>
+      <div class="register-actions">
+        <Button variant="primary" type="submit" disabled={status === "running"}>
+          {status === "running" ? "Enregistrement…" : "Enregistrer la passkey"}
+        </Button>
+        <a href="/login">Se connecter</a>
+      </div>
       {#if status === "error"}
-        <p style="color: #7a1b1b;" role="alert">Erreur : {message}</p>
+        <Alert tone="error" title="Échec d'enregistrement">{message}</Alert>
       {/if}
       {#if status === "ok"}
-        <p style="color: #23543a;" role="status">{message} <a href="/login">Se connecter</a></p>
+        <Alert tone="success" title="Passkey enregistrée">{message}</Alert>
       {/if}
-    </form>
-  </section>
+    </Form>
+  </Card>
 </section>
+
+<style>
+  .register-actions {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+</style>

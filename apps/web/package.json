@@ -12,6 +12,9 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@sentropic/design-system-svelte": "^0.7.0",
+    "@sentropic/design-system-themes": "^0.7.0",
+    "@sentropic/design-system-tokens": "^0.7.0",
     "@sentropic/openerp-domain": "*",
     "@sentropic/openerp-i18n": "*",
     "@simplewebauthn/browser": "^13.3.0"

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { Alert, Button, Card, Form, FormGroup, Input } from "@sentropic/design-system-svelte";
   import { startAuthentication } from "@simplewebauthn/browser";
 
   let email = $state("");
@@ -44,64 +45,55 @@
 </script>
 
 <section class="page">
-  <header class="page-header">
+  <header class="page__header">
     <div>
       <h1>Connexion</h1>
-      <p class="lede">Authentifiez-vous avec une passkey (Touch ID, Windows Hello, clé de sécurité).</p>
+      <p class="page__lede">
+        Authentifiez-vous avec une passkey (Touch ID, Windows Hello, clé de sécurité).
+      </p>
     </div>
   </header>
 
-  <section class="panel login-panel">
-    <form
-      class="login-form"
+  <Card>
+    <Form
+      submitting={status === "running"}
       onsubmit={(event) => {
         event.preventDefault();
         void login();
       }}
     >
-      <label>
-        <span>Adresse courriel</span>
-        <input
+      <FormGroup legend="Identifiant">
+        <Input
+          name="email"
           type="email"
-          bind:value={email}
+          label="Adresse courriel"
           placeholder="alice@northwind.local"
           autocomplete="username webauthn"
           required
+          bind:value={email}
         />
-      </label>
-      <button class="button primary" type="submit" disabled={status === "running"}>
-        {status === "running" ? "Vérification…" : "Se connecter avec une passkey"}
-      </button>
-      <p>
-        Pas encore enregistrée ? <a href="/register-passkey">Créer une passkey</a>
-      </p>
+      </FormGroup>
+      <div class="login-actions">
+        <Button variant="primary" type="submit" disabled={status === "running"}>
+          {status === "running" ? "Vérification…" : "Se connecter avec une passkey"}
+        </Button>
+        <a href="/register-passkey">Créer une passkey</a>
+      </div>
       {#if status === "error"}
-        <p class="error" role="alert">Erreur : {message}</p>
+        <Alert tone="error" title="Échec de connexion">{message}</Alert>
       {/if}
       {#if status === "ok"}
-        <p class="success" role="status">{message}</p>
+        <Alert tone="success" title="Connecté">{message}</Alert>
       {/if}
-    </form>
-  </section>
+    </Form>
+  </Card>
 </section>
 
 <style>
-  .login-panel { padding: 18px; }
-  .login-form {
-    display: grid;
-    gap: 12px;
-    max-width: 420px;
+  .login-actions {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
   }
-  .login-form label {
-    display: grid;
-    gap: 4px;
-  }
-  .login-form input {
-    padding: 8px 10px;
-    border: 1px solid #b9c8bd;
-    border-radius: 6px;
-    font-size: 1rem;
-  }
-  .error { color: #7a1b1b; }
-  .success { color: #23543a; }
 </style>

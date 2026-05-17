@@ -1,100 +1,124 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import {
+    Alert,
+    Button,
+    Card,
+    EmptyState,
+    Input,
+    Tag
+  } from "@sentropic/design-system-svelte";
 
   import type { PageData, ActionData } from "./$types";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
-  function urgencyClass(urgency: string): string {
-    switch (urgency) {
-      case "high": return "urgency-high";
-      case "low": return "urgency-low";
-      default: return "urgency-normal";
-    }
+  const sourceTone: "success" | "warning" | "neutral" = $derived(
+    data.source === "api" ? "success" : data.source === "error" ? "warning" : "neutral"
+  );
+  const sourceLabel: string = $derived(
+    data.source === "api" ? "Live" : data.source === "error" ? "Backend error" : "Demo data"
+  );
+
+  function urgencyTone(urgency: string): "error" | "info" | "neutral" {
+    if (urgency === "high") return "error";
+    if (urgency === "low") return "info";
+    return "neutral";
   }
 </script>
 
 <section class="page">
-  <header class="page-header">
+  <header class="page__header">
     <div>
       <h1>Approbations</h1>
-      <p class="lede">Demandes d'approbation en attente — déclenchées par des agents ou des humains pour les opérations sensibles.</p>
+      <p class="page__lede">
+        Demandes d'approbation en attente — déclenchées par des agents ou des humains pour les opérations sensibles.
+      </p>
     </div>
-    <span class="status" data-source={data.source}>
-      {#if data.source === "api"}Live{:else if data.source === "error"}Backend error{:else}Demo data{/if}
-    </span>
+    <div class="page__actions">
+      <span data-source={data.source} data-testid="data-source-badge">
+        <Tag tone={sourceTone}>{sourceLabel}</Tag>
+      </span>
+    </div>
   </header>
 
   {#if data.source === "error"}
-    <p class="error" role="alert">Could not load approvals: {data.message ?? "unknown error"}</p>
+    <Alert tone="warning" title="Backend error">
+      {data.message ?? "Could not load approvals."}
+    </Alert>
   {/if}
 
   {#if form && "code" in form}
     {@const message = (form as { message?: string }).message}
-    <p class="error" role="alert">Action error: {form.code}{message ? ` — ${message}` : ""}</p>
+    <Alert tone="error" title="Action error">
+      {form.code}{message ? ` — ${message}` : ""}
+    </Alert>
   {/if}
   {#if form && "ok" in form && form.ok}
-    <p class="success" role="status">Approval {form.id} → {form.decision}.</p>
+    <Alert tone="success" title="Decision recorded">
+      Approval {form.id} → {form.decision}.
+    </Alert>
   {/if}
 
   {#if data.approvals.length === 0}
-    <section class="panel"><p class="empty">No pending approvals 🎉</p></section>
+    <EmptyState title="No pending approvals" message="The queue is empty for the current approver." />
   {:else}
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Pending queue</h2>
-        <span class="status">{data.approvals.length}</span>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Subject</th>
-            <th>Reason</th>
-            <th>Urgency</th>
-            <th>Created</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.approvals as ar}
-            <tr>
-              <td>{ar.subjectType}:{ar.subjectId}</td>
-              <td>{ar.reason}</td>
-              <td><span class="status {urgencyClass(ar.urgency)}">{ar.urgency}</span></td>
-              <td>{new Date(ar.createdAt).toISOString().slice(0, 16).replace("T", " ")}</td>
-              <td>
-                <form method="POST" action="?/decide" use:enhance class="decide-form">
-                  <input type="hidden" name="id" value={ar.id} />
-                  <input type="text" name="decisionReason" placeholder="Reason (required)" required minlength="3" />
-                  <button class="button primary" type="submit" name="decision" value="approved">Approve</button>
-                  <button class="button" type="submit" name="decision" value="rejected">Reject</button>
-                </form>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </section>
+    <div class="approvals-list stack">
+      {#each data.approvals as ar}
+        <Card>
+          <h2 class="approvals-title">{ar.subjectType}:{ar.subjectId}</h2>
+          <p class="approvals-reason">{ar.reason}</p>
+          <div class="approvals-meta">
+            <Tag tone={urgencyTone(ar.urgency)}>{ar.urgency}</Tag>
+            <span class="approvals-meta__time">
+              {new Date(ar.createdAt).toISOString().slice(0, 16).replace("T", " ")}
+            </span>
+          </div>
+          <form method="POST" action="?/decide" use:enhance class="approvals-form">
+            <input type="hidden" name="id" value={ar.id} />
+            <Input
+              name="decisionReason"
+              label="Reason"
+              placeholder="Required, ≥ 3 chars"
+              required
+              minlength={3}
+            />
+            <div class="approvals-form__actions">
+              <Button variant="primary" type="submit" name="decision" value="approved">Approve</Button>
+              <Button variant="secondary" type="submit" name="decision" value="rejected">Reject</Button>
+            </div>
+          </form>
+        </Card>
+      {/each}
+    </div>
   {/if}
 </section>
 
 <style>
-  .decide-form {
-    display: flex;
-    gap: 6px;
+  .approvals-title {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+  }
+  .approvals-reason {
+    color: var(--st-semantic-text-secondary, #475569);
+    margin: 0.25rem 0 0.75rem;
+  }
+  .approvals-meta {
     align-items: center;
-    flex-wrap: wrap;
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
   }
-  .decide-form input[type="text"] {
-    min-width: 180px;
-    padding: 6px 8px;
-    border: 1px solid #b9c8bd;
-    border-radius: 6px;
+  .approvals-meta__time {
+    color: var(--st-semantic-text-secondary, #475569);
+    font-size: 0.875rem;
   }
-  .urgency-high { background: #fce4e4; color: #7a1b1b; }
-  .urgency-low { background: #e8eef0; color: #2c5566; }
-  .urgency-normal { background: #e7f3ea; color: #23543a; }
-  .error { color: #7a1b1b; }
-  .success { color: #23543a; }
-  .empty { padding: 14px; color: #536259; }
+  .approvals-form {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .approvals-form__actions {
+    display: flex;
+    gap: 0.5rem;
+  }
 </style>

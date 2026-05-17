@@ -17,6 +17,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     path: "/",
     httpOnly: false,
     sameSite: "lax",
+    // SvelteKit defaults `secure` to true for any non-`localhost` hostname,
+    // which silently drops the cookie on 127.0.0.1 over HTTP. Tie the flag
+    // to NODE_ENV so dev / e2e work and production stays secure.
+    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 365
   });
   throw redirect(303, next);

@@ -1,46 +1,42 @@
 <script lang="ts">
-  const roles = [
-    { role: "Owner", description: "Tenant ownership and exports", system: "Yes", permissions: 10, status: "Active" },
-    { role: "Admin", description: "Users, roles, settings", system: "Yes", permissions: 8, status: "Active" },
-    { role: "Auditor", description: "Read-only audit and reports", system: "Yes", permissions: 3, status: "Active" }
+  import { Button, DataTable, Tag } from "@sentropic/design-system-svelte";
+  import type { DataTableColumn, DataTableRow } from "@sentropic/design-system-svelte";
+
+  type RoleRow = DataTableRow & {
+    id: string;
+    role: string;
+    description: string;
+    system: string;
+    permissions: number;
+    status: string;
+  };
+
+  const rows: RoleRow[] = [
+    { id: "r1", role: "Owner", description: "Tenant ownership and exports", system: "Yes", permissions: 10, status: "Active" },
+    { id: "r2", role: "Admin", description: "Users, roles, settings", system: "Yes", permissions: 8, status: "Active" },
+    { id: "r3", role: "Auditor", description: "Read-only audit and reports", system: "Yes", permissions: 3, status: "Active" }
+  ];
+
+  const columns: DataTableColumn[] = [
+    { key: "role", label: "Role" },
+    { key: "description", label: "Description" },
+    { key: "system", label: "System role" },
+    { key: "permissions", label: "Permissions" },
+    { key: "status", label: "Status" }
   ];
 </script>
 
 <section class="page">
-  <header class="page-header">
+  <header class="page__header">
     <div>
       <h1>Roles</h1>
-      <p class="lede">Review system roles and permission coverage before module rollout.</p>
+      <p class="page__lede">Review system roles and permission coverage before module rollout.</p>
     </div>
-    <button class="button primary" type="button">Create role</button>
+    <div class="page__actions">
+      <Tag tone="info">Scoped permissions</Tag>
+      <Button variant="primary">Create role</Button>
+    </div>
   </header>
 
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Role catalog</h2>
-      <span class="status">Scoped permissions</span>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Role</th>
-          <th>Description</th>
-          <th>System role</th>
-          <th>Permissions</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each roles as row}
-          <tr>
-            <td>{row.role}</td>
-            <td>{row.description}</td>
-            <td>{row.system}</td>
-            <td>{row.permissions}</td>
-            <td><span class="status">{row.status}</span></td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </section>
+  <DataTable {columns} {rows} caption="Role catalog" />
 </section>

@@ -20,13 +20,14 @@ test("settings page shows self-hosted update state", async ({ page }) => {
 test("audit page falls back to demo data when OPENERP_DEV_* env is unset", async ({ page }) => {
   await page.goto("/admin/audit");
   await expect(page.getByRole("heading", { name: "Audit", exact: true })).toBeVisible();
-  await expect(page.locator(".status[data-source='demo']")).toContainText("Demo data");
+  await expect(page.getByTestId("data-source-badge")).toHaveAttribute("data-source", "demo");
+  await expect(page.getByTestId("data-source-badge")).toContainText("Demo data");
 });
 
 test("approvals page renders the pending queue with a decide form", async ({ page }) => {
   await page.goto("/admin/approvals");
   await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
-  await expect(page.locator(".status[data-source='demo']")).toContainText("Demo data");
+  await expect(page.getByTestId("data-source-badge")).toHaveAttribute("data-source", "demo");
   await expect(page.getByRole("button", { name: "Approve" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reject" })).toBeVisible();
 });
@@ -46,8 +47,6 @@ test("register-passkey page renders the bootstrap form", async ({ page }) => {
 
 test("locale switcher toggles nav labels between FR and EN", async ({ page, context, baseURL }) => {
   await context.clearCookies();
-  // Force FR via cookie so the initial state is deterministic regardless of
-  // the Chromium default Accept-Language.
   const url = new URL(baseURL ?? "http://127.0.0.1:4173");
   await context.addCookies([{
     name: "openerp_locale",
@@ -55,11 +54,14 @@ test("locale switcher toggles nav labels between FR and EN", async ({ page, cont
     url: url.toString()
   }]);
   await page.goto("/");
+  const switcher = page.getByTestId("locale-switcher");
   await expect(page.getByRole("link", { name: "Utilisateurs" })).toBeVisible();
-  await expect(page.locator(".locale-button[data-active='true']")).toHaveText("FR");
+  await expect(switcher.getByRole("tab", { selected: true })).toHaveText("FR");
 
-  // Switch to EN.
-  await page.locator(".locale-button", { hasText: "EN" }).click();
-  await expect(page.getByRole("link", { name: "Users" })).toBeVisible();
-  await expect(page.locator(".locale-button[data-active='true']")).toHaveText("EN");
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "load" }),
+    switcher.getByRole("tab", { name: "EN" }).click()
+  ]);
+  await expect(page.getByRole("link", { name: "Users" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId("locale-switcher").getByRole("tab", { selected: true })).toHaveText("EN");
 });

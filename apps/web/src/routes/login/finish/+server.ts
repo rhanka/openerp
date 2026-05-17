@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
-      secure: env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production",
       expires
     }
   );
