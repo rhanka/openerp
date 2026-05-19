@@ -102,6 +102,35 @@ describe("IdempotencyStore repository (PG-08)", () => {
     expect(replay.record.statusCode).toBe(201);
   });
 
+  it("keeps raw column names inside the insert CTE so PostgreSQL can alias them outside", async () => {
+    let capturedSql = "";
+    const { db } = makeFakeDb();
+    const inspectingDb: Queryable = {
+      async query<T = unknown>(text: string, values: unknown[] = []): Promise<{ rows: T[] }> {
+        if (text.includes("with attempt") && text.includes("insert into idempotency_records")) {
+          capturedSql = text;
+        }
+        return db.query<T>(text, values);
+      }
+    };
+
+    await registerOrReplayIdempotencyRecord(inspectingDb, context, {
+      key: "invoice_issue:invoice_2",
+      requestHash: "sha256:req",
+      responseBodyHash: "sha256:res",
+      statusCode: 200,
+      ttlSeconds: 86400,
+      now: "2026-05-14T12:00:00.000Z"
+    });
+
+    const attemptReturning = capturedSql.slice(
+      capturedSql.indexOf("returning"),
+      capturedSql.indexOf(")\n     select false")
+    );
+    expect(attemptReturning).toContain("organization_id");
+    expect(attemptReturning).not.toContain('as "organizationId"');
+  });
+
   it("rejects non-positive TTL", async () => {
     const { db } = makeFakeDb();
     await expect(

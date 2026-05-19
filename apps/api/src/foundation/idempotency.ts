@@ -16,6 +16,16 @@ const IDEMPOTENCY_COLUMNS = `
   expires_at as "expiresAt"
 `;
 
+const IDEMPOTENCY_RAW_COLUMNS = `
+  organization_id,
+  key,
+  request_hash,
+  response_body_hash,
+  status_code,
+  created_at,
+  expires_at
+`;
+
 export interface RegisterIdempotencyInput {
   key: string;
   requestHash: string;
@@ -42,7 +52,7 @@ export async function registerOrReplayIdempotencyRecord(
          organization_id, key, request_hash, response_body_hash, status_code, created_at, expires_at
        ) values ($1, $2, $3, $4, $5, $6, $7)
        on conflict (organization_id, key) do nothing
-       returning ${IDEMPOTENCY_COLUMNS}
+       returning ${IDEMPOTENCY_RAW_COLUMNS}
      )
      select false as replay, ${IDEMPOTENCY_COLUMNS} from attempt
      union all
