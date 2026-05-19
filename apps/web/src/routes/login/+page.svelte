@@ -1,7 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { Alert, Button, Card, Form, FormGroup, Input } from "@sentropic/design-system-svelte";
   import { startAuthentication } from "@simplewebauthn/browser";
+
+  import { t, type LocaleCode } from "$lib/i18n";
+
+  const locale: LocaleCode = $derived(page.data.locale as LocaleCode);
 
   let email = $state("");
   let status: "idle" | "running" | "error" | "ok" = $state("idle");
@@ -47,9 +52,9 @@
 <section class="page">
   <header class="page__header">
     <div>
-      <h1>Connexion</h1>
+      <h1>{t(locale, "login.page.title")}</h1>
       <p class="page__lede">
-        Authentifiez-vous avec une passkey (Touch ID, Windows Hello, clé de sécurité).
+        {t(locale, "login.page.lede")}
       </p>
     </div>
   </header>
@@ -62,11 +67,11 @@
         void login();
       }}
     >
-      <FormGroup legend="Identifiant">
+      <FormGroup legend={t(locale, "login.form.legend")}>
         <Input
           name="email"
           type="email"
-          label="Adresse courriel"
+          label={t(locale, "login.email.label")}
           placeholder="alice@northwind.local"
           autocomplete="username webauthn"
           required
@@ -75,15 +80,15 @@
       </FormGroup>
       <div class="login-actions">
         <Button variant="primary" type="submit" disabled={status === "running"}>
-          {status === "running" ? "Vérification…" : "Se connecter avec une passkey"}
+          {status === "running" ? t(locale, "login.action.running") : t(locale, "login.action.submit")}
         </Button>
-        <a href="/register-passkey">Créer une passkey</a>
+        <a href="/register-passkey">{t(locale, "login.action.register")}</a>
       </div>
       {#if status === "error"}
-        <Alert tone="error" title="Échec de connexion">{message}</Alert>
+        <Alert tone="error" title={t(locale, "login.error.title")}>{message}</Alert>
       {/if}
       {#if status === "ok"}
-        <Alert tone="success" title="Connecté">{message}</Alert>
+        <Alert tone="success" title={t(locale, "login.success.title")}>{message}</Alert>
       {/if}
     </Form>
   </Card>

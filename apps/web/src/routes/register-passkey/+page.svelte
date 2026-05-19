@@ -1,6 +1,11 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { Alert, Button, Card, Form, FormGroup, Input } from "@sentropic/design-system-svelte";
   import { startRegistration } from "@simplewebauthn/browser";
+
+  import { t, type LocaleCode } from "$lib/i18n";
+
+  const locale: LocaleCode = $derived(page.data.locale as LocaleCode);
 
   let email = $state("alice@northwind.local");
   let label = $state("Demo passkey");
@@ -40,7 +45,7 @@
         return;
       }
       status = "ok";
-      message = `Passkey ${finishBody?.credentialId?.slice(0, 12) ?? "registered"} créée.`;
+      message = `${t(locale, "register.success.messagePrefix")} ${finishBody?.credentialId?.slice(0, 12) ?? "registered"} ${t(locale, "register.success.messageSuffix")}`;
     } catch (err) {
       status = "error";
       message = err instanceof Error ? err.message : String(err);
@@ -62,9 +67,9 @@
 <section class="page">
   <header class="page__header">
     <div>
-      <h1>Créer une passkey</h1>
+      <h1>{t(locale, "register.page.title")}</h1>
       <p class="page__lede">
-        Première utilisation : enregistrez une passkey sur ce poste. La même clé sera utilisable pour vous connecter ensuite.
+        {t(locale, "register.page.lede")}
       </p>
     </div>
   </header>
@@ -77,35 +82,35 @@
         void register();
       }}
     >
-      <FormGroup legend="Identité">
+      <FormGroup legend={t(locale, "register.form.identity")}>
         <Input
           name="email"
           type="email"
-          label="Adresse courriel (UserIdentity existante)"
+          label={t(locale, "register.email.label")}
           required
           bind:value={email}
         />
       </FormGroup>
-      <FormGroup legend="Métadonnées">
+      <FormGroup legend={t(locale, "register.form.metadata")}>
         <Input
           name="label"
           type="text"
-          label="Étiquette de la passkey"
+          label={t(locale, "register.label.label")}
           required
           bind:value={label}
         />
       </FormGroup>
       <div class="register-actions">
         <Button variant="primary" type="submit" disabled={status === "running"}>
-          {status === "running" ? "Enregistrement…" : "Enregistrer la passkey"}
+          {status === "running" ? t(locale, "register.action.running") : t(locale, "register.action.submit")}
         </Button>
-        <a href="/login">Se connecter</a>
+        <a href="/login">{t(locale, "register.action.login")}</a>
       </div>
       {#if status === "error"}
-        <Alert tone="error" title="Échec d'enregistrement">{message}</Alert>
+        <Alert tone="error" title={t(locale, "register.error.title")}>{message}</Alert>
       {/if}
       {#if status === "ok"}
-        <Alert tone="success" title="Passkey enregistrée">{message}</Alert>
+        <Alert tone="success" title={t(locale, "register.success.title")}>{message}</Alert>
       {/if}
     </Form>
   </Card>

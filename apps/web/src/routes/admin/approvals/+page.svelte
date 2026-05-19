@@ -10,14 +10,20 @@
   } from "@sentropic/design-system-svelte";
 
   import type { PageData, ActionData } from "./$types";
+  import { t, type LocaleCode } from "$lib/i18n";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
+  const locale: LocaleCode = $derived(data.locale);
   const sourceTone: "success" | "warning" | "neutral" = $derived(
     data.source === "api" ? "success" : data.source === "error" ? "warning" : "neutral"
   );
   const sourceLabel: string = $derived(
-    data.source === "api" ? "Live" : data.source === "error" ? "Backend error" : "Demo data"
+    data.source === "api"
+      ? t(locale, "approval.source.api")
+      : data.source === "error"
+        ? t(locale, "approval.source.error")
+        : t(locale, "approval.source.demo")
   );
 
   function urgencyTone(urgency: string): "error" | "info" | "neutral" {
@@ -25,14 +31,21 @@
     if (urgency === "low") return "info";
     return "neutral";
   }
+
+  function decisionLabel(decision: string): string {
+    if (decision === "approved") return t(locale, "approval.decision.approved");
+    if (decision === "rejected") return t(locale, "approval.decision.rejected");
+    if (decision === "escalated") return t(locale, "approval.decision.escalated");
+    return decision;
+  }
 </script>
 
 <section class="page">
   <header class="page__header">
     <div>
-      <h1>Approbations</h1>
+      <h1>{t(locale, "approval.page.title")}</h1>
       <p class="page__lede">
-        Demandes d'approbation en attente — déclenchées par des agents ou des humains pour les opérations sensibles.
+        {t(locale, "approval.page.lede")}
       </p>
     </div>
     <div class="page__actions">
@@ -43,25 +56,28 @@
   </header>
 
   {#if data.source === "error"}
-    <Alert tone="warning" title="Backend error">
-      {data.message ?? "Could not load approvals."}
+    <Alert tone="warning" title={t(locale, "approval.backendError.title")}>
+      {data.message ?? t(locale, "approval.backendError.fallback")}
     </Alert>
   {/if}
 
   {#if form && "code" in form}
     {@const message = (form as { message?: string }).message}
-    <Alert tone="error" title="Action error">
+    <Alert tone="error" title={t(locale, "approval.actionError.title")}>
       {form.code}{message ? ` — ${message}` : ""}
     </Alert>
   {/if}
   {#if form && "ok" in form && form.ok}
-    <Alert tone="success" title="Decision recorded">
-      Approval {form.id} → {form.decision}.
+    <Alert tone="success" title={t(locale, "approval.success.title")}>
+      Approval {form.id} → {decisionLabel(form.decision)}.
     </Alert>
   {/if}
 
   {#if data.approvals.length === 0}
-    <EmptyState title="No pending approvals" message="The queue is empty for the current approver." />
+    <EmptyState
+      title={t(locale, "approval.empty.title")}
+      message={t(locale, "approval.empty.message")}
+    />
   {:else}
     <div class="approvals-list stack">
       {#each data.approvals as ar}
@@ -78,14 +94,18 @@
             <input type="hidden" name="id" value={ar.id} />
             <Input
               name="decisionReason"
-              label="Reason"
-              placeholder="Required, ≥ 3 chars"
+              label={t(locale, "approval.form.reason")}
+              placeholder={t(locale, "approval.form.reasonPlaceholder")}
               required
               minlength={3}
             />
             <div class="approvals-form__actions">
-              <Button variant="primary" type="submit" name="decision" value="approved">Approve</Button>
-              <Button variant="secondary" type="submit" name="decision" value="rejected">Reject</Button>
+              <Button variant="primary" type="submit" name="decision" value="approved">
+                {t(locale, "approval.action.approve")}
+              </Button>
+              <Button variant="secondary" type="submit" name="decision" value="rejected">
+                {t(locale, "approval.action.reject")}
+              </Button>
             </div>
           </form>
         </Card>

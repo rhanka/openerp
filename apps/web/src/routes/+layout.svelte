@@ -41,16 +41,20 @@
           <small>Foundation</small>
         </span>
       </a>
-      <SideNav items={navItems} label="Admin" />
-      <div class="shell__locale" data-testid="locale-switcher" role="tablist" aria-label="Locale">
+      <SideNav class="shell__sidenav" items={navItems} label="Admin" />
+      <div
+        class="shell__locale"
+        data-testid="locale-switcher"
+        role="group"
+        aria-label={t(locale, "locale.switcher.label")}
+      >
         {#each SUPPORTED_LOCALES as code}
           <form method="POST" action="/api/locale" class="shell__locale-form">
             <input type="hidden" name="next" value={currentPath} />
             <input type="hidden" name="locale" value={code} />
             <button
               type="submit"
-              role="tab"
-              aria-selected={locale === code ? "true" : "false"}
+              aria-pressed={locale === code ? "true" : "false"}
               data-locale={code}
               class="shell__locale-button"
               data-active={locale === code}

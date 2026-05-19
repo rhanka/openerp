@@ -52,15 +52,16 @@ function clientFromLocalsOrEnv(
 export const load: PageServerLoad = async ({ fetch, locals }) => {
   const session = clientFromLocalsOrEnv(fetch, locals);
   if (!session) {
-    return { approvals: DEMO_FALLBACK, source: "demo" as const };
+    return { approvals: DEMO_FALLBACK, source: "demo" as const, locale: locals.locale };
   }
   try {
     const approvals = await session.client.listPendingApprovalsForApprover(session.actorUserId);
-    return { approvals, source: "api" as const };
+    return { approvals, source: "api" as const, locale: locals.locale };
   } catch (err) {
     return {
       approvals: [] as ApprovalRequest[],
       source: "error" as const,
+      locale: locals.locale,
       message: err instanceof Error ? err.message : String(err)
     };
   }

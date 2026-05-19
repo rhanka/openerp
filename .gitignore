@@ -1,4 +1,5 @@
 .git-local/
+.claude/settings.local.json
 .playwright-mcp/
 .superpowers/
 openerp-scope-map-viewport.png
