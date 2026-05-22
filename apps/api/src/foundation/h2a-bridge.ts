@@ -4,10 +4,16 @@ import {
   createJournalEntry,
   type H2AEnvelopeType,
   type H2AJournalEntry,
-  type H2AJournalPayload
+  type H2AJournalPayload,
+  type H2ASignature
 } from "@sentropic/h2a";
 
 import type { Queryable, TenantContext } from "../db/client";
+import {
+  readAuditSigningConfig,
+  signJournalPayload,
+  type AuditSigningConfig
+} from "./audit-signing";
 
 // h2a bridge for ApprovalRequest (Lot 5 minimal). Maps OpenERP approval state
 // transitions to @sentropic/h2a envelope types and journal entries chained by
@@ -45,6 +51,9 @@ interface BuildJournalEntryInput {
   actorInstance: string;
   action: ApprovalAction;
   body: ApprovalJournalBody;
+  // Optional override; when omitted, falls back to readAuditSigningConfig() so
+  // tests and runtime can both rely on env-driven signing.
+  signing?: AuditSigningConfig | null;
 }
 
 export async function buildApprovalJournalEntry(
@@ -67,8 +76,18 @@ export async function buildApprovalJournalEntry(
     createdAt: new Date().toISOString()
   };
 
+  const signing = input.signing === undefined ? readAuditSigningConfig() : input.signing;
+  let signedPayload: H2AJournalPayload<ApprovalJournalBody> = payload;
+  if (signing) {
+    const signature: H2ASignature = signJournalPayload({
+      payloadWithoutSignatures: payload as unknown as Record<string, unknown>,
+      signing
+    });
+    signedPayload = { ...payload, signatures: [signature] };
+  }
+
   const prev = await findPreviousJournalEntry(db, context, input.approvalRequestId);
-  return prev ? appendJournalEntry(prev, payload) : createJournalEntry(payload);
+  return prev ? appendJournalEntry(prev, signedPayload) : createJournalEntry(signedPayload);
 }
 
 // Both helpers sort by the h2a journal sequence stored inside after_summary

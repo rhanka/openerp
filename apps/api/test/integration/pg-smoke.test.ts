@@ -1,3 +1,4 @@
+import { generateKeyPairSync } from "node:crypto";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { verifyJournalChain } from "@sentropic/h2a";
 
@@ -8,6 +9,7 @@ import {
   decideApprovalRequest
 } from "../../src/foundation/approval-service";
 import { readApprovalJournalChain } from "../../src/foundation/h2a-bridge";
+import { verifyJournalEntrySignatures } from "../../src/foundation/audit-signing";
 
 // Smoke test against a real Postgres. Skipped automatically when
 // OPENERP_INTEGRATION_DATABASE_URL is not set (CI without docker compose).
@@ -178,6 +180,96 @@ describeOrSkip("pg-client + migrate (integration)", () => {
         await client.query("rollback");
       }
     });
+  });
+
+  it("ApprovalRequest journal entries are ed25519-signed and verify when env signing is enabled", async () => {
+    const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+    const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
+    const restore = {
+      priv: process.env.OPENERP_AUDIT_SIGNING_PRIVATE_KEY_PEM,
+      pub: process.env.OPENERP_AUDIT_SIGNING_PUBLIC_KEY_PEM,
+      by: process.env.OPENERP_AUDIT_SIGNING_BY
+    };
+    process.env.OPENERP_AUDIT_SIGNING_PRIVATE_KEY_PEM = privateKeyPem;
+    process.env.OPENERP_AUDIT_SIGNING_PUBLIC_KEY_PEM = publicKeyPem;
+    process.env.OPENERP_AUDIT_SIGNING_BY = "openerp-foundation-it";
+
+    try {
+      await pool.withClient(async (client) => {
+        await client.query("begin");
+        try {
+          const orgRes = await client.query<{ id: string }>(
+            `insert into organizations (
+               legal_name, display_name, slug, status, default_locale, default_currency,
+               default_timezone, country, province_state
+             ) values ('Signed', 'Signed', 'signed-it', 'active', 'fr', 'CAD',
+               'America/Toronto', 'CA', 'QC')
+             returning id`,
+            []
+          );
+          const orgId = orgRes.rows[0]!.id;
+          const userRes = await client.query<{ id: string }>(
+            `insert into users (organization_id, email, display_name, preferred_locale, status)
+               values ($1, 'actor-it@signed.local', 'Actor IT', 'fr', 'active')
+             returning id`,
+            [orgId]
+          );
+          const actorId = userRes.rows[0]!.id;
+          const requesterRes = await client.query<{ id: string }>(
+            `insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+               values ('req-it@signed.local', 'Req IT', 'fr', 'passkey', 'active', 'human')
+             returning id`,
+            []
+          );
+          const approverRes = await client.query<{ id: string }>(
+            `insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+               values ('appr-it@signed.local', 'Appr IT', 'fr', 'passkey', 'active', 'human')
+             returning id`,
+            []
+          );
+          const tenantContext = { organizationId: orgId, actorUserId: actorId };
+
+          const created = await createApprovalRequest(client, tenantContext, {
+            requesterUserIdentityId: requesterRes.rows[0]!.id,
+            approverUserIdentityId: approverRes.rows[0]!.id,
+            approverRoleId: null,
+            subjectType: "invoice",
+            subjectId: "00000000-0000-0000-0000-000000001abc",
+            reason: "Signed flow",
+            urgency: "normal"
+          });
+          await decideApprovalRequest(client, tenantContext, {
+            approvalRequestId: created.id,
+            approverUserIdentityId: approverRes.rows[0]!.id,
+            decision: "approved",
+            decisionReason: "ok",
+            decidedAt: new Date().toISOString()
+          });
+
+          const chain = await readApprovalJournalChain(client, tenantContext, created.id);
+          expect(chain).toHaveLength(2);
+          for (const entry of chain) {
+            expect(entry.signatures).toBeDefined();
+            expect(entry.signatures).toHaveLength(1);
+            expect(entry.signatures![0]!.alg).toBe("ed25519");
+            expect(
+              verifyJournalEntrySignatures(entry, { publicKeyPem })
+            ).toBe(true);
+          }
+          expect(verifyJournalChain(chain).ok).toBe(true);
+        } finally {
+          await client.query("rollback");
+        }
+      });
+    } finally {
+      if (restore.priv === undefined) delete process.env.OPENERP_AUDIT_SIGNING_PRIVATE_KEY_PEM;
+      else process.env.OPENERP_AUDIT_SIGNING_PRIVATE_KEY_PEM = restore.priv;
+      if (restore.pub === undefined) delete process.env.OPENERP_AUDIT_SIGNING_PUBLIC_KEY_PEM;
+      else process.env.OPENERP_AUDIT_SIGNING_PUBLIC_KEY_PEM = restore.pub;
+      if (restore.by === undefined) delete process.env.OPENERP_AUDIT_SIGNING_BY;
+      else process.env.OPENERP_AUDIT_SIGNING_BY = restore.by;
+    }
   });
 
   it("ApprovalRequest emits chained h2a journal entries that verify end-to-end", async () => {
