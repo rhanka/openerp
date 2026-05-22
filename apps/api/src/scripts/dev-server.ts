@@ -2,13 +2,13 @@
 import process from "node:process";
 
 import { createPgPool } from "../db/pg-client";
-import { headerTenantResolver, startServer } from "../server";
+import { startServer } from "../server";
+import { buildDevServerOptions } from "./dev-server-options";
 
 // Dev API entrypoint. Wires the pg pool to the Hono app and listens on
 // OPENERP_API_PORT (default 4000). The SvelteKit dev server hits this via
-// OPENERP_API_URL (apps/web/.env). Passkey routes intentionally remain
-// disabled here for now — the seeder bypasses passkey by injecting org/user
-// IDs via headers, and a follow-up commit will wire passkey + session JWT.
+// OPENERP_API_URL (apps/web/.env). Tenant-scoped Demo Slice routes still trust
+// dev headers, while /webauthn/* is mounted publicly for passkey ceremonies.
 
 async function main(): Promise<void> {
   const url = process.env.OPENERP_DATABASE_URL;
@@ -17,10 +17,7 @@ async function main(): Promise<void> {
     process.exit(2);
   }
   const pool = createPgPool({ connectionString: url });
-  const handle = startServer({
-    db: pool,
-    resolveTenant: headerTenantResolver
-  });
+  const handle = startServer(buildDevServerOptions(pool));
   console.log(`OpenERP API listening on http://${handle.hostname}:${handle.port}`);
 
   const shutdown = async (signal: string): Promise<void> => {
