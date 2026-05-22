@@ -8,6 +8,7 @@ import {
   listPendingApprovalsForApprover,
   recordApprovalDecision
 } from "./approval-requests";
+import { buildApprovalJournalEntry, type ApprovalAction } from "./h2a-bridge";
 
 // Service wiring for the ApprovalService contract (PG-07). Layers the repository
 // with audit-event emission and validation. Idempotency on create is handled at
@@ -57,6 +58,7 @@ export async function createApprovalRequest(
   });
   await emitApprovalAudit(db, context, {
     action: "approval_request.created",
+    h2aAction: "created",
     approvalRequestId: created.id,
     beforeSummary: null,
     afterSummary: {
@@ -64,6 +66,13 @@ export async function createApprovalRequest(
       subjectId: created.subjectId,
       urgency: created.urgency,
       status: created.status
+    },
+    journalBody: {
+      approvalRequestId: created.id,
+      action: "created",
+      status: created.status,
+      reason: created.reason,
+      subject: { type: created.subjectType, id: created.subjectId }
     }
   });
   return created;
@@ -85,13 +94,27 @@ export async function decideApprovalRequest(
   const decided = await recordApprovalDecision(db, context, input);
   if (!decided) throw new ApprovalNotPendingError(input.approvalRequestId);
 
+  const h2aAction: ApprovalAction =
+    decided.status === "approved"
+      ? "approved"
+      : decided.status === "rejected"
+        ? "rejected"
+        : "escalated";
+
   await emitApprovalAudit(db, context, {
     action: "approval_request.decided",
+    h2aAction,
     approvalRequestId: decided.id,
     beforeSummary: { status: before.status },
     afterSummary: {
       status: decided.status,
       decisionReason: decided.decisionReason
+    },
+    journalBody: {
+      approvalRequestId: decided.id,
+      action: h2aAction,
+      status: decided.status,
+      reason: decided.decisionReason ?? null
     }
   });
   return decided;
@@ -147,20 +170,39 @@ export async function setApprovalRequestStatus(
     [approvalRequestId, context.organizationId, status, reason]
   );
   const updated = result.rows[0]!;
+  const h2aAction: ApprovalAction =
+    status === "approved"
+      ? "approved"
+      : status === "rejected"
+        ? "rejected"
+        : status === "escalated"
+          ? "escalated"
+          : status === "expired"
+            ? "expired"
+            : "created";
   await emitApprovalAudit(db, context, {
     action: "approval_request.status_set",
+    h2aAction,
     approvalRequestId,
     beforeSummary: { status: before.status },
-    afterSummary: { status, reason }
+    afterSummary: { status, reason },
+    journalBody: {
+      approvalRequestId,
+      action: h2aAction,
+      status,
+      reason
+    }
   });
   return updated;
 }
 
 interface EmitApprovalAuditInput {
   action: string;
+  h2aAction: ApprovalAction;
   approvalRequestId: string;
   beforeSummary: Record<string, unknown> | null;
   afterSummary: Record<string, unknown> | null;
+  journalBody: import("./h2a-bridge").ApprovalJournalBody;
 }
 
 async function emitApprovalAudit(
@@ -168,18 +210,29 @@ async function emitApprovalAudit(
   context: TenantContext,
   input: EmitApprovalAuditInput
 ): Promise<void> {
+  const entry = await buildApprovalJournalEntry(db, context, {
+    approvalRequestId: input.approvalRequestId,
+    actorInstance: context.actorUserId,
+    action: input.h2aAction,
+    body: input.journalBody
+  });
+
+  const afterWithJournal = { ...(input.afterSummary ?? {}), journalEntry: entry };
+
   await db.query(
     `insert into audit_events (
        organization_id, actor_user_id, actor_type, action, resource_type, resource_id,
-       before_summary, after_summary
-     ) values ($1, $2, 'user', $3, 'approval_request', $4, $5, $6)`,
+       before_summary, after_summary, approval_request_id, correlation_id
+     ) values ($1, $2, 'user', $3, 'approval_request', $4, $5, $6, $7, $8::uuid)`,
     [
       context.organizationId,
       context.actorUserId,
       input.action,
       input.approvalRequestId,
       input.beforeSummary,
-      input.afterSummary
+      afterWithJournal,
+      input.approvalRequestId,
+      entry.id
     ]
   );
 }

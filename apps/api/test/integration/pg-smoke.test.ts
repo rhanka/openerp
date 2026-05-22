@@ -1,7 +1,13 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { verifyJournalChain } from "@sentropic/h2a";
 
 import { runMigrations } from "../../src/db/migrate";
 import { createPgPool, type PgPoolHandle } from "../../src/db/pg-client";
+import {
+  createApprovalRequest,
+  decideApprovalRequest
+} from "../../src/foundation/approval-service";
+import { readApprovalJournalChain } from "../../src/foundation/h2a-bridge";
 
 // Smoke test against a real Postgres. Skipped automatically when
 // OPENERP_INTEGRATION_DATABASE_URL is not set (CI without docker compose).
@@ -168,6 +174,103 @@ describeOrSkip("pg-client + migrate (integration)", () => {
           []
         );
         expect(visibleAsBeta.rows.map((r) => r.label)).toEqual(["Discovery"]);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
+  it("ApprovalRequest emits chained h2a journal entries that verify end-to-end", async () => {
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Acme', 'Acme', 'acme', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+
+        const requesterRes = await client.query<{ id: string }>(
+          `insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('req@acme.local', 'Requester', 'fr', 'passkey', 'active', 'human')
+           returning id`,
+          []
+        );
+        const requesterId = requesterRes.rows[0]!.id;
+
+        const approverRes = await client.query<{ id: string }>(
+          `insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('appr@acme.local', 'Approver', 'fr', 'passkey', 'active', 'human')
+           returning id`,
+          []
+        );
+        const approverId = approverRes.rows[0]!.id;
+
+        // approval_service expects an actorUserId; for foundation we keep the
+        // legacy users row in sync (audit_events still has FK on users).
+        const userRes = await client.query<{ id: string }>(
+          `insert into users (organization_id, email, display_name, preferred_locale, status)
+             values ($1, 'actor@acme.local', 'Actor', 'fr', 'active')
+           returning id`,
+          [orgId]
+        );
+        const actorId = userRes.rows[0]!.id;
+
+        const tenantContext = { organizationId: orgId, actorUserId: actorId };
+
+        const created = await createApprovalRequest(client, tenantContext, {
+          requesterUserIdentityId: requesterId,
+          approverUserIdentityId: approverId,
+          approverRoleId: null,
+          subjectType: "invoice",
+          subjectId: "00000000-0000-0000-0000-000000000abc",
+          reason: "Approve invoice issuance over threshold",
+          urgency: "normal"
+        });
+
+        await decideApprovalRequest(client, tenantContext, {
+          approvalRequestId: created.id,
+          approverUserIdentityId: approverId,
+          decision: "approved",
+          decisionReason: "validated",
+          decidedAt: new Date().toISOString()
+        });
+
+        const chain = await readApprovalJournalChain(client, tenantContext, created.id);
+        expect(chain).toHaveLength(2);
+        expect(chain[0]!.type).toBe("propose");
+        expect(chain[0]!.sequence).toBe(0);
+        expect(chain[0]!.prevHash).toBeUndefined();
+        expect(chain[1]!.type).toBe("accept");
+        expect(chain[1]!.sequence).toBe(1);
+        expect(chain[1]!.prevHash).toBe(chain[0]!.contentHash);
+
+        const verification = verifyJournalChain(chain);
+        expect(verification.ok).toBe(true);
+
+        const auditRows = await client.query<{
+          correlation_id: string;
+          approval_request_id: string;
+          action: string;
+        }>(
+          `select correlation_id, approval_request_id, action
+             from audit_events
+            where organization_id = $1 and approval_request_id = $2
+            order by ((after_summary->'journalEntry'->>'sequence')::int) asc`,
+          [orgId, created.id]
+        );
+        expect(auditRows.rows).toHaveLength(2);
+        expect(auditRows.rows[0]!.correlation_id).toBe(chain[0]!.id);
+        expect(auditRows.rows[1]!.correlation_id).toBe(chain[1]!.id);
+        expect(auditRows.rows.map((r) => r.action)).toEqual([
+          "approval_request.created",
+          "approval_request.decided"
+        ]);
       } finally {
         await client.query("rollback");
       }
