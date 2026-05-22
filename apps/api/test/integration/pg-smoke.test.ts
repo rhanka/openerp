@@ -69,6 +69,66 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("passkey_challenges");
   });
 
+  it("partitions audit_events monthly and rejects UPDATE/DELETE (PG-06 article 2.2)", async () => {
+    // audit_events is now a partitioned parent (relkind = 'p'); the current
+    // month partition was materialized by migration 0007.
+    const parent = await pool.query<{ relkind: string }>(
+      "select relkind::text from pg_class where relname = 'audit_events'",
+      []
+    );
+    expect(parent.rows[0]?.relkind).toBe("p");
+
+    const partitions = await pool.query<{ relname: string }>(
+      "select relname from pg_class where relname like 'audit_events_y____m__' order by relname",
+      []
+    );
+    expect(partitions.rows.length).toBeGreaterThanOrEqual(1);
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Audit Inv', 'Audit Inv', 'audit-inv', 'active', 'en', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+
+        const eventRes = await client.query<{ id: string }>(
+          `insert into audit_events (
+             organization_id, actor_type, action, resource_type, resource_id
+           ) values ($1::uuid, 'system', 'organization.created', 'organization', $1::text)
+           returning id`,
+          [orgId]
+        );
+        const eventId = eventRes.rows[0]!.id;
+
+        // Each tamper attempt runs inside a savepoint so the failure does not
+        // abort the surrounding test transaction.
+        await client.query("savepoint try_update");
+        await expect(
+          client.query(
+            "update audit_events set action = 'tamper' where id = $1",
+            [eventId]
+          )
+        ).rejects.toThrow(/append-only/i);
+        await client.query("rollback to savepoint try_update");
+
+        await client.query("savepoint try_delete");
+        await expect(
+          client.query("delete from audit_events where id = $1", [eventId])
+        ).rejects.toThrow(/append-only/i);
+        await client.query("rollback to savepoint try_delete");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("enforces RLS isolation between two organizations", async () => {
     await pool.withClient(async (client) => {
       await client.query("begin");

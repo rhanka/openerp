@@ -33,6 +33,10 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
   );
   if (existing.rows.length > 0) {
     const orgId = existing.rows[0]!.id;
+    // session_replication_role = replica disables both the audit_events
+    // append-only triggers (PG-06 article 2.2) and FK triggers; manual ordering
+    // below keeps referential integrity intact for the purge.
+    await client.query("set local session_replication_role = replica");
     await client.query(`delete from audit_events where organization_id = $1`, [orgId]);
     await client.query(`delete from approval_requests where organization_id = $1`, [orgId]);
     await client.query(`delete from idempotency_records where organization_id = $1`, [orgId]);
@@ -40,6 +44,7 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
     await client.query(`delete from users where organization_id = $1`, [orgId]);
     await client.query(`delete from tenant_settings where organization_id = $1`, [orgId]);
     await client.query(`delete from organizations where id = $1`, [orgId]);
+    await client.query("set local session_replication_role = default");
   }
   await client.query(
     `delete from user_identities where lower(email) = lower($1)`,
