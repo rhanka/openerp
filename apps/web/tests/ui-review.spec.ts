@@ -15,52 +15,71 @@ const reviewMatrix: Array<{
 const reviewedRoutes: Array<{
   path: string;
   labels: Record<Locale, string>;
+  activeNav?: boolean;
 }> = [
-  { path: "/admin/approvals", labels: { en: "Approvals", fr: "Approbations" } },
-  { path: "/admin/audit", labels: { en: "Audit", fr: "Audit" } }
+  { path: "/admin/approvals", labels: { en: "Approvals", fr: "Approbations" }, activeNav: true },
+  { path: "/admin/audit", labels: { en: "Audit", fr: "Audit" }, activeNav: true },
+  { path: "/login", labels: { en: "Sign in", fr: "Connexion" } },
+  { path: "/register-passkey", labels: { en: "Create a passkey", fr: "Créer une passkey" } }
 ];
 
 test.describe("UI review: shell ergonomics", () => {
   for (const viewport of reviewMatrix) {
     for (const locale of ["fr", "en"] as const) {
-      test(`keeps shell utilities and nav contained on ${viewport.name} in ${locale.toUpperCase()}`, async ({
-        page,
-        context,
-        baseURL
-      }, testInfo) => {
-        await page.setViewportSize({ width: viewport.width, height: viewport.height });
-        await context.clearCookies();
-        await context.addCookies([{
-          name: "openerp_locale",
-          value: locale,
-          url: baseURL ?? "http://127.0.0.1:4173"
-        }]);
+      for (const route of reviewedRoutes) {
+        test(`keeps shell utilities and nav contained on ${viewport.name} in ${locale.toUpperCase()} for ${route.path}`, async ({
+          page,
+          context,
+          baseURL
+        }, testInfo) => {
+          await page.setViewportSize({ width: viewport.width, height: viewport.height });
+          await context.clearCookies();
+          await context.addCookies([{
+            name: "openerp_locale",
+            value: locale,
+            url: baseURL ?? "http://127.0.0.1:4173"
+          }]);
 
-        for (const route of reviewedRoutes) {
           await page.goto(route.path);
           await page.waitForLoadState("domcontentloaded");
 
           await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
-          await expect(page.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
-            "aria-current",
-            "page"
-          );
+          if (route.activeNav) {
+            await expect(page.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
+              "aria-current",
+              "page"
+            );
+          }
 
+          const appHeader = page.getByRole("banner", { name: "Global application header" });
           const sidebar = page.getByLabel("Primary");
           const brand = page.getByLabel("OpenERP home");
           const switcher = page.getByTestId("locale-switcher");
+          const switcherIcon = page.getByTestId("locale-switcher-icon");
           const nav = page.getByRole("navigation", { name: "Admin" });
 
+          await expect(appHeader).toBeVisible();
           await expect(sidebar).toBeVisible();
           await expect(switcher).toBeVisible();
+          await expect(switcherIcon).toBeVisible();
           await expect(nav).toBeVisible();
 
           await expectNoHorizontalOverflow(page);
-          await expectContained(sidebar, brand, "brand");
-          await expectContained(sidebar, switcher, "locale switcher");
+          await expectContained(appHeader, brand, "brand");
+          await expectContained(appHeader, switcher, "locale switcher");
           await expectContained(sidebar, nav, "admin navigation");
+          await expectWithinViewport(appHeader, page, "global header");
           await expectWithinViewport(switcher, page, "locale switcher");
-          await expectNavBeforeUtility(nav, switcher);
+          await expectHeaderBeforeShell(appHeader, sidebar, page.locator("main"));
+
+          const headerScreenshotPath = testInfo.outputPath(
+            `ui-review-header-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
+          );
+          await page.locator(".shell__header").screenshot({ path: headerScreenshotPath });
+          await testInfo.attach(`ui-review header ${viewport.name} ${locale} ${route.path}`, {
+            path: headerScreenshotPath,
+            contentType: "image/png"
+          });
 
           const sidebarScreenshotPath = testInfo.outputPath(
             `ui-review-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
@@ -79,8 +98,8 @@ test.describe("UI review: shell ergonomics", () => {
             path: mainScreenshotPath,
             contentType: "image/png"
           });
-        }
-      });
+        });
+      }
     }
   }
 });
@@ -99,6 +118,7 @@ test("UI review: locale switcher preserves admin route and document language", a
 
   await page.goto("/admin/approvals");
   await page.waitForLoadState("domcontentloaded");
+  await expect(page.getByRole("banner", { name: "Global application header" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Langue" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
@@ -136,11 +156,7 @@ test("UI review: keyboard flow reaches locale switcher and login actions", async
   await page.waitForLoadState("domcontentloaded");
 
   await tabUntilFocused(page, page.getByLabel("OpenERP home"), 1);
-  await tabUntilFocused(page, page.getByRole("link", { name: "Users" }), 1);
-
-  for (let i = 0; i < 5; i += 1) {
-    await page.keyboard.press("Tab");
-  }
+  await page.keyboard.press("Tab");
   const enButton = page.getByTestId("locale-switcher").getByRole("button", { name: "EN" });
   await expect(enButton).toBeFocused();
   await expectFocusVisible(enButton);
@@ -149,6 +165,9 @@ test("UI review: keyboard flow reaches locale switcher and login actions", async
   const frButton = page.getByTestId("locale-switcher").getByRole("button", { name: "FR" });
   await expect(frButton).toBeFocused();
   await expectFocusVisible(frButton);
+
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Users" })).toBeFocused();
 
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
@@ -224,16 +243,22 @@ async function tabUntilFocused(page: Page, locator: Locator, maxTabs: number): P
   await expect(locator).toBeFocused();
 }
 
-async function expectNavBeforeUtility(nav: Locator, switcher: Locator): Promise<void> {
-  const [navBox, switcherBox] = await Promise.all([
-    nav.boundingBox(),
-    switcher.boundingBox()
+async function expectHeaderBeforeShell(header: Locator, sidebar: Locator, main: Locator): Promise<void> {
+  const [headerBox, sidebarBox, mainBox] = await Promise.all([
+    header.boundingBox(),
+    sidebar.boundingBox(),
+    main.boundingBox()
   ]);
-  expect(navBox, "admin navigation box").not.toBeNull();
-  expect(switcherBox, "locale switcher box").not.toBeNull();
-  if (!switcherBox || !navBox) return;
+  expect(headerBox, "global header box").not.toBeNull();
+  expect(sidebarBox, "sidebar box").not.toBeNull();
+  expect(mainBox, "main box").not.toBeNull();
+  if (!headerBox || !sidebarBox || !mainBox) return;
 
-  expect(navBox.y + navBox.height, "admin nav should sit before locale utility").toBeLessThanOrEqual(
-    switcherBox.y + 1
+  expect(headerBox.y, "global header should start at viewport top").toBeLessThanOrEqual(1);
+  expect(sidebarBox.y, "sidebar should sit below global header").toBeGreaterThanOrEqual(
+    headerBox.y + headerBox.height - 1
+  );
+  expect(mainBox.y, "main should sit below global header").toBeGreaterThanOrEqual(
+    headerBox.y + headerBox.height - 1
   );
 }

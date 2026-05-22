@@ -3,11 +3,14 @@
 
   import { page } from "$app/state";
   import {
+    Button,
+    Header,
     SideNav,
     ThemeProvider,
     type SideNavItem
   } from "@sentropic/design-system-svelte";
   import { sentTechTheme } from "@sentropic/design-system-themes";
+  import { Languages } from "@lucide/svelte";
 
   import { SUPPORTED_LOCALES, t, type LocaleCode } from "$lib/i18n";
 
@@ -33,35 +36,49 @@
 
 <ThemeProvider theme={sentTechTheme}>
   <div class="shell">
+    <Header class="shell__header" label="Global application header">
+      {#snippet logo()}
+        <a class="shell__brand" href="/" aria-label="OpenERP home">
+          <span aria-hidden="true">●</span>
+          <span>
+            <strong>OpenERP</strong>
+            <small>Foundation</small>
+          </span>
+        </a>
+      {/snippet}
+      {#snippet actions()}
+        <div
+          class="shell__locale"
+          data-testid="locale-switcher"
+          role="group"
+          aria-label={t(locale, "locale.switcher.label")}
+        >
+          <Languages
+            data-testid="locale-switcher-icon"
+            size={18}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+          {#each SUPPORTED_LOCALES as code}
+            <form method="POST" action="/api/locale" class="shell__locale-form">
+              <input type="hidden" name="next" value={currentPath} />
+              <input type="hidden" name="locale" value={code} />
+              <Button
+                variant={locale === code ? "secondary" : "ghost"}
+                size="sm"
+                type="submit"
+                aria-pressed={locale === code ? "true" : "false"}
+                data-locale={code}
+                class="shell__locale-button"
+                data-active={locale === code}
+              >{code.toUpperCase()}</Button>
+            </form>
+          {/each}
+        </div>
+      {/snippet}
+    </Header>
     <aside class="shell__sidebar" aria-label="Primary">
-      <a class="shell__brand" href="/" aria-label="OpenERP home">
-        <span aria-hidden="true">●</span>
-        <span>
-          <strong>OpenERP</strong>
-          <small>Foundation</small>
-        </span>
-      </a>
       <SideNav class="shell__sidenav" items={navItems} label="Admin" />
-      <div
-        class="shell__locale"
-        data-testid="locale-switcher"
-        role="group"
-        aria-label={t(locale, "locale.switcher.label")}
-      >
-        {#each SUPPORTED_LOCALES as code}
-          <form method="POST" action="/api/locale" class="shell__locale-form">
-            <input type="hidden" name="next" value={currentPath} />
-            <input type="hidden" name="locale" value={code} />
-            <button
-              type="submit"
-              aria-pressed={locale === code ? "true" : "false"}
-              data-locale={code}
-              class="shell__locale-button"
-              data-active={locale === code}
-            >{code.toUpperCase()}</button>
-          </form>
-        {/each}
-      </div>
     </aside>
     <main class="shell__main">
       {@render children?.()}
