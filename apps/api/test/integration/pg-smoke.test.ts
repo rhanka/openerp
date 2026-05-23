@@ -64,7 +64,12 @@ describeOrSkip("pg-client + migrate (integration)", () => {
         "translation_keys",
         "jobs",
         "passkey_credentials",
-        "passkey_challenges"
+        "passkey_challenges",
+        "agent_definitions",
+        "agent_runs",
+        "tool_calls",
+        "policy_decisions",
+        "supervision_requests"
       ]]
     );
     const tables = result.rows.map((r) => r.table_name).sort();
@@ -75,6 +80,66 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("translation_keys");
     expect(tables).toContain("passkey_credentials");
     expect(tables).toContain("passkey_challenges");
+    expect(tables).toContain("agent_definitions");
+    expect(tables).toContain("agent_runs");
+    expect(tables).toContain("tool_calls");
+    expect(tables).toContain("policy_decisions");
+    expect(tables).toContain("supervision_requests");
+  });
+
+  it("isolates agentic tables by tenant via RLS (Article 4.6)", async () => {
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgs = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values
+             ('AgentOrg A', 'A', 'agentorg-a', 'active', 'en', 'CAD', 'America/Toronto', 'CA', 'QC'),
+             ('AgentOrg B', 'B', 'agentorg-b', 'active', 'en', 'CAD', 'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const [aId, bId] = orgs.rows.map((r) => r.id) as [string, string];
+
+        await client.query(
+          `insert into agent_definitions
+             (organization_id, name, identity_mode, status)
+           values
+             ($1, 'invoice-agent', 'acting_as', 'active'),
+             ($2, 'invoice-agent', 'acting_as', 'active')`,
+          [aId, bId]
+        );
+
+        // Switch to the non-superuser app role so RLS applies.
+        await client.query("set local role openerp_app");
+
+        await client.query("select set_config('app.current_organization_id', $1, true)", [aId]);
+        const seenAsA = await client.query<{ name: string }>(
+          `select name from agent_definitions`,
+          []
+        );
+        expect(seenAsA.rows.map((r) => r.name)).toEqual(["invoice-agent"]);
+
+        await client.query("select set_config('app.current_organization_id', $1, true)", [bId]);
+        const seenAsB = await client.query<{ name: string }>(
+          `select name from agent_definitions`,
+          []
+        );
+        expect(seenAsB.rows.map((r) => r.name)).toEqual(["invoice-agent"]);
+
+        // Cross-tenant read with the wrong scope returns nothing.
+        await client.query("select set_config('app.current_organization_id', $1, true)", [aId]);
+        const wrongScope = await client.query<{ count: string }>(
+          `select count(*)::text as count from agent_definitions where organization_id = $1`,
+          [bId]
+        );
+        expect(wrongScope.rows[0]!.count).toBe("0");
+      } finally {
+        await client.query("rollback");
+      }
+    });
   });
 
   it("partitions audit_events monthly and rejects UPDATE/DELETE (PG-06 article 2.2)", async () => {
