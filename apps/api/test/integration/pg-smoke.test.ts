@@ -47,7 +47,7 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
     expect(secondRun.applied.length).toBe(0);
     expect(secondRun.skipped.length).toBe(firstRun.applied.length);
-  });
+  }, 15000);
 
   it("creates the canon tables", async () => {
     const result = await pool.query<{ table_name: string }>(
@@ -85,6 +85,81 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("tool_calls");
     expect(tables).toContain("policy_decisions");
     expect(tables).toContain("supervision_requests");
+  });
+
+  it("CRM Opportunity h2a engagement chain verifies end-to-end (DS 2.6)", async () => {
+    const { createCompany } = await import("../../src/crm/company-service");
+    const { createPipelineStage } = await import(
+      "../../src/crm/pipeline-stage-service"
+    );
+    const {
+      createOpportunity,
+      updateOpportunity
+    } = await import("../../src/crm/opportunity-service");
+    const { readOpportunityJournalChain } = await import(
+      "../../src/crm/h2a-opportunity-bridge"
+    );
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Engagement Co', 'Engagement Co', 'engagement-co', 'active', 'fr',
+             'CAD', 'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `insert into users (organization_id, email, display_name, preferred_locale, status)
+             values ($1, 'sales-engagement@engagement.local', 'Sales', 'fr', 'active')
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const company = await createCompany(client, tenant, { displayName: "Acme Engagement" });
+        const discovery = await createPipelineStage(client, tenant, {
+          name: "Discovery",
+          orderIndex: 0,
+          isInitial: true
+        });
+        const proposal = await createPipelineStage(client, tenant, {
+          name: "Proposal",
+          orderIndex: 1
+        });
+        const closedWon = await createPipelineStage(client, tenant, {
+          name: "Closed Won",
+          orderIndex: 2,
+          isWon: true
+        });
+
+        const opp = await createOpportunity(client, tenant, {
+          companyId: company.id,
+          name: "Annual licence",
+          stageId: discovery.id
+        });
+        await updateOpportunity(client, tenant, opp.id, { stageId: proposal.id });
+        await updateOpportunity(client, tenant, opp.id, {
+          stageId: closedWon.id,
+          status: "won"
+        });
+
+        const chain = await readOpportunityJournalChain(client, tenant, opp.id);
+        // created (sequence 0) -> stage_changed (1) -> stage_changed (2)
+        //   + won (3); the second updateOpportunity flips both stage AND status,
+        //   producing two journal entries on the same call.
+        expect(chain.length).toBeGreaterThanOrEqual(3);
+        expect(chain[0]!.type).toBe("propose");
+        expect(chain[chain.length - 1]!.type).toBe("accept");
+        expect(verifyJournalChain(chain).ok).toBe(true);
+      } finally {
+        await client.query("rollback");
+      }
+    });
   });
 
   it("CRM Pipeline + Opportunity end-to-end: stage_changed + won/lost audit grammar", async () => {

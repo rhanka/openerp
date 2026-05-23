@@ -128,3 +128,99 @@ export async function readApprovalJournalChain(
   );
   return res.rows.map((row) => row.entry);
 }
+
+// ---------------------------------------------------------------------------
+// Generic resource-keyed helpers (DS 2.6+). Any module can chain h2a journal
+// entries on a (resource_type, resource_id) pair by reusing these primitives.
+// ApprovalRequest stays on its dedicated lookup above (approval_request_id FK)
+// for backward compatibility; new modules use the generic path.
+// ---------------------------------------------------------------------------
+
+export interface BuildResourceJournalEntryInput<TBody> {
+  resourceType: string;
+  resourceId: string;
+  actorInstance: string;
+  actorRole?: "PRINCIPAL" | "EXECUTIF" | "CONDUCTOR" | "AGENTS" | "CONTROL" | "MANDATAIRE";
+  type: H2AEnvelopeType;
+  artifactKind?: string;
+  body: TBody;
+  signing?: AuditSigningConfig | null;
+}
+
+export async function buildResourceJournalEntry<TBody>(
+  db: Queryable,
+  context: TenantContext,
+  input: BuildResourceJournalEntryInput<TBody>
+): Promise<H2AJournalEntry<TBody>> {
+  const payload: H2AJournalPayload<TBody> = {
+    id: randomUUID(),
+    type: input.type,
+    actor: {
+      instance: input.actorInstance,
+      role: input.actorRole ?? "EXECUTIF",
+      scope: `org:${context.organizationId}`
+    },
+    artifactKind: input.artifactKind ?? "ENGAGEMENT",
+    engagementId: input.resourceId,
+    correlationId: input.resourceId,
+    body: input.body,
+    createdAt: new Date().toISOString()
+  };
+
+  const signing = input.signing === undefined ? readAuditSigningConfig() : input.signing;
+  let signedPayload: H2AJournalPayload<TBody> = payload;
+  if (signing) {
+    const signature: H2ASignature = signJournalPayload({
+      payloadWithoutSignatures: payload as unknown as Record<string, unknown>,
+      signing
+    });
+    signedPayload = { ...payload, signatures: [signature] };
+  }
+
+  const prev = await findPreviousJournalEntryByResource<TBody>(
+    db,
+    context,
+    input.resourceType,
+    input.resourceId
+  );
+  return prev ? appendJournalEntry(prev, signedPayload) : createJournalEntry(signedPayload);
+}
+
+export async function findPreviousJournalEntryByResource<TBody>(
+  db: Queryable,
+  context: TenantContext,
+  resourceType: string,
+  resourceId: string
+): Promise<H2AJournalEntry<TBody> | null> {
+  const res = await db.query<{ entry: H2AJournalEntry<TBody> | null }>(
+    `select (after_summary->'journalEntry')::jsonb as entry
+       from audit_events
+      where organization_id = $1
+        and resource_type = $2
+        and resource_id = $3
+        and after_summary ? 'journalEntry'
+      order by ((after_summary->'journalEntry'->>'sequence')::int) desc
+      limit 1`,
+    [context.organizationId, resourceType, resourceId]
+  );
+  return res.rows[0]?.entry ?? null;
+}
+
+export async function readJournalChainByResource<TBody>(
+  db: Queryable,
+  context: TenantContext,
+  resourceType: string,
+  resourceId: string
+): Promise<H2AJournalEntry<TBody>[]> {
+  const res = await db.query<{ entry: H2AJournalEntry<TBody> }>(
+    `select (after_summary->'journalEntry')::jsonb as entry
+       from audit_events
+      where organization_id = $1
+        and resource_type = $2
+        and resource_id = $3
+        and after_summary ? 'journalEntry'
+      order by ((after_summary->'journalEntry'->>'sequence')::int) asc`,
+    [context.organizationId, resourceType, resourceId]
+  );
+  return res.rows.map((row) => row.entry);
+}
