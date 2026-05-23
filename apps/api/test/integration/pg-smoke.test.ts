@@ -87,6 +87,88 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("supervision_requests");
   });
 
+  it("CRM Pipeline + Opportunity end-to-end: stage_changed + won/lost audit grammar", async () => {
+    const { createCompany } = await import("../../src/crm/company-service");
+    const { createPipelineStage } = await import(
+      "../../src/crm/pipeline-stage-service"
+    );
+    const {
+      createOpportunity,
+      updateOpportunity
+    } = await import("../../src/crm/opportunity-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Pipe Co', 'Pipe Co', 'pipe-co', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `insert into users (organization_id, email, display_name, preferred_locale, status)
+             values ($1, 'sales-pipe@pipe.local', 'Sales', 'fr', 'active')
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const company = await createCompany(client, tenant, { displayName: "Acme" });
+        const discovery = await createPipelineStage(client, tenant, {
+          name: "Discovery",
+          orderIndex: 0,
+          isInitial: true
+        });
+        const proposal = await createPipelineStage(client, tenant, {
+          name: "Proposal",
+          orderIndex: 1
+        });
+        const closedWon = await createPipelineStage(client, tenant, {
+          name: "Closed Won",
+          orderIndex: 2,
+          isWon: true
+        });
+
+        const opp = await createOpportunity(client, tenant, {
+          companyId: company.id,
+          name: "Annual licence",
+          stageId: discovery.id,
+          expectedValue: { amountMinor: 12_000_00, currency: "CAD", scale: 2 },
+          currency: "CAD"
+        });
+
+        await updateOpportunity(client, tenant, opp.id, { stageId: proposal.id });
+        await updateOpportunity(client, tenant, opp.id, {
+          stageId: closedWon.id,
+          status: "won"
+        });
+
+        const auditRows = await client.query<{ action: string }>(
+          `select action
+             from audit_events
+            where organization_id = $1 and resource_type = 'opportunity' and resource_id = $2::text
+            order by created_at asc, (after_summary->>'status') asc`,
+          [orgId, opp.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        // created, then 2x updated + 2x stage_changed (one per stage move),
+        // plus 1x won on the final close. Ordering is non-deterministic among
+        // events sharing the same created_at; we assert presence only.
+        expect(actions).toContain("crm.opportunity.created");
+        expect(actions.filter((a) => a === "crm.opportunity.updated").length).toBeGreaterThanOrEqual(2);
+        expect(actions.filter((a) => a === "crm.opportunity.stage_changed").length).toBe(2);
+        expect(actions).toContain("crm.opportunity.won");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("CRM Contact end-to-end: create -> filter by company -> update emits crm.contact.* audit", async () => {
     const {
       createContact,

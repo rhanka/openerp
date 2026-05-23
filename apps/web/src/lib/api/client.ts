@@ -6,8 +6,15 @@ import type {
   ContactStatus,
   CreateCompanyInput,
   CreateContactInput,
+  CreateOpportunityInput,
+  CreatePipelineStageInput,
+  Opportunity,
+  OpportunityStatus,
+  PipelineStage,
   UpdateCompanyInput,
-  UpdateContactInput
+  UpdateContactInput,
+  UpdateOpportunityInput,
+  UpdatePipelineStageInput
 } from "@sentropic/openerp-domain/crm";
 
 export interface ApiClientOptions {
@@ -143,6 +150,53 @@ export function createApiClient(options: ApiClientOptions) {
 
     async updateContact(id: string, patch: UpdateContactInput): Promise<Contact> {
       return request<Contact>(`/crm/contacts/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async listPipelineStages(query: { activeOnly?: boolean } = {}): Promise<PipelineStage[]> {
+      const params = new URLSearchParams();
+      if (query.activeOnly) params.set("activeOnly", "true");
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: PipelineStage[] }>(`/crm/pipeline-stages${suffix}`);
+      return body.items;
+    },
+
+    async createPipelineStage(input: CreatePipelineStageInput): Promise<PipelineStage> {
+      return request<PipelineStage>(`/crm/pipeline-stages`, { method: "POST", body: input });
+    },
+
+    async updatePipelineStage(id: string, patch: UpdatePipelineStageInput): Promise<PipelineStage> {
+      return request<PipelineStage>(`/crm/pipeline-stages/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async listOpportunities(query: {
+      limit?: number;
+      offset?: number;
+      status?: OpportunityStatus;
+      companyId?: string;
+      stageId?: string;
+    } = {}): Promise<Opportunity[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Opportunity[] }>(`/crm/opportunities${suffix}`);
+      return body.items;
+    },
+
+    async createOpportunity(input: CreateOpportunityInput): Promise<Opportunity> {
+      return request<Opportunity>(`/crm/opportunities`, { method: "POST", body: input });
+    },
+
+    async updateOpportunity(id: string, patch: UpdateOpportunityInput): Promise<Opportunity> {
+      return request<Opportunity>(`/crm/opportunities/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: patch
       });
