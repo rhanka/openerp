@@ -87,6 +87,70 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("supervision_requests");
   });
 
+  it("CRM Company end-to-end: create -> list -> update emits crm.company.* audit", async () => {
+    const {
+      createCompany,
+      listCompanies,
+      updateCompany
+    } = await import("../../src/crm/company-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('CRM Co', 'CRM Co', 'crm-co', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `insert into users (organization_id, email, display_name, preferred_locale, status)
+             values ($1, 'sales@crm.local', 'Sales', 'fr', 'active')
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const created = await createCompany(client, tenant, {
+          displayName: "Northwind",
+          legalName: "Northwind Services Inc.",
+          language: "fr",
+          taxRegion: "CA-QC"
+        });
+        expect(created.id).toBeTruthy();
+        expect(created.status).toBe("active");
+        expect(created.displayName).toBe("Northwind");
+
+        const archived = await updateCompany(client, tenant, created.id, {
+          status: "archived",
+          displayName: "Northwind Services"
+        });
+        expect(archived.status).toBe("archived");
+        expect(archived.displayName).toBe("Northwind Services");
+
+        const all = await listCompanies(client, tenant);
+        expect(all).toHaveLength(1);
+        expect(all[0]!.status).toBe("archived");
+
+        const auditRows = await client.query<{ action: string }>(
+          `select action
+             from audit_events
+            where organization_id = $1 and resource_type = 'company' and resource_id = $2::text
+            order by ((after_summary->>'status')::text) asc`,
+          [orgId, created.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action).sort();
+        expect(actions).toEqual(["crm.company.created", "crm.company.updated"]);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("isolates agentic tables by tenant via RLS (Article 4.6)", async () => {
     await pool.withClient(async (client) => {
       await client.query("begin");

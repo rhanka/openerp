@@ -22,6 +22,7 @@
   const currentPath = $derived(page.url?.pathname ?? "/");
 
   const navItems: SideNavItem[] = $derived([
+    { label: t(locale, "nav.crm"), href: "/admin/crm/companies" },
     { label: t(locale, "nav.users"), href: "/admin/users" },
     { label: t(locale, "nav.roles"), href: "/admin/roles" },
     { label: t(locale, "nav.approvals"), href: "/admin/approvals" },

@@ -1,4 +1,10 @@
 import type { ApprovalRequest, AuditEvent } from "@sentropic/openerp-domain";
+import type {
+  Company,
+  CompanyStatus,
+  CreateCompanyInput,
+  UpdateCompanyInput
+} from "@sentropic/openerp-domain/crm";
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -92,6 +98,28 @@ export function createApiClient(options: ApiClientOptions) {
           }
         }
       );
+    },
+
+    async listCompanies(query: { limit?: number; offset?: number; status?: CompanyStatus } = {}): Promise<Company[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Company[] }>(`/crm/companies${suffix}`);
+      return body.items;
+    },
+
+    async createCompany(input: CreateCompanyInput): Promise<Company> {
+      return request<Company>(`/crm/companies`, { method: "POST", body: input });
+    },
+
+    async updateCompany(id: string, patch: UpdateCompanyInput): Promise<Company> {
+      return request<Company>(`/crm/companies/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
     }
   };
 }

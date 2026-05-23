@@ -19,6 +19,10 @@
     "./contracts": {
       "types": "./dist/contracts.d.ts",
       "default": "./dist/contracts.js"
+    },
+    "./crm": {
+      "types": "./dist/crm.d.ts",
+      "default": "./dist/crm.js"
     }
   },
   "files": [
