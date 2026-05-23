@@ -87,12 +87,29 @@ function makeFakeDb() {
       }
 
       if (t.includes("insert into audit_events")) {
-        const [organizationId, actorUserId, action, resourceId, beforeSummary, afterSummary] =
-          values as [string, string, string, string, unknown, unknown];
+        // Positional shape (audit-emit dynamic INSERT):
+        //   $1 organization_id, $2 actor_user_id, $3 actor_type, $4 action,
+        //   $5 resource_type, $6 resource_id, $7 before_summary, $8 after_summary
+        //   + optional canon columns appended afterwards (correlation_id, ...).
+        const [
+          organizationId,
+          actorUserId,
+          _actorType,
+          action,
+          resourceType,
+          resourceId,
+          beforeSummary,
+          afterSummary
+        ] = values as [string, string, string, string, string, string, unknown, unknown];
+        void _actorType;
         audits.push({
-          organizationId, actorUserId,
-          action, resourceType: "approval_request",
-          resourceId, beforeSummary, afterSummary
+          organizationId,
+          actorUserId,
+          action,
+          resourceType,
+          resourceId,
+          beforeSummary,
+          afterSummary
         });
         return { rows: [] };
       }

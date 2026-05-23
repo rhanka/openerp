@@ -2,6 +2,7 @@ import type { Company, CreateCompanyInput, UpdateCompanyInput } from "@sentropic
 
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
+import { recordAuditEvent } from "../foundation/audit-emit";
 import {
   findCompanyById,
   insertCompany,
@@ -99,18 +100,11 @@ async function emitCompanyAudit(
   context: TenantContext,
   input: EmitCompanyAuditInput
 ): Promise<void> {
-  await db.query(
-    `insert into audit_events (
-       organization_id, actor_user_id, actor_type, action, resource_type, resource_id,
-       before_summary, after_summary
-     ) values ($1, $2, 'user', $3, 'company', $4, $5, $6)`,
-    [
-      context.organizationId,
-      context.actorUserId,
-      input.action,
-      input.companyId,
-      input.beforeSummary,
-      input.afterSummary
-    ]
-  );
+  await recordAuditEvent(db, context, {
+    action: input.action,
+    resourceType: "company",
+    resourceId: input.companyId,
+    beforeSummary: input.beforeSummary,
+    afterSummary: input.afterSummary
+  });
 }

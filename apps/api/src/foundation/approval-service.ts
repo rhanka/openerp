@@ -8,6 +8,7 @@ import {
   listPendingApprovalsForApprover,
   recordApprovalDecision
 } from "./approval-requests";
+import { recordAuditEvent } from "./audit-emit";
 import { buildApprovalJournalEntry, type ApprovalAction } from "./h2a-bridge";
 
 // Service wiring for the ApprovalService contract (PG-07). Layers the repository
@@ -219,20 +220,13 @@ async function emitApprovalAudit(
 
   const afterWithJournal = { ...(input.afterSummary ?? {}), journalEntry: entry };
 
-  await db.query(
-    `insert into audit_events (
-       organization_id, actor_user_id, actor_type, action, resource_type, resource_id,
-       before_summary, after_summary, approval_request_id, correlation_id
-     ) values ($1, $2, 'user', $3, 'approval_request', $4, $5, $6, $7, $8::uuid)`,
-    [
-      context.organizationId,
-      context.actorUserId,
-      input.action,
-      input.approvalRequestId,
-      input.beforeSummary,
-      afterWithJournal,
-      input.approvalRequestId,
-      entry.id
-    ]
-  );
+  await recordAuditEvent(db, context, {
+    action: input.action,
+    resourceType: "approval_request",
+    resourceId: input.approvalRequestId,
+    beforeSummary: input.beforeSummary,
+    afterSummary: afterWithJournal,
+    correlationId: entry.id,
+    approvalRequestId: input.approvalRequestId
+  });
 }

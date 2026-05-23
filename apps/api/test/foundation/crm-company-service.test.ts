@@ -141,13 +141,23 @@ function makeFakeDb() {
       }
 
       if (t.includes("insert into audit_events")) {
-        const [organizationId, actorUserId, action, resourceId, beforeSummary, afterSummary] =
-          values as [string, string, string, string, unknown, unknown];
+        // audit-emit positional shape (see audit-emit.ts).
+        const [
+          organizationId,
+          actorUserId,
+          _actorType,
+          action,
+          resourceType,
+          resourceId,
+          beforeSummary,
+          afterSummary
+        ] = values as [string, string, string, string, string, string, unknown, unknown];
+        void _actorType;
         audits.push({
           organizationId,
           actorUserId,
           action,
-          resourceType: "company",
+          resourceType,
           resourceId,
           beforeSummary,
           afterSummary

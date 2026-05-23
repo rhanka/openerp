@@ -162,7 +162,16 @@ function makeFakeDb() {
       }
 
       if (t.includes("insert into audit_events")) {
-        const [, , action, resourceId] = values as [string, string, string, string];
+        // audit-emit positional shape: $1 org, $2 actor, $3 actor_type, $4 action,
+        // $5 resource_type, $6 resource_id, ...
+        const [, , , action, , resourceId] = values as [
+          string,
+          string,
+          string,
+          string,
+          string,
+          string
+        ];
         audits.push({ action, resource_id: resourceId });
         return { rows: [] };
       }
