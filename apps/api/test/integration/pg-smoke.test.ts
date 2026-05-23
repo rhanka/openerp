@@ -87,6 +87,74 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("supervision_requests");
   });
 
+  it("CRM Contact end-to-end: create -> filter by company -> update emits crm.contact.* audit", async () => {
+    const {
+      createContact,
+      listContacts,
+      updateContact
+    } = await import("../../src/crm/contact-service");
+    const { createCompany } = await import("../../src/crm/company-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Contact Co', 'Contact Co', 'contact-co', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `insert into users (organization_id, email, display_name, preferred_locale, status)
+             values ($1, 'sales-it@contact.local', 'Sales IT', 'fr', 'active')
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const company = await createCompany(client, tenant, { displayName: "Northwind" });
+
+        const alice = await createContact(client, tenant, {
+          displayName: "Alice Tremblay",
+          firstName: "Alice",
+          lastName: "Tremblay",
+          email: "alice@northwind.local",
+          companyId: company.id
+        });
+        await createContact(client, tenant, {
+          displayName: "Bob Orphan",
+          email: "bob@elsewhere.local"
+        });
+
+        const scoped = await listContacts(client, tenant, { companyId: company.id });
+        expect(scoped.map((c) => c.displayName)).toEqual(["Alice Tremblay"]);
+
+        const updated = await updateContact(client, tenant, alice.id, {
+          status: "inactive",
+          title: "VP Operations"
+        });
+        expect(updated.status).toBe("inactive");
+        expect(updated.title).toBe("VP Operations");
+
+        const auditRows = await client.query<{ action: string }>(
+          `select action
+             from audit_events
+            where organization_id = $1 and resource_type = 'contact' and resource_id = $2::text
+            order by ((after_summary->>'status')::text) asc`,
+          [orgId, alice.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action).sort();
+        expect(actions).toEqual(["crm.contact.created", "crm.contact.updated"]);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("CRM Company end-to-end: create -> list -> update emits crm.company.* audit", async () => {
     const {
       createCompany,

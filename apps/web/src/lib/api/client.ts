@@ -2,8 +2,12 @@ import type { ApprovalRequest, AuditEvent } from "@sentropic/openerp-domain";
 import type {
   Company,
   CompanyStatus,
+  Contact,
+  ContactStatus,
   CreateCompanyInput,
-  UpdateCompanyInput
+  CreateContactInput,
+  UpdateCompanyInput,
+  UpdateContactInput
 } from "@sentropic/openerp-domain/crm";
 
 export interface ApiClientOptions {
@@ -117,6 +121,28 @@ export function createApiClient(options: ApiClientOptions) {
 
     async updateCompany(id: string, patch: UpdateCompanyInput): Promise<Company> {
       return request<Company>(`/crm/companies/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async listContacts(query: { limit?: number; offset?: number; status?: ContactStatus; companyId?: string } = {}): Promise<Contact[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Contact[] }>(`/crm/contacts${suffix}`);
+      return body.items;
+    },
+
+    async createContact(input: CreateContactInput): Promise<Contact> {
+      return request<Contact>(`/crm/contacts`, { method: "POST", body: input });
+    },
+
+    async updateContact(id: string, patch: UpdateContactInput): Promise<Contact> {
+      return request<Contact>(`/crm/contacts/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: patch
       });

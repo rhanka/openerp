@@ -7,6 +7,7 @@ import type { PasskeyService } from "../foundation/passkey-service";
 import { mountApprovalRequestRoutes } from "./handlers/approval-requests";
 import { mountAuditEventsRoutes } from "./handlers/audit-events";
 import { mountCrmCompanyRoutes } from "./handlers/crm-companies";
+import { mountCrmContactRoutes } from "./handlers/crm-contacts";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
@@ -80,6 +81,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountApprovalRequestRoutes(app);
   mountAuditEventsRoutes(app);
   mountCrmCompanyRoutes(app);
+  mountCrmContactRoutes(app);
 
   return app;
 }

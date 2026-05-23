@@ -63,9 +63,55 @@ export interface UpdateCompanyInput {
   shippingAddress?: AddressPayload | null;
 }
 
+export type ContactStatus = "active" | "inactive";
+
+export interface Contact {
+  id: string;
+  organizationId: string;
+  companyId: string | null;
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  language: LocaleCode | null;
+  status: ContactStatus;
+  ownerUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateContactInput {
+  companyId?: string | null;
+  displayName: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  title?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  language?: LocaleCode | null;
+  ownerUserId?: string | null;
+}
+
+export interface UpdateContactInput {
+  companyId?: string | null;
+  displayName?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  title?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  language?: LocaleCode | null;
+  status?: ContactStatus;
+  ownerUserId?: string | null;
+}
+
 export const CRM_DOMAIN_EVENTS = [
   "crm.company.created",
-  "crm.company.updated"
+  "crm.company.updated",
+  "crm.contact.created",
+  "crm.contact.updated"
 ] as const;
 
 export type CrmDomainEvent = (typeof CRM_DOMAIN_EVENTS)[number];
