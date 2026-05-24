@@ -5,6 +5,9 @@ export interface SeedResult {
   userIdentityId: string;
   auditEventCount: number;
   approvalRequestCount: number;
+  pipelineStageCount: number;
+  companyCount: number;
+  opportunityCount: number;
 }
 
 export const DEMO_ORG_SLUG = "northwind-services";
@@ -38,6 +41,10 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
     // below keeps referential integrity intact for the purge.
     await client.query("set local session_replication_role = replica");
     await client.query(`delete from audit_events where organization_id = $1`, [orgId]);
+    await client.query(`delete from opportunities where organization_id = $1`, [orgId]);
+    await client.query(`delete from pipeline_stages where organization_id = $1`, [orgId]);
+    await client.query(`delete from contacts where organization_id = $1`, [orgId]);
+    await client.query(`delete from companies where organization_id = $1`, [orgId]);
     await client.query(`delete from approval_requests where organization_id = $1`, [orgId]);
     await client.query(`delete from idempotency_records where organization_id = $1`, [orgId]);
     await client.query(`delete from organization_members where organization_id = $1`, [orgId]);
@@ -160,10 +167,57 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
     ]
   );
 
+  // CRM seed: 3 pipeline stages (Discovery initial / Proposal / Closed Won) +
+  // 1 demo Company + 1 demo Opportunity so /admin/crm/opportunities renders a
+  // realistic funnel without requiring tenant setup.
+  const stageRows = await client.query<{ id: string; name: string }>(
+    `insert into pipeline_stages (
+       organization_id, name, order_index, is_initial, is_won, is_lost, active
+     ) values
+       ($1, 'Discovery', 0, true,  false, false, true),
+       ($1, 'Proposal',  1, false, false, false, true),
+       ($1, 'Closed Won', 2, false, true,  false, true),
+       ($1, 'Closed Lost', 3, false, false, true,  true)
+     returning id, name`,
+    [organizationId]
+  );
+  const discoveryStageId = stageRows.rows.find((r) => r.name === "Discovery")!.id;
+
+  const companyRes = await client.query<{ id: string }>(
+    `insert into companies (
+       organization_id, display_name, legal_name, status, owner_user_id,
+       website, email, language, tax_region
+     ) values ($1, 'Acme Logistics', 'Acme Logistics Inc.', 'active', $2,
+       'https://acme.example', 'contact@acme.example', 'fr', 'CA-QC')
+     returning id`,
+    [organizationId, userIdentityId]
+  );
+  const acmeCompanyId = companyRes.rows[0]!.id;
+
+  const opportunityRes = await client.query<{ id: string }>(
+    `insert into opportunities (
+       organization_id, company_id, name, stage_id, status, owner_user_id,
+       expected_value, currency, probability_band, service_summary
+     ) values ($1, $2, 'Acme — Annual platform licence', $3, 'open', $4,
+       $5::jsonb, 'CAD', 'medium', 'Bilingual SaaS licence + onboarding')
+     returning id`,
+    [
+      organizationId,
+      acmeCompanyId,
+      discoveryStageId,
+      userIdentityId,
+      JSON.stringify({ amountMinor: 4_800_000, currency: "CAD", scale: 2 })
+    ]
+  );
+  const opportunityCount = opportunityRes.rows.length;
+
   return {
     organizationId,
     userIdentityId,
     auditEventCount: auditSamples.length,
-    approvalRequestCount: 3
+    approvalRequestCount: 3,
+    pipelineStageCount: stageRows.rows.length,
+    companyCount: 1,
+    opportunityCount
   };
 }
