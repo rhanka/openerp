@@ -164,7 +164,9 @@
           <Card>
             <header class="page__item-header">
               <div>
-                <h2>{opp.name}</h2>
+                <h2>
+                  <a class="page__item-link" href="/admin/crm/opportunities/{opp.id}">{opp.name}</a>
+                </h2>
                 <p class="page__item-sub">
                   {stage?.name ?? opp.stageId} · {amount ?? "—"}
                 </p>
@@ -275,6 +277,14 @@
     margin: var(--sent-space-2xs) 0 0 0;
     color: var(--sent-color-text-muted);
     font-size: var(--sent-font-size-sm);
+  }
+  .page__item-link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .page__item-link:hover,
+  .page__item-link:focus {
+    text-decoration: underline;
   }
   .page__item-actions {
     display: flex;

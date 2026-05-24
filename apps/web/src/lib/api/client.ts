@@ -1,4 +1,4 @@
-import type { ApprovalRequest, AuditEvent } from "@sentropic/openerp-domain";
+import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
   Company,
   CompanyStatus,
@@ -200,6 +200,30 @@ export function createApiClient(options: ApiClientOptions) {
         method: "PATCH",
         body: patch
       });
+    },
+
+    async getOpportunity(id: string): Promise<Opportunity> {
+      return request<Opportunity>(`/crm/opportunities/${encodeURIComponent(id)}`);
+    },
+
+    async getCompany(id: string): Promise<Company> {
+      return request<Company>(`/crm/companies/${encodeURIComponent(id)}`);
+    },
+
+    async listCrmTimeline(query: {
+      resourceType: "company" | "contact" | "opportunity";
+      resourceId: string;
+      limit?: number;
+    }): Promise<TimelineEntry[]> {
+      const params = new URLSearchParams({
+        resourceType: query.resourceType,
+        resourceId: query.resourceId
+      });
+      if (query.limit !== undefined) params.set("limit", String(query.limit));
+      const body = await request<{ items: TimelineEntry[] }>(
+        `/crm/timeline?${params.toString()}`
+      );
+      return body.items;
     }
   };
 }
