@@ -7,6 +7,7 @@ import type {
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 import { recordAuditEvent } from "../foundation/audit-emit";
+import { emitCrmTimelineEntry } from "./crm-timeline";
 import {
   buildOpportunityJournalEntry,
   type OpportunityAction,
@@ -186,6 +187,16 @@ async function emitOpportunityTransition(
     beforeSummary,
     afterSummary: { ...afterCore, journalEntry },
     correlationId: journalEntry.id
+  });
+
+  // Mirror the meaningful transition into the human-readable timeline. The
+  // grammar validator (foundation/entry-type-grammar.ts) accepts the same
+  // `<crm>.<entity>.<verb>` shape we use for audit_events.
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "opportunity",
+    resourceId: opp.id,
+    entryType: auditAction,
+    payloadSummary: afterCore as Record<string, unknown> as import("@sentropic/openerp-domain").PayloadSummary
   });
 }
 

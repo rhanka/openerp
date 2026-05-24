@@ -10,6 +10,7 @@ import { mountCrmCompanyRoutes } from "./handlers/crm-companies";
 import { mountCrmContactRoutes } from "./handlers/crm-contacts";
 import { mountCrmOpportunityRoutes } from "./handlers/crm-opportunities";
 import { mountCrmPipelineRoutes } from "./handlers/crm-pipeline";
+import { mountCrmTimelineRoutes } from "./handlers/crm-timeline";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
@@ -86,6 +87,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountCrmContactRoutes(app);
   mountCrmPipelineRoutes(app);
   mountCrmOpportunityRoutes(app);
+  mountCrmTimelineRoutes(app);
 
   return app;
 }

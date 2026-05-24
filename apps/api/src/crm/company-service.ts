@@ -3,6 +3,7 @@ import type { Company, CreateCompanyInput, UpdateCompanyInput } from "@sentropic
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 import { recordAuditEvent } from "../foundation/audit-emit";
+import { emitCrmTimelineEntry } from "./crm-timeline";
 import {
   findCompanyById,
   insertCompany,
@@ -39,6 +40,16 @@ export async function createCompany(
       teamId: created.teamId
     }
   });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "company",
+    resourceId: created.id,
+    entryType: "crm.company.created",
+    payloadSummary: {
+      displayName: created.displayName,
+      legalName: created.legalName,
+      status: created.status
+    }
+  });
   return created;
 }
 
@@ -67,6 +78,15 @@ export async function updateCompany(
       status: updated.status,
       ownerUserId: updated.ownerUserId,
       teamId: updated.teamId
+    }
+  });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "company",
+    resourceId: updated.id,
+    entryType: "crm.company.updated",
+    payloadSummary: {
+      displayName: updated.displayName,
+      status: updated.status
     }
   });
   return updated;

@@ -19,7 +19,8 @@ describe("crm route registry", () => {
       "GET /crm/opportunities",
       "POST /crm/opportunities",
       "GET /crm/opportunities/:id",
-      "PATCH /crm/opportunities/:id"
+      "PATCH /crm/opportunities/:id",
+      "GET /crm/timeline"
     ]);
   });
 

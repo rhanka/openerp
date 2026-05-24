@@ -87,6 +87,60 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("supervision_requests");
   });
 
+  it("CRM TimelineEntry projection: meaningful transitions emit canonical entry_type (DS 2.2)", async () => {
+    const { createCompany, updateCompany } = await import(
+      "../../src/crm/company-service"
+    );
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Timeline Co', 'Timeline Co', 'timeline-co', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('timeline-id@timeline.local', 'Sales', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'timeline@timeline.local', 'Sales', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const company = await createCompany(client, tenant, { displayName: "Northwind" });
+        await updateCompany(client, tenant, company.id, { displayName: "Northwind Services" });
+
+        const timelineRows = await client.query<{
+          entry_type: string;
+          payload_summary: Record<string, unknown>;
+        }>(
+          `select entry_type, payload_summary
+             from timeline_entries
+            where organization_id = $1 and resource_type = 'company' and resource_id = $2
+            order by occurred_at asc, entry_type asc`,
+          [orgId, company.id]
+        );
+        const entryTypes = timelineRows.rows.map((r) => r.entry_type).sort();
+        expect(entryTypes).toEqual(["crm.company.created", "crm.company.updated"]);
+        const updatedRow = timelineRows.rows.find((r) => r.entry_type === "crm.company.updated");
+        expect(updatedRow?.payload_summary).toMatchObject({ displayName: "Northwind Services" });
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("CRM Opportunity h2a engagement chain verifies end-to-end (DS 2.6)", async () => {
     const { createCompany } = await import("../../src/crm/company-service");
     const { createPipelineStage } = await import(
@@ -114,8 +168,13 @@ describeOrSkip("pg-client + migrate (integration)", () => {
         );
         const orgId = orgRes.rows[0]!.id;
         const userRes = await client.query<{ id: string }>(
-          `insert into users (organization_id, email, display_name, preferred_locale, status)
-             values ($1, 'sales-engagement@engagement.local', 'Sales', 'fr', 'active')
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sales-engagement-id@engagement.local', 'Sales', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sales-engagement@engagement.local', 'Sales', 'fr', 'active' from id
            returning id`,
           [orgId]
         );
@@ -186,8 +245,13 @@ describeOrSkip("pg-client + migrate (integration)", () => {
         );
         const orgId = orgRes.rows[0]!.id;
         const userRes = await client.query<{ id: string }>(
-          `insert into users (organization_id, email, display_name, preferred_locale, status)
-             values ($1, 'sales-pipe@pipe.local', 'Sales', 'fr', 'active')
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sales-pipe-id@pipe.local', 'Sales', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sales-pipe@pipe.local', 'Sales', 'fr', 'active' from id
            returning id`,
           [orgId]
         );
@@ -266,8 +330,13 @@ describeOrSkip("pg-client + migrate (integration)", () => {
         );
         const orgId = orgRes.rows[0]!.id;
         const userRes = await client.query<{ id: string }>(
-          `insert into users (organization_id, email, display_name, preferred_locale, status)
-             values ($1, 'sales-it@contact.local', 'Sales IT', 'fr', 'active')
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sales-it-id@contact.local', 'Sales IT', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sales-it@contact.local', 'Sales IT', 'fr', 'active' from id
            returning id`,
           [orgId]
         );
@@ -333,8 +402,13 @@ describeOrSkip("pg-client + migrate (integration)", () => {
         );
         const orgId = orgRes.rows[0]!.id;
         const userRes = await client.query<{ id: string }>(
-          `insert into users (organization_id, email, display_name, preferred_locale, status)
-             values ($1, 'sales@crm.local', 'Sales', 'fr', 'active')
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sales-id@crm.local', 'Sales', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sales@crm.local', 'Sales', 'fr', 'active' from id
            returning id`,
           [orgId]
         );

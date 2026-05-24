@@ -19,6 +19,7 @@ export function buildCrmRoutes(): RouteContract[] {
     { method: "GET", path: "/crm/opportunities", audited: false },
     { method: "POST", path: "/crm/opportunities", audited: true },
     { method: "GET", path: "/crm/opportunities/:id", audited: false },
-    { method: "PATCH", path: "/crm/opportunities/:id", audited: true }
+    { method: "PATCH", path: "/crm/opportunities/:id", audited: true },
+    { method: "GET", path: "/crm/timeline", audited: false }
   ];
 }

@@ -3,6 +3,7 @@ import type { Contact, CreateContactInput, UpdateContactInput } from "@sentropic
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 import { recordAuditEvent } from "../foundation/audit-emit";
+import { emitCrmTimelineEntry } from "./crm-timeline";
 import {
   findContactById,
   insertContact,
@@ -35,6 +36,16 @@ export async function createContact(
       status: created.status
     }
   });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "contact",
+    resourceId: created.id,
+    entryType: "crm.contact.created",
+    payloadSummary: {
+      displayName: created.displayName,
+      companyId: created.companyId,
+      email: created.email
+    }
+  });
   return created;
 }
 
@@ -64,6 +75,16 @@ export async function updateContact(
       companyId: updated.companyId,
       status: updated.status,
       email: updated.email
+    }
+  });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "contact",
+    resourceId: updated.id,
+    entryType: "crm.contact.updated",
+    payloadSummary: {
+      displayName: updated.displayName,
+      companyId: updated.companyId,
+      status: updated.status
     }
   });
   return updated;
