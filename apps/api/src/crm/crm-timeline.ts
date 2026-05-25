@@ -9,7 +9,7 @@ import { insertTimelineEntry } from "../foundation/timeline-entries";
 // match the audit grammar to keep both projections in sync.
 
 export interface EmitCrmTimelineInput {
-  resourceType: "company" | "contact" | "opportunity";
+  resourceType: "company" | "contact" | "opportunity" | "lead";
   resourceId: string;
   entryType: string;
   payloadSummary: PayloadSummary;

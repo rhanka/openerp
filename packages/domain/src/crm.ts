@@ -198,6 +198,66 @@ export interface UpdateOpportunityInput {
   lossReason?: string | null;
 }
 
+// Lead canon (Article 4.2). Entry to the funnel: capture an unqualified
+// prospect, then convert into the Company + Contact + Opportunity triple in
+// one transaction.
+export type LeadStatus = "new" | "working" | "converted" | "disqualified";
+
+export interface Lead {
+  id: string;
+  organizationId: string;
+  source: string | null;
+  displayName: string;
+  companyName: string | null;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  description: string | null;
+  status: LeadStatus;
+  ownerUserId: string | null;
+  teamId: string | null;
+  /** Set when status transitions to "converted". */
+  convertedAt: string | null;
+  /** Targets populated by the conversion path; null otherwise. */
+  convertedCompanyId: string | null;
+  convertedContactId: string | null;
+  convertedOpportunityId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLeadInput {
+  displayName: string;
+  source?: string | null;
+  companyName?: string | null;
+  contactName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  description?: string | null;
+  ownerUserId?: string | null;
+  teamId?: string | null;
+}
+
+export interface UpdateLeadInput {
+  source?: string | null;
+  displayName?: string;
+  companyName?: string | null;
+  contactName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  description?: string | null;
+  status?: Exclude<LeadStatus, "converted">;
+  ownerUserId?: string | null;
+  teamId?: string | null;
+}
+
+export interface ConvertLeadResult {
+  lead: Lead;
+  company: Company;
+  contact: Contact | null;
+  opportunity: Opportunity;
+}
+
 export const CRM_DOMAIN_EVENTS = [
   "crm.company.created",
   "crm.company.updated",
@@ -209,7 +269,10 @@ export const CRM_DOMAIN_EVENTS = [
   "crm.opportunity.updated",
   "crm.opportunity.stage_changed",
   "crm.opportunity.won",
-  "crm.opportunity.lost"
+  "crm.opportunity.lost",
+  "crm.lead.created",
+  "crm.lead.updated",
+  "crm.lead.converted"
 ] as const;
 
 export type CrmDomainEvent = (typeof CRM_DOMAIN_EVENTS)[number];

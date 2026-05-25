@@ -8,6 +8,7 @@ import { mountApprovalRequestRoutes } from "./handlers/approval-requests";
 import { mountAuditEventsRoutes } from "./handlers/audit-events";
 import { mountCrmCompanyRoutes } from "./handlers/crm-companies";
 import { mountCrmContactRoutes } from "./handlers/crm-contacts";
+import { mountCrmLeadRoutes } from "./handlers/crm-leads";
 import { mountCrmOpportunityRoutes } from "./handlers/crm-opportunities";
 import { mountCrmPipelineRoutes } from "./handlers/crm-pipeline";
 import { mountCrmTimelineRoutes } from "./handlers/crm-timeline";
@@ -87,6 +88,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountCrmContactRoutes(app);
   mountCrmPipelineRoutes(app);
   mountCrmOpportunityRoutes(app);
+  mountCrmLeadRoutes(app);
   mountCrmTimelineRoutes(app);
 
   return app;

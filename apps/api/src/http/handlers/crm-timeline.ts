@@ -7,7 +7,7 @@ import { listTimelineEntriesForResource } from "../../foundation/timeline-entrie
 // Read-only projection of the canon TimelineEntry table scoped to the CRM
 // resource types. Other modules can mount equivalent surfaces against the
 // same foundation repository.
-const CRM_RESOURCE_TYPES = new Set(["company", "contact", "opportunity"]);
+const CRM_RESOURCE_TYPES = new Set(["company", "contact", "opportunity", "lead"]);
 
 export function mountCrmTimelineRoutes(app: Hono<AppBindings>): void {
   app.get("/crm/timeline", async (c) => {

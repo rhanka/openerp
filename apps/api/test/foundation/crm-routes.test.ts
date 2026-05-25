@@ -20,21 +20,28 @@ describe("crm route registry", () => {
       "POST /crm/opportunities",
       "GET /crm/opportunities/:id",
       "PATCH /crm/opportunities/:id",
+      "GET /crm/leads",
+      "POST /crm/leads",
+      "GET /crm/leads/:id",
+      "PATCH /crm/leads/:id",
+      "POST /crm/leads/:id/convert",
       "GET /crm/timeline"
     ]);
   });
 
-  it("flags mutating endpoints as audited (companies + contacts + pipeline + opportunities)", () => {
+  it("flags mutating endpoints as audited (companies + contacts + pipeline + opportunities + leads)", () => {
     const routes = buildCrmRoutes();
     for (const path of [
       "/crm/companies",
       "/crm/contacts",
       "/crm/pipeline-stages",
-      "/crm/opportunities"
+      "/crm/opportunities",
+      "/crm/leads"
     ]) {
       expect(routes.find((r) => r.path === path && r.method === "POST")?.audited).toBe(true);
       expect(routes.find((r) => r.path === `${path}/:id` && r.method === "PATCH")?.audited).toBe(true);
       expect(routes.find((r) => r.path === path && r.method === "GET")?.audited).toBe(false);
     }
+    expect(routes.find((r) => r.path === "/crm/leads/:id/convert" && r.method === "POST")?.audited).toBe(true);
   });
 });

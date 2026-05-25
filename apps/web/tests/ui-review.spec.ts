@@ -19,6 +19,7 @@ const reviewedRoutes: Array<{
 }> = [
   { path: "/admin/approvals", labels: { en: "Approvals", fr: "Approbations" }, activeNav: true },
   { path: "/admin/audit", labels: { en: "Audit", fr: "Audit" }, activeNav: true },
+  { path: "/admin/crm/leads", labels: { en: "Leads", fr: "Leads" }, activeNav: true },
   { path: "/admin/crm/companies", labels: { en: "Companies", fr: "Societes" }, activeNav: true },
   { path: "/admin/crm/contacts", labels: { en: "Contacts", fr: "Contacts" }, activeNav: true },
   {
@@ -174,12 +175,12 @@ test("UI review: keyboard flow reaches locale switcher and login actions", async
   await expectFocusVisible(frButton);
 
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("link", { name: "Companies" })).toBeFocused();
+  await expect(page.getByRole("link", { name: "Leads" })).toBeFocused();
 
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
 
-  await tabUntilFocused(page, page.getByLabel("Email address"), 16);
+  await tabUntilFocused(page, page.getByLabel("Email address"), 18);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
 });

@@ -87,6 +87,93 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     expect(tables).toContain("supervision_requests");
   });
 
+  it("CRM Lead conversion atomically creates Company + Contact + Opportunity (DS 2.4)", async () => {
+    const { createPipelineStage } = await import("../../src/crm/pipeline-stage-service");
+    const { convertLead, createLead, LeadNotConvertibleError } = await import(
+      "../../src/crm/lead-service"
+    );
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Lead Co', 'Lead Co', 'lead-co', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sales-lead-id@lead.local', 'Sales', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sales-lead@lead.local', 'Sales', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        // Configure an initial pipeline stage so convertLead can hand off.
+        await createPipelineStage(client, tenant, {
+          name: "Discovery",
+          orderIndex: 0,
+          isInitial: true
+        });
+
+        const lead = await createLead(client, tenant, {
+          displayName: "Acme contact via web form",
+          source: "web_form",
+          companyName: "Acme Acquisition Corp.",
+          contactName: "Alice Tremblay",
+          email: "alice@acme.example",
+          phone: "+1-514-555-0100"
+        });
+        expect(lead.status).toBe("new");
+
+        const outcome = await convertLead(client, tenant, lead.id);
+        expect(outcome.lead.status).toBe("converted");
+        expect(outcome.lead.convertedCompanyId).toBe(outcome.company.id);
+        expect(outcome.lead.convertedOpportunityId).toBe(outcome.opportunity.id);
+        expect(outcome.company.displayName).toBe("Acme Acquisition Corp.");
+        expect(outcome.contact?.displayName).toBe("Alice Tremblay");
+        expect(outcome.opportunity.status).toBe("open");
+
+        // Re-conversion is rejected.
+        await expect(convertLead(client, tenant, lead.id)).rejects.toBeInstanceOf(
+          LeadNotConvertibleError
+        );
+
+        const auditRows = await client.query<{ action: string }>(
+          `select action
+             from audit_events
+            where organization_id = $1 and resource_type = 'lead' and resource_id = $2::text
+            order by created_at asc, action asc`,
+          [orgId, lead.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action).sort();
+        expect(actions).toContain("crm.lead.created");
+        expect(actions).toContain("crm.lead.converted");
+
+        const leadTimeline = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'lead' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, lead.id]
+        );
+        const entryTypes = leadTimeline.rows.map((r) => r.entry_type).sort();
+        expect(entryTypes).toEqual(["crm.lead.converted", "crm.lead.created"].sort());
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("CRM TimelineEntry projection: meaningful transitions emit canonical entry_type (DS 2.2)", async () => {
     const { createCompany, updateCompany } = await import(
       "../../src/crm/company-service"

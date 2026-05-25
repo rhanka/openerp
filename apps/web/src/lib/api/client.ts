@@ -4,15 +4,20 @@ import type {
   CompanyStatus,
   Contact,
   ContactStatus,
+  ConvertLeadResult,
   CreateCompanyInput,
   CreateContactInput,
+  CreateLeadInput,
   CreateOpportunityInput,
   CreatePipelineStageInput,
+  Lead,
+  LeadStatus,
   Opportunity,
   OpportunityStatus,
   PipelineStage,
   UpdateCompanyInput,
   UpdateContactInput,
+  UpdateLeadInput,
   UpdateOpportunityInput,
   UpdatePipelineStageInput
 } from "@sentropic/openerp-domain/crm";
@@ -210,8 +215,36 @@ export function createApiClient(options: ApiClientOptions) {
       return request<Company>(`/crm/companies/${encodeURIComponent(id)}`);
     },
 
+    async listLeads(query: { limit?: number; offset?: number; status?: LeadStatus } = {}): Promise<Lead[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Lead[] }>(`/crm/leads${suffix}`);
+      return body.items;
+    },
+
+    async createLead(input: CreateLeadInput): Promise<Lead> {
+      return request<Lead>(`/crm/leads`, { method: "POST", body: input });
+    },
+
+    async updateLead(id: string, patch: UpdateLeadInput): Promise<Lead> {
+      return request<Lead>(`/crm/leads/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async convertLead(id: string): Promise<ConvertLeadResult> {
+      return request<ConvertLeadResult>(`/crm/leads/${encodeURIComponent(id)}/convert`, {
+        method: "POST"
+      });
+    },
+
     async listCrmTimeline(query: {
-      resourceType: "company" | "contact" | "opportunity";
+      resourceType: "company" | "contact" | "opportunity" | "lead";
       resourceId: string;
       limit?: number;
     }): Promise<TimelineEntry[]> {
