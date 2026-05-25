@@ -951,4 +951,90 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   });
+
+  it("Project end-to-end: create -> update -> soft-delete emits project.project.* audit + timeline (DS 3.0)", async () => {
+    const {
+      createProject,
+      deleteProject,
+      listProjects,
+      updateProject
+    } = await import("../../src/project/project-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Project Co', 'Project Co', 'project-co', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-id@project.local', 'PM', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm@project.local', 'PM', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const project = await createProject(client, tenant, {
+          name: "Northwind Implementation",
+          code: "NW-2026",
+          description: "Core ERP delivery"
+        });
+        expect(project.id).toBeTruthy();
+        expect(project.status).toBe("active");
+        expect(project.name).toBe("Northwind Implementation");
+
+        const updated = await updateProject(client, tenant, project.id, {
+          status: "on_hold",
+          name: "Northwind Implementation (on hold)"
+        });
+        expect(updated.status).toBe("on_hold");
+
+        const listBefore = await listProjects(client, tenant);
+        expect(listBefore.length).toBe(1);
+
+        await deleteProject(client, tenant, project.id);
+
+        const listAfter = await listProjects(client, tenant);
+        expect(listAfter.length).toBe(0);
+
+        // Audit rows preserved.
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'project' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, project.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("project.project.created");
+        expect(actions).toContain("project.project.updated");
+        expect(actions).toContain("project.project.deleted");
+
+        // Timeline rows preserved.
+        const tlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'project' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, project.id]
+        );
+        const entryTypes = tlRows.rows.map((r) => r.entry_type);
+        expect(entryTypes).toContain("project.project.created");
+        expect(entryTypes).toContain("project.project.updated");
+        expect(entryTypes).toContain("project.project.deleted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
 });

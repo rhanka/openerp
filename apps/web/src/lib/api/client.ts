@@ -1,5 +1,11 @@
 import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
+  CreateProjectInput,
+  Project,
+  ProjectStatus,
+  UpdateProjectInput
+} from "@sentropic/openerp-domain/project";
+import type {
   Company,
   CompanyStatus,
   Contact,
@@ -300,6 +306,51 @@ export function createApiClient(options: ApiClientOptions) {
 
     async deleteLead(id: string): Promise<void> {
       return requestNoContent(`/crm/leads/${encodeURIComponent(id)}`);
+    },
+
+    async listProjects(query: { limit?: number; offset?: number; status?: ProjectStatus } = {}): Promise<Project[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Project[] }>(`/project/projects${suffix}`);
+      return body.items;
+    },
+
+    async createProject(input: CreateProjectInput): Promise<Project> {
+      return request<Project>(`/project/projects`, { method: "POST", body: input });
+    },
+
+    async updateProject(id: string, patch: UpdateProjectInput): Promise<Project> {
+      return request<Project>(`/project/projects/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async getProject(id: string): Promise<Project> {
+      return request<Project>(`/project/projects/${encodeURIComponent(id)}`);
+    },
+
+    async deleteProject(id: string): Promise<void> {
+      return requestNoContent(`/project/projects/${encodeURIComponent(id)}`);
+    },
+
+    async listProjectTimeline(query: {
+      resourceId: string;
+      limit?: number;
+    }): Promise<TimelineEntry[]> {
+      const params = new URLSearchParams({
+        resourceType: "project",
+        resourceId: query.resourceId
+      });
+      if (query.limit !== undefined) params.set("limit", String(query.limit));
+      const body = await request<{ items: TimelineEntry[] }>(
+        `/project/timeline?${params.toString()}`
+      );
+      return body.items;
     }
   };
 }

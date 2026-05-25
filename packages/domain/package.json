@@ -23,6 +23,10 @@
     "./crm": {
       "types": "./dist/crm.d.ts",
       "default": "./dist/crm.js"
+    },
+    "./project": {
+      "types": "./dist/project.d.ts",
+      "default": "./dist/project.js"
     }
   },
   "files": [
