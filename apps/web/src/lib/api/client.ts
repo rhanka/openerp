@@ -215,6 +215,14 @@ export function createApiClient(options: ApiClientOptions) {
       return request<Company>(`/crm/companies/${encodeURIComponent(id)}`);
     },
 
+    async getContact(id: string): Promise<Contact> {
+      return request<Contact>(`/crm/contacts/${encodeURIComponent(id)}`);
+    },
+
+    async getLead(id: string): Promise<Lead> {
+      return request<Lead>(`/crm/leads/${encodeURIComponent(id)}`);
+    },
+
     async listLeads(query: { limit?: number; offset?: number; status?: LeadStatus } = {}): Promise<Lead[]> {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(query)) {

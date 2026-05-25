@@ -122,7 +122,9 @@
           <Card>
             <header class="page__item-header">
               <div>
-                <h2>{lead.displayName}</h2>
+                <h2>
+                  <a class="page__item-link" href="/admin/crm/leads/{lead.id}">{lead.displayName}</a>
+                </h2>
                 <p class="page__item-sub">
                   {lead.companyName ?? "—"} · {lead.email ?? lead.phone ?? "—"} · {formatTimestamp(lead.createdAt)}
                 </p>
@@ -216,5 +218,15 @@
     display: flex;
     gap: var(--sent-space-sm);
     margin-top: var(--sent-space-md);
+  }
+
+  .page__item-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .page__item-link:hover,
+  .page__item-link:focus {
+    text-decoration: underline;
   }
 </style>

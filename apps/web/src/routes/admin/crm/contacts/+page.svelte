@@ -145,7 +145,9 @@
           <Card>
             <header class="page__item-header">
               <div>
-                <h2>{contact.displayName}</h2>
+                <h2>
+                  <a class="page__item-link" href="/admin/crm/contacts/{contact.id}">{contact.displayName}</a>
+                </h2>
                 {#if contact.title}
                   <p class="page__item-sub">{contact.title}</p>
                 {/if}
@@ -269,5 +271,15 @@
   .page__item-actions {
     display: flex;
     justify-content: flex-end;
+  }
+
+  .page__item-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .page__item-link:hover,
+  .page__item-link:focus {
+    text-decoration: underline;
   }
 </style>
