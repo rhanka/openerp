@@ -78,6 +78,25 @@ export function createApiClient(options: ApiClientOptions) {
     return (await response.json()) as T;
   }
 
+  async function requestNoContent(
+    path: string,
+    init: { method?: string; idempotencyKey?: string } = {}
+  ): Promise<void> {
+    const reqHeaders = headers();
+    if (init.idempotencyKey) reqHeaders["idempotency-key"] = init.idempotencyKey;
+    const response = await doFetch(`${options.baseUrl}${path}`, {
+      method: init.method ?? "DELETE",
+      headers: reqHeaders
+    });
+    if (!response.ok) {
+      const body = (await safeJson(response)) as { code?: string } | null;
+      const err = new Error(`API ${response.status} for ${path}`) as ApiError;
+      err.status = response.status;
+      if (body?.code) err.code = body.code;
+      throw err;
+    }
+  }
+
   return {
     async listAuditEvents(query: ListAuditEventsQuery = {}): Promise<AuditEvent[]> {
       const params = new URLSearchParams();
@@ -265,6 +284,22 @@ export function createApiClient(options: ApiClientOptions) {
         `/crm/timeline?${params.toString()}`
       );
       return body.items;
+    },
+
+    async deleteCompany(id: string): Promise<void> {
+      return requestNoContent(`/crm/companies/${encodeURIComponent(id)}`);
+    },
+
+    async deleteContact(id: string): Promise<void> {
+      return requestNoContent(`/crm/contacts/${encodeURIComponent(id)}`);
+    },
+
+    async deleteOpportunity(id: string): Promise<void> {
+      return requestNoContent(`/crm/opportunities/${encodeURIComponent(id)}`);
+    },
+
+    async deleteLead(id: string): Promise<void> {
+      return requestNoContent(`/crm/leads/${encodeURIComponent(id)}`);
     }
   };
 }

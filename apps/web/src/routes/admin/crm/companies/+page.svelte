@@ -169,19 +169,31 @@
                 </div>
               {/if}
             </dl>
-            <form
-              method="POST"
-              action={company.status === "active" ? "?/archive" : "?/reactivate"}
-              use:enhance
-              class="page__item-actions"
-            >
-              <input type="hidden" name="id" value={company.id} />
-              <Button type="submit" variant="secondary" size="sm">
-                {company.status === "active"
-                  ? t(locale, "crm.companies.action.archive")
-                  : t(locale, "crm.companies.action.reactivate")}
-              </Button>
-            </form>
+            <div class="page__item-actions">
+              <form
+                method="POST"
+                action={company.status === "active" ? "?/archive" : "?/reactivate"}
+                use:enhance
+              >
+                <input type="hidden" name="id" value={company.id} />
+                <Button type="submit" variant="secondary" size="sm">
+                  {company.status === "active"
+                    ? t(locale, "crm.companies.action.archive")
+                    : t(locale, "crm.companies.action.reactivate")}
+                </Button>
+              </form>
+              <form
+                method="POST"
+                action="?/delete"
+                use:enhance
+                onsubmit={(e) => { if (!confirm(t(locale, "crm.companies.action.deleteConfirm"))) e.preventDefault(); }}
+              >
+                <input type="hidden" name="id" value={company.id} />
+                <Button type="submit" variant="secondary" size="sm" data-testid="crm-delete-btn">
+                  {t(locale, "crm.companies.action.delete")}
+                </Button>
+              </form>
+            </div>
           </Card>
         </li>
       {/each}
@@ -271,7 +283,9 @@
 
   .page__item-actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    gap: var(--sent-space-xs);
   }
 
   .page__item-link {

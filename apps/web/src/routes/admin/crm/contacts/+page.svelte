@@ -168,19 +168,31 @@
                 </div>
               {/if}
             </dl>
-            <form
-              method="POST"
-              action={contact.status === "active" ? "?/deactivate" : "?/reactivate"}
-              use:enhance
-              class="page__item-actions"
-            >
-              <input type="hidden" name="id" value={contact.id} />
-              <Button type="submit" variant="secondary" size="sm">
-                {contact.status === "active"
-                  ? t(locale, "crm.contacts.action.deactivate")
-                  : t(locale, "crm.contacts.action.reactivate")}
-              </Button>
-            </form>
+            <div class="page__item-actions">
+              <form
+                method="POST"
+                action={contact.status === "active" ? "?/deactivate" : "?/reactivate"}
+                use:enhance
+              >
+                <input type="hidden" name="id" value={contact.id} />
+                <Button type="submit" variant="secondary" size="sm">
+                  {contact.status === "active"
+                    ? t(locale, "crm.contacts.action.deactivate")
+                    : t(locale, "crm.contacts.action.reactivate")}
+                </Button>
+              </form>
+              <form
+                method="POST"
+                action="?/delete"
+                use:enhance
+                onsubmit={(e) => { if (!confirm(t(locale, "crm.contacts.action.deleteConfirm"))) e.preventDefault(); }}
+              >
+                <input type="hidden" name="id" value={contact.id} />
+                <Button type="submit" variant="secondary" size="sm" data-testid="crm-delete-btn">
+                  {t(locale, "crm.contacts.action.delete")}
+                </Button>
+              </form>
+            </div>
           </Card>
         </li>
       {/each}
@@ -270,7 +282,9 @@
 
   .page__item-actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    gap: var(--sent-space-xs);
   }
 
   .page__item-link {

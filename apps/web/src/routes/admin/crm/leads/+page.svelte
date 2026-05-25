@@ -131,8 +131,8 @@
               </div>
               <Tag tone={statusTone(lead.status)}>{statusLabel(lead.status)}</Tag>
             </header>
-            {#if lead.status === "new" || lead.status === "working"}
-              <div class="page__item-actions">
+            <div class="page__item-actions">
+              {#if lead.status === "new" || lead.status === "working"}
                 <form method="POST" action="?/convert" use:enhance>
                   <input type="hidden" name="id" value={lead.id} />
                   <Button type="submit" variant="primary" size="sm">
@@ -145,8 +145,19 @@
                     {t(locale, "crm.leads.action.disqualify")}
                   </Button>
                 </form>
-              </div>
-            {/if}
+              {/if}
+              <form
+                method="POST"
+                action="?/delete"
+                use:enhance
+                onsubmit={(e) => { if (!confirm(t(locale, "crm.leads.action.deleteConfirm"))) e.preventDefault(); }}
+              >
+                <input type="hidden" name="id" value={lead.id} />
+                <Button type="submit" variant="secondary" size="sm" data-testid="crm-delete-btn">
+                  {t(locale, "crm.leads.action.delete")}
+                </Button>
+              </form>
+            </div>
             {#if lead.status === "converted" && lead.convertedOpportunityId}
               <p class="page__item-sub">
                 → <a href="/admin/crm/opportunities/{lead.convertedOpportunityId}">
@@ -216,6 +227,7 @@
   }
   .page__item-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--sent-space-sm);
     margin-top: var(--sent-space-md);
   }

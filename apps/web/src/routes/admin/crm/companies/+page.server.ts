@@ -121,5 +121,19 @@ export const actions: Actions = {
     } catch (err) {
       return fail(502, { code: "API_ERROR", message: err instanceof Error ? err.message : String(err) });
     }
+  },
+
+  delete: async ({ request, fetch, locals }) => {
+    const form = await request.formData();
+    const id = String(form.get("id") ?? "");
+    if (!id) return fail(400, { code: "ID_REQUIRED" });
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return fail(503, { code: "DEMO_MODE_NO_API" });
+    try {
+      await session.client.deleteCompany(id);
+      return { ok: true as const, id, deleted: true };
+    } catch (err) {
+      return fail(502, { code: "API_ERROR", message: err instanceof Error ? err.message : String(err) });
+    }
   }
 };

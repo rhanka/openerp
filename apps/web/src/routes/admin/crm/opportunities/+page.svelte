@@ -173,8 +173,8 @@
               </div>
               <Tag tone={statusTone(opp.status)}>{statusLabel(opp.status)}</Tag>
             </header>
-            {#if opp.status === "open"}
-              <div class="page__item-actions">
+            <div class="page__item-actions">
+              {#if opp.status === "open"}
                 {#if advanceTarget}
                   <form method="POST" action="?/advance" use:enhance>
                     <input type="hidden" name="id" value={opp.id} />
@@ -203,8 +203,19 @@
                     {t(locale, "crm.opportunities.action.lose")}
                   </Button>
                 </form>
-              </div>
-            {/if}
+              {/if}
+              <form
+                method="POST"
+                action="?/delete"
+                use:enhance
+                onsubmit={(e) => { if (!confirm(t(locale, "crm.opportunities.action.deleteConfirm"))) e.preventDefault(); }}
+              >
+                <input type="hidden" name="id" value={opp.id} />
+                <Button type="submit" variant="secondary" size="sm" data-testid="crm-delete-btn">
+                  {t(locale, "crm.opportunities.action.delete")}
+                </Button>
+              </form>
+            </div>
           </Card>
         </li>
       {/each}
