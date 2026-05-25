@@ -1156,6 +1156,142 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   });
 
+  it("Rate + Assignment end-to-end (DS 3.3): create rate -> create project -> assign user -> update + soft-delete; assert audit + timeline", async () => {
+    const { createProject } = await import("../../src/project/project-service");
+    const { createRate, deleteRate } = await import("../../src/project/rate-service");
+    const {
+      createAssignment,
+      deleteAssignment,
+      listAssignments,
+      updateAssignment
+    } = await import("../../src/project/assignment-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('RateCo DS33', 'RateCo DS33', 'rateco-ds33', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-ds33-id@rateco.local', 'PM DS33', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm-ds33@rateco.local', 'PM DS33', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userId = userRes.rows[0]!.id;
+        const tenant = { organizationId: orgId, actorUserId: userId };
+
+        // Create a rate
+        const rate = await createRate(client, tenant, {
+          name: "Senior consultant",
+          amount: { amountMinor: 15000, currency: "CAD", scale: 2 },
+          effectiveFrom: "2026-01-01"
+        });
+        expect(rate.id).toBeTruthy();
+        expect(rate.name).toBe("Senior consultant");
+        expect(rate.active).toBe(true);
+        expect(rate.amount).toMatchObject({ amountMinor: 15000, currency: "CAD", scale: 2 });
+
+        // Create a project
+        const project = await createProject(client, tenant, {
+          name: "DS 3.3 Host Project",
+          code: "DS33"
+        });
+
+        // Assign the user to the project at the rate
+        const assignment = await createAssignment(client, tenant, {
+          projectId: project.id,
+          userId,
+          roleLabel: "Lead developer",
+          allocationPercent: 80,
+          billableRateId: rate.id
+        });
+        expect(assignment.id).toBeTruthy();
+        expect(assignment.projectId).toBe(project.id);
+        expect(assignment.userId).toBe(userId);
+        expect(assignment.billableRateId).toBe(rate.id);
+
+        // List assignments scoped to project
+        const listed = await listAssignments(client, tenant, { projectId: project.id });
+        expect(listed.length).toBe(1);
+        expect(listed[0]!.id).toBe(assignment.id);
+
+        // Update allocation
+        const updated = await updateAssignment(client, tenant, assignment.id, {
+          allocationPercent: 100
+        });
+        expect(updated.allocationPercent).toBe(100);
+
+        // Soft-delete assignment
+        await deleteAssignment(client, tenant, assignment.id);
+        const listAfterAssign = await listAssignments(client, tenant, { projectId: project.id });
+        expect(listAfterAssign.length).toBe(0);
+
+        // Soft-delete rate
+        await deleteRate(client, tenant, rate.id);
+
+        // Audit rows for rate
+        const rateAuditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'rate' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, rate.id]
+        );
+        const rateActions = rateAuditRows.rows.map((r) => r.action);
+        expect(rateActions).toContain("project.rate.created");
+        expect(rateActions).toContain("project.rate.deleted");
+
+        // Timeline rows for rate
+        const rateTlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'rate' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, rate.id]
+        );
+        const rateEntryTypes = rateTlRows.rows.map((r) => r.entry_type);
+        expect(rateEntryTypes).toContain("project.rate.created");
+        expect(rateEntryTypes).toContain("project.rate.deleted");
+
+        // Audit rows for assignment
+        const assignAuditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'assignment' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, assignment.id]
+        );
+        const assignActions = assignAuditRows.rows.map((r) => r.action);
+        expect(assignActions).toContain("project.assignment.created");
+        expect(assignActions).toContain("project.assignment.updated");
+        expect(assignActions).toContain("project.assignment.deleted");
+
+        // Timeline rows for assignment
+        const assignTlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'assignment' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, assignment.id]
+        );
+        const assignEntryTypes = assignTlRows.rows.map((r) => r.entry_type);
+        expect(assignEntryTypes).toContain("project.assignment.created");
+        expect(assignEntryTypes).toContain("project.assignment.deleted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("Project end-to-end: create -> update -> soft-delete emits project.project.* audit + timeline (DS 3.0)", async () => {
     const {
       createProject,

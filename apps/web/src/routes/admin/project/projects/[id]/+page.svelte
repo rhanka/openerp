@@ -2,7 +2,7 @@
   import { enhance } from "$app/forms";
   import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
 
-  import type { Project, ProjectStatus, ProjectTask, ProjectTaskStatus, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
+  import type { Assignment, Project, ProjectStatus, ProjectTask, ProjectTaskStatus, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -24,12 +24,14 @@
   const project: Project | null = $derived(data.project);
   const tasks: ProjectTask[] = $derived(data.tasks ?? []);
   const timeEntries: TimeEntry[] = $derived(data.timeEntries ?? []);
+  const assignments: Assignment[] = $derived(data.assignments ?? []);
   const billableTotal: number = $derived(
     timeEntries.filter((e) => e.billable).reduce((sum, e) => sum + e.minutes, 0)
   );
 
   let creatingTask = $state(false);
   let loggingTime = $state(false);
+  let creatingAssignment = $state(false);
 
   function statusLabel(status: ProjectStatus): string {
     return t(locale, `project.projects.status.${status}`);
@@ -326,6 +328,90 @@
       <p class="page__time-total">
         {t(locale, "project.timeEntries.section.total")}: <strong>{formatMinutes(billableTotal)}</strong>
       </p>
+    {/if}
+
+    <h2 class="page__section-title" data-testid="assignments-section-title">
+      {t(locale, "project.assignments.section.title")}
+    </h2>
+
+    <Card>
+      <form
+        method="POST"
+        action="?/createAssignment"
+        use:enhance={() => {
+          creatingAssignment = true;
+          return async ({ update }) => {
+            creatingAssignment = false;
+            await update();
+          };
+        }}
+        class="page__task-form"
+      >
+        <fieldset>
+          <legend class="page__task-form-legend">{t(locale, "project.assignments.form.legend")}</legend>
+          <div class="page__task-form-fields">
+            <label>
+              <span>{t(locale, "project.assignments.field.userId")}</span>
+              <input type="text" name="userId" required placeholder="user-uuid" />
+            </label>
+            <label>
+              <span>{t(locale, "project.assignments.field.roleLabel")}</span>
+              <input type="text" name="roleLabel" placeholder={t(locale, "project.assignments.field.roleLabel")} />
+            </label>
+            <label>
+              <span>{t(locale, "project.assignments.field.allocationPercent")}</span>
+              <input type="number" name="allocationPercent" min="0" max="100" step="1" placeholder="100" />
+            </label>
+            <label>
+              <span>{t(locale, "project.assignments.field.billableRate")}</span>
+              <input type="text" name="billableRateId" placeholder="rate-uuid" />
+            </label>
+            <button type="submit" disabled={creatingAssignment}>
+              {creatingAssignment ? t(locale, "project.assignments.action.creating") : t(locale, "project.assignments.action.create")}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </Card>
+
+    {#if assignments.length === 0}
+      <EmptyState
+        title={t(locale, "project.assignments.empty.title")}
+        message={t(locale, "project.assignments.empty.message")}
+      />
+    {:else}
+      <ol class="page__tasks" data-testid="project-assignments-list">
+        {#each assignments as assignment (assignment.id)}
+          <li class="page__task-item" data-assignment-id={assignment.id} data-allocation={assignment.allocationPercent}>
+            <div class="page__task-body">
+              <span class="page__task-title">{assignment.roleLabel ?? assignment.userId}</span>
+              <span class="page__task-due">
+                {assignment.userId}
+                {#if assignment.allocationPercent !== null}
+                  &mdash; {assignment.allocationPercent}%
+                {/if}
+              </span>
+            </div>
+            <div class="page__task-actions">
+              <form
+                method="POST"
+                action="?/deleteAssignment"
+                use:enhance
+                onsubmit={(e) => {
+                  if (!confirm(t(locale, "project.assignments.action.deleteConfirm"))) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <input type="hidden" name="assignmentId" value={assignment.id} />
+                <button type="submit" class="page__task-btn page__task-btn--delete">
+                  {t(locale, "project.assignments.action.delete")}
+                </button>
+              </form>
+            </div>
+          </li>
+        {/each}
+      </ol>
     {/if}
 
     <h2 class="page__section-title">

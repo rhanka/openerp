@@ -1,6 +1,6 @@
 import { env } from "$env/dynamic/private";
 
-import type { Project, ProjectTask, TimeEntry } from "@sentropic/openerp-domain/project";
+import type { Assignment, Project, ProjectTask, TimeEntry } from "@sentropic/openerp-domain/project";
 import type { TimelineEntry } from "@sentropic/openerp-domain";
 
 import { createApiClient } from "$lib/api/client";
@@ -25,7 +25,23 @@ function clientFromLocalsOrEnv(
   };
 }
 
-const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: ProjectTask[]; timeEntries: TimeEntry[] } = {
+const DEMO_ASSIGNMENTS: Assignment[] = [
+  {
+    id: "demo-asgn-1",
+    organizationId: "demo-org",
+    projectId: "demo-pr-1",
+    userId: "demo-user-1",
+    roleLabel: "Lead developer",
+    allocationPercent: 80,
+    startDate: "2026-01-01",
+    endDate: null,
+    billableRateId: "demo-rate-1",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: ProjectTask[]; timeEntries: TimeEntry[]; assignments: Assignment[] } = {
   project: {
     id: "demo-pr-1",
     organizationId: "demo-org",
@@ -121,7 +137,8 @@ const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: Proje
       createdAt: new Date(Date.now() - 86_400_000).toISOString(),
       updatedAt: new Date(Date.now() - 3_600_000).toISOString()
     }
-  ]
+  ],
+  assignments: DEMO_ASSIGNMENTS
 };
 
 export const load: PageServerLoad = async ({ fetch, locals, params }) => {
@@ -134,20 +151,22 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
     };
   }
   try {
-    const [project, timeline, tasks, timeEntries] = await Promise.all([
+    const [project, timeline, tasks, timeEntries, assignments] = await Promise.all([
       session.client.getProject(params.id),
       session.client.listProjectTimeline({
         resourceId: params.id,
         limit: 50
       }),
       session.client.listProjectTasks({ projectId: params.id, limit: 100 }),
-      session.client.listTimeEntries({ projectId: params.id, limit: 200 })
+      session.client.listTimeEntries({ projectId: params.id, limit: 200 }),
+      session.client.listAssignments({ projectId: params.id, limit: 100 })
     ]);
     return {
       project,
       timeline,
       tasks,
       timeEntries,
+      assignments,
       source: "api" as const,
       locale: locals.locale
     };
@@ -160,6 +179,7 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       timeline: [] as TimelineEntry[],
       tasks: [] as ProjectTask[],
       timeEntries: [] as TimeEntry[],
+      assignments: [] as Assignment[],
       source: notFound ? ("not_found" as const) : ("error" as const),
       locale: locals.locale,
       message
@@ -287,6 +307,46 @@ export const actions: Actions = {
     if (!entryId) return { ok: false, code: "ENTRY_ID_REQUIRED" };
     try {
       await session.client.deleteTimeEntry(entryId);
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  createAssignment: async ({ fetch, locals, params, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const userId = String(formData.get("userId") ?? "").trim();
+    if (!userId) return { ok: false, code: "USER_ID_REQUIRED" };
+    const roleLabel = String(formData.get("roleLabel") ?? "").trim() || null;
+    const allocationPercentRaw = String(formData.get("allocationPercent") ?? "").trim();
+    const allocationPercent = allocationPercentRaw ? parseInt(allocationPercentRaw, 10) : null;
+    const billableRateId = String(formData.get("billableRateId") ?? "").trim() || null;
+    try {
+      await session.client.createAssignment({
+        projectId: params.id,
+        userId,
+        roleLabel: roleLabel ?? undefined,
+        allocationPercent: allocationPercent ?? undefined,
+        billableRateId: billableRateId ?? undefined
+      });
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  deleteAssignment: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const assignmentId = String(formData.get("assignmentId") ?? "").trim();
+    if (!assignmentId) return { ok: false, code: "ASSIGNMENT_ID_REQUIRED" };
+    try {
+      await session.client.deleteAssignment(assignmentId);
       return { ok: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

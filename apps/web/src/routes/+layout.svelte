@@ -27,6 +27,7 @@
     { label: t(locale, "nav.contacts"), href: "/admin/crm/contacts" },
     { label: t(locale, "nav.opportunities"), href: "/admin/crm/opportunities" },
     { label: t(locale, "nav.projects"), href: "/admin/project/projects" },
+    { label: t(locale, "nav.rates"), href: "/admin/project/rates" },
     { label: t(locale, "nav.users"), href: "/admin/users" },
     { label: t(locale, "nav.roles"), href: "/admin/roles" },
     { label: t(locale, "nav.approvals"), href: "/admin/approvals" },

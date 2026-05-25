@@ -1,16 +1,22 @@
 import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
+  Assignment,
+  CreateAssignmentInput,
   CreateProjectInput,
   CreateProjectTaskInput,
+  CreateRateInput,
   CreateTimeEntryInput,
   Project,
   ProjectStatus,
   ProjectTask,
   ProjectTaskStatus,
+  Rate,
   TimeEntry,
   TimeEntryStatus,
+  UpdateAssignmentInput,
   UpdateProjectInput,
   UpdateProjectTaskInput,
+  UpdateRateInput,
   UpdateTimeEntryInput
 } from "@sentropic/openerp-domain/project";
 import type {
@@ -432,6 +438,66 @@ export function createApiClient(options: ApiClientOptions) {
 
     async deleteTimeEntry(id: string): Promise<void> {
       return requestNoContent(`/project/time-entries/${encodeURIComponent(id)}`);
+    },
+
+    async listRates(query: { limit?: number; offset?: number; activeOnly?: boolean } = {}): Promise<Rate[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Rate[] }>(`/project/rates${suffix}`);
+      return body.items;
+    },
+
+    async createRate(input: CreateRateInput): Promise<Rate> {
+      return request<Rate>(`/project/rates`, { method: "POST", body: input });
+    },
+
+    async updateRate(id: string, patch: UpdateRateInput): Promise<Rate> {
+      return request<Rate>(`/project/rates/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async getRate(id: string): Promise<Rate> {
+      return request<Rate>(`/project/rates/${encodeURIComponent(id)}`);
+    },
+
+    async deleteRate(id: string): Promise<void> {
+      return requestNoContent(`/project/rates/${encodeURIComponent(id)}`);
+    },
+
+    async listAssignments(query: { projectId?: string; userId?: string; limit?: number; offset?: number } = {}): Promise<Assignment[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Assignment[] }>(`/project/assignments${suffix}`);
+      return body.items;
+    },
+
+    async createAssignment(input: CreateAssignmentInput): Promise<Assignment> {
+      return request<Assignment>(`/project/assignments`, { method: "POST", body: input });
+    },
+
+    async updateAssignment(id: string, patch: UpdateAssignmentInput): Promise<Assignment> {
+      return request<Assignment>(`/project/assignments/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async getAssignment(id: string): Promise<Assignment> {
+      return request<Assignment>(`/project/assignments/${encodeURIComponent(id)}`);
+    },
+
+    async deleteAssignment(id: string): Promise<void> {
+      return requestNoContent(`/project/assignments/${encodeURIComponent(id)}`);
     }
   };
 }

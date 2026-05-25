@@ -51,7 +51,13 @@ export const PROJECT_DOMAIN_EVENTS = [
   "project.time_entry.updated",
   "project.time_entry.submitted",
   "project.time_entry.approved",
-  "project.time_entry.deleted"
+  "project.time_entry.deleted",
+  "project.rate.created",
+  "project.rate.updated",
+  "project.rate.deleted",
+  "project.assignment.created",
+  "project.assignment.updated",
+  "project.assignment.deleted"
 ] as const;
 
 export type ProjectDomainEvent = (typeof PROJECT_DOMAIN_EVENTS)[number];
@@ -136,4 +142,79 @@ export interface UpdateTimeEntryInput {
   description?: string | null;
   billable?: boolean;
   status?: TimeEntryStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Rate — DS 3.3 (tariff / hourly price primitive)
+// ---------------------------------------------------------------------------
+
+// Money snapshot aligned with the CRM MoneySnapshot (amountMinor + currency + scale).
+export interface RateMoney {
+  amountMinor: number;
+  currency: string;
+  scale: number;
+}
+
+export interface Rate {
+  id: string;
+  organizationId: string;
+  name: string;
+  amount: RateMoney;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRateInput {
+  name: string;
+  amount: RateMoney;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  active?: boolean;
+}
+
+export interface UpdateRateInput {
+  name?: string;
+  amount?: RateMoney;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  active?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Assignment — DS 3.3 (resource allocation link project ↔ user)
+// ---------------------------------------------------------------------------
+
+export interface Assignment {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  userId: string;
+  roleLabel: string | null;
+  allocationPercent: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  billableRateId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAssignmentInput {
+  projectId: string;
+  userId: string;
+  roleLabel?: string | null;
+  allocationPercent?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  billableRateId?: string | null;
+}
+
+export interface UpdateAssignmentInput {
+  roleLabel?: string | null;
+  allocationPercent?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  billableRateId?: string | null;
 }
