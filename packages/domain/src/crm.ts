@@ -261,8 +261,10 @@ export interface ConvertLeadResult {
 export const CRM_DOMAIN_EVENTS = [
   "crm.company.created",
   "crm.company.updated",
+  "crm.company.deleted",
   "crm.contact.created",
   "crm.contact.updated",
+  "crm.contact.deleted",
   "crm.pipeline_stage.created",
   "crm.pipeline_stage.updated",
   "crm.opportunity.created",
@@ -270,9 +272,11 @@ export const CRM_DOMAIN_EVENTS = [
   "crm.opportunity.stage_changed",
   "crm.opportunity.won",
   "crm.opportunity.lost",
+  "crm.opportunity.deleted",
   "crm.lead.created",
   "crm.lead.updated",
-  "crm.lead.converted"
+  "crm.lead.converted",
+  "crm.lead.deleted"
 ] as const;
 
 export type CrmDomainEvent = (typeof CRM_DOMAIN_EVENTS)[number];

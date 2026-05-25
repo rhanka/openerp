@@ -7,6 +7,7 @@ import type { AppBindings } from "../app";
 import {
   CompanyNotFoundError,
   createCompany,
+  deleteCompany,
   getCompanyById,
   listCompanies,
   updateCompany
@@ -91,6 +92,19 @@ export function mountCrmCompanyRoutes(app: Hono<AppBindings>): void {
     try {
       const updated = await updateCompany(db, tenant, id, body);
       return c.json(updated);
+    } catch (err) {
+      if (err instanceof CompanyNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
+      throw err;
+    }
+  });
+
+  app.delete("/crm/companies/:id", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    try {
+      await deleteCompany(db, tenant, id);
+      return c.body(null, 204);
     } catch (err) {
       if (err instanceof CompanyNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
       throw err;

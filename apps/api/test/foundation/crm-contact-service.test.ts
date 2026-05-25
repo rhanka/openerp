@@ -6,6 +6,7 @@ import type { Queryable } from "../../src/db/client";
 import {
   ContactNotFoundError,
   createContact,
+  deleteContact,
   listContacts,
   updateContact
 } from "../../src/crm/contact-service";
@@ -74,7 +75,12 @@ function makeFakeDb() {
 
       if (t.includes("from contacts") && t.includes("where id = $1")) {
         const [id, organizationId] = values as [string, string];
-        const found = contacts.find((c) => c.id === id && c.organizationId === organizationId);
+        const found = contacts.find(
+          (c) =>
+            c.id === id &&
+            c.organizationId === organizationId &&
+            !(c as unknown as { _deleted?: boolean })._deleted
+        );
         return { rows: found ? [found as unknown as T] : [] };
       }
 
@@ -88,11 +94,25 @@ function makeFakeDb() {
         ];
         const filtered = contacts
           .filter((c) => c.organizationId === organizationId)
+          .filter((c) => !(c as unknown as { _deleted?: boolean })._deleted)
           .filter((c) => (status ? c.status === status : true))
           .filter((c) => (companyIdFilter ? c.companyId === companyIdFilter : true))
           .sort((a, b) => a.displayName.localeCompare(b.displayName))
           .slice(offset, offset + limit);
         return { rows: filtered as unknown as T[] };
+      }
+
+      if (t.includes("update contacts") && t.includes("deleted_at = now()")) {
+        const [id, organizationId] = values as [string, string];
+        const idx = contacts.findIndex(
+          (c) =>
+            c.id === id &&
+            c.organizationId === organizationId &&
+            !(c as unknown as { _deleted?: boolean })._deleted
+        );
+        if (idx === -1) return { rows: [] };
+        (contacts[idx] as unknown as { _deleted: boolean })._deleted = true;
+        return { rows: [{ id: contacts[idx]!.id } as unknown as T] };
       }
 
       if (t.includes("update contacts")) {
@@ -133,6 +153,10 @@ function makeFakeDb() {
           beforeSummary,
           afterSummary
         });
+        return { rows: [] };
+      }
+
+      if (t.includes("insert into timeline_entries")) {
         return { rows: [] };
       }
 
@@ -191,5 +215,27 @@ describe("ContactService (CRM Demo Slice 2.1)", () => {
 
     const scoped = await listContacts(db, context, { companyId: "co_1" });
     expect(scoped.map((c) => c.displayName)).toEqual(["Bravo"]);
+  });
+
+  it("soft-deletes a contact: emits crm.contact.deleted and hides it from default reads", async () => {
+    const { db, audits } = makeFakeDb();
+    const created = await createContact(db, context, { displayName: "ToDelete" });
+
+    await deleteContact(db, context, created.id);
+
+    const deleteAudit = audits.find((a) => a.action === "crm.contact.deleted");
+    expect(deleteAudit).toBeDefined();
+    expect(deleteAudit!.resourceId).toBe(created.id);
+    expect(deleteAudit!.beforeSummary).toMatchObject({ displayName: "ToDelete" });
+
+    const list = await listContacts(db, context);
+    expect(list.find((c) => c.id === created.id)).toBeUndefined();
+  });
+
+  it("throws ContactNotFoundError when deleting a non-existent contact", async () => {
+    const { db } = makeFakeDb();
+    await expect(deleteContact(db, context, "ct_nope")).rejects.toBeInstanceOf(
+      ContactNotFoundError
+    );
   });
 });

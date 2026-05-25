@@ -57,7 +57,7 @@ export async function findContactById(
   const result = await db.query<Contact>(
     `select ${CONTACT_RETURN_COLUMNS}
        from contacts
-      where id = $1 and organization_id = $2`,
+      where id = $1 and organization_id = $2 and deleted_at is null`,
     [id, context.organizationId]
   );
   return result.rows[0] ?? null;
@@ -79,6 +79,7 @@ export async function listContacts(
       where organization_id = $1
         and ($2::text is null or status = $2)
         and ($3::uuid is null or company_id = $3)
+        and deleted_at is null
       order by display_name asc
       limit $4 offset $5`,
     [context.organizationId, filterStatus, filterCompanyId, limit, offset]
@@ -118,6 +119,22 @@ export async function updateContact(
       where id = $1 and organization_id = $2
       returning ${CONTACT_RETURN_COLUMNS}`,
     values
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function softDeleteContact(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<{ id: string } | null> {
+  assertTenantContext(context);
+  const result = await db.query<{ id: string }>(
+    `update contacts
+        set deleted_at = now(), updated_at = now()
+      where id = $1 and organization_id = $2 and deleted_at is null
+      returning id`,
+    [id, context.organizationId]
   );
   return result.rows[0] ?? null;
 }

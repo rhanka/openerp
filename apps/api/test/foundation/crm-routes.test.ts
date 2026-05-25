@@ -2,16 +2,18 @@ import { describe, expect, it } from "vitest";
 import { buildCrmRoutes } from "../../src/http/routes/crm";
 
 describe("crm route registry", () => {
-  it("registers company + contact + pipeline + opportunity MVP endpoints", () => {
+  it("registers company + contact + pipeline + opportunity + leads + soft-delete endpoints (DS 2.3)", () => {
     expect(buildCrmRoutes().map((r) => `${r.method} ${r.path}`)).toEqual([
       "GET /crm/companies",
       "POST /crm/companies",
       "GET /crm/companies/:id",
       "PATCH /crm/companies/:id",
+      "DELETE /crm/companies/:id",
       "GET /crm/contacts",
       "POST /crm/contacts",
       "GET /crm/contacts/:id",
       "PATCH /crm/contacts/:id",
+      "DELETE /crm/contacts/:id",
       "GET /crm/pipeline-stages",
       "POST /crm/pipeline-stages",
       "GET /crm/pipeline-stages/:id",
@@ -20,10 +22,12 @@ describe("crm route registry", () => {
       "POST /crm/opportunities",
       "GET /crm/opportunities/:id",
       "PATCH /crm/opportunities/:id",
+      "DELETE /crm/opportunities/:id",
       "GET /crm/leads",
       "POST /crm/leads",
       "GET /crm/leads/:id",
       "PATCH /crm/leads/:id",
+      "DELETE /crm/leads/:id",
       "POST /crm/leads/:id/convert",
       "GET /crm/timeline"
     ]);
@@ -43,5 +47,17 @@ describe("crm route registry", () => {
       expect(routes.find((r) => r.path === path && r.method === "GET")?.audited).toBe(false);
     }
     expect(routes.find((r) => r.path === "/crm/leads/:id/convert" && r.method === "POST")?.audited).toBe(true);
+  });
+
+  it("flags DELETE endpoints as audited (DS 2.3 soft-delete)", () => {
+    const routes = buildCrmRoutes();
+    for (const path of [
+      "/crm/companies/:id",
+      "/crm/contacts/:id",
+      "/crm/opportunities/:id",
+      "/crm/leads/:id"
+    ]) {
+      expect(routes.find((r) => r.path === path && r.method === "DELETE")?.audited).toBe(true);
+    }
   });
 });

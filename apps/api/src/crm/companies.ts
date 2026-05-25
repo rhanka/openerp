@@ -64,7 +64,7 @@ export async function findCompanyById(
   const result = await db.query<Company>(
     `select ${COMPANY_RETURN_COLUMNS}
        from companies
-      where id = $1 and organization_id = $2`,
+      where id = $1 and organization_id = $2 and deleted_at is null`,
     [id, context.organizationId]
   );
   return result.rows[0] ?? null;
@@ -84,6 +84,7 @@ export async function listCompanies(
        from companies
       where organization_id = $1
         and ($2::text is null or status = $2)
+        and deleted_at is null
       order by display_name asc
       limit $3 offset $4`,
     [context.organizationId, filterStatus, limit, offset]
@@ -126,6 +127,22 @@ export async function updateCompany(
       where id = $1 and organization_id = $2
       returning ${COMPANY_RETURN_COLUMNS}`,
     values
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function softDeleteCompany(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<{ id: string } | null> {
+  assertTenantContext(context);
+  const result = await db.query<{ id: string }>(
+    `update companies
+        set deleted_at = now(), updated_at = now()
+      where id = $1 and organization_id = $2 and deleted_at is null
+      returning id`,
+    [id, context.organizationId]
   );
   return result.rows[0] ?? null;
 }

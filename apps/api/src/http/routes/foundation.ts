@@ -1,5 +1,5 @@
 export interface RouteContract {
-  method: "GET" | "POST" | "PATCH";
+  method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
   audited: boolean;
 }

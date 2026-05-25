@@ -9,6 +9,7 @@ import {
   NoInitialPipelineStageError,
   convertLead,
   createLead,
+  deleteLead,
   getLeadById,
   listLeads,
   updateLead
@@ -94,6 +95,19 @@ export function mountCrmLeadRoutes(app: Hono<AppBindings>): void {
     try {
       const updated = await updateLead(db, tenant, id, body);
       return c.json(updated);
+    } catch (err) {
+      if (err instanceof LeadNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
+      throw err;
+    }
+  });
+
+  app.delete("/crm/leads/:id", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    try {
+      await deleteLead(db, tenant, id);
+      return c.body(null, 204);
     } catch (err) {
       if (err instanceof LeadNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
       throw err;

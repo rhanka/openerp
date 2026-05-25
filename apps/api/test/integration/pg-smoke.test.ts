@@ -592,6 +592,74 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   });
 
+  it("CRM soft-delete hides rows from default reads but preserves audit + timeline (DS 2.3)", async () => {
+    const { createCompany, deleteCompany, listCompanies } = await import(
+      "../../src/crm/company-service"
+    );
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('SoftDel Co', 'SoftDel Co', 'softdel-co', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sd-id@sd.local', 'SD', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sd@sd.local', 'SD', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const company = await createCompany(client, tenant, { displayName: "Vanishing Co" });
+        const listBefore = await listCompanies(client, tenant);
+        expect(listBefore.length).toBe(1);
+        expect(listBefore[0]!.id).toBe(company.id);
+
+        await deleteCompany(client, tenant, company.id);
+
+        const listAfter = await listCompanies(client, tenant);
+        expect(listAfter.length).toBe(0);
+
+        // Audit rows preserved.
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'company' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, company.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("crm.company.created");
+        expect(actions).toContain("crm.company.deleted");
+
+        // Timeline rows preserved.
+        const tlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'company' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, company.id]
+        );
+        const entryTypes = tlRows.rows.map((r) => r.entry_type);
+        expect(entryTypes).toContain("crm.company.created");
+        expect(entryTypes).toContain("crm.company.deleted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("partitions audit_events monthly and rejects UPDATE/DELETE (PG-06 article 2.2)", async () => {
     // audit_events is now a partitioned parent (relkind = 'p'); the current
     // month partition was materialized by migration 0007.

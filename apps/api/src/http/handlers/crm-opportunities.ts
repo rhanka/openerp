@@ -10,6 +10,7 @@ import {
   LossReasonRequiredError,
   OpportunityNotFoundError,
   createOpportunity,
+  deleteOpportunity,
   getOpportunityById,
   listOpportunities,
   updateOpportunity
@@ -104,6 +105,19 @@ export function mountCrmOpportunityRoutes(app: Hono<AppBindings>): void {
       if (err instanceof LossReasonRequiredError) {
         return c.json({ code: err.code }, 422);
       }
+      throw err;
+    }
+  });
+
+  app.delete("/crm/opportunities/:id", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    try {
+      await deleteOpportunity(db, tenant, id);
+      return c.body(null, 204);
+    } catch (err) {
+      if (err instanceof OpportunityNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
       throw err;
     }
   });

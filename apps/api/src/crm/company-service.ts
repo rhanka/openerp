@@ -8,6 +8,7 @@ import {
   findCompanyById,
   insertCompany,
   listCompanies as listCompaniesRepo,
+  softDeleteCompany,
   updateCompany as updateCompanyRepo
 } from "./companies";
 
@@ -90,6 +91,30 @@ export async function updateCompany(
     }
   });
   return updated;
+}
+
+export async function deleteCompany(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<void> {
+  assertTenantContext(context);
+  const before = await findCompanyById(db, context, id);
+  if (!before) throw new CompanyNotFoundError(id);
+  const deleted = await softDeleteCompany(db, context, id);
+  if (!deleted) throw new CompanyNotFoundError(id);
+  await emitCompanyAudit(db, context, {
+    action: "crm.company.deleted",
+    companyId: id,
+    beforeSummary: { displayName: before.displayName, status: before.status },
+    afterSummary: null
+  });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "company",
+    resourceId: id,
+    entryType: "crm.company.deleted",
+    payloadSummary: { displayName: before.displayName }
+  });
 }
 
 export async function getCompanyById(

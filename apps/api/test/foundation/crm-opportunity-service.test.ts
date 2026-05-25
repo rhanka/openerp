@@ -7,6 +7,7 @@ import {
   LossReasonRequiredError,
   OpportunityNotFoundError,
   createOpportunity,
+  deleteOpportunity,
   listOpportunities,
   updateOpportunity
 } from "../../src/crm/opportunity-service";
@@ -81,7 +82,10 @@ function makeFakeDb() {
       if (t.includes("from opportunities") && t.includes("where id = $1")) {
         const [id, organizationId] = values as [string, string];
         const found = opportunities.find(
-          (o) => o.id === id && o.organizationId === organizationId
+          (o) =>
+            o.id === id &&
+            o.organizationId === organizationId &&
+            !(o as unknown as { _deleted?: boolean })._deleted
         );
         return { rows: found ? [found as unknown as T] : [] };
       }
@@ -97,11 +101,25 @@ function makeFakeDb() {
         ];
         const filtered = opportunities
           .filter((o) => o.organizationId === organizationId)
+          .filter((o) => !(o as unknown as { _deleted?: boolean })._deleted)
           .filter((o) => (status ? o.status === status : true))
           .filter((o) => (companyId ? o.companyId === companyId : true))
           .filter((o) => (stageId ? o.stageId === stageId : true))
           .slice(offset, offset + limit);
         return { rows: filtered as unknown as T[] };
+      }
+
+      if (t.includes("update opportunities") && t.includes("deleted_at = now()")) {
+        const [id, organizationId] = values as [string, string];
+        const idx = opportunities.findIndex(
+          (o) =>
+            o.id === id &&
+            o.organizationId === organizationId &&
+            !(o as unknown as { _deleted?: boolean })._deleted
+        );
+        if (idx === -1) return { rows: [] };
+        (opportunities[idx] as unknown as { _deleted: boolean })._deleted = true;
+        return { rows: [{ id: opportunities[idx]!.id } as unknown as T] };
       }
 
       if (t.includes("update opportunities")) {
@@ -234,5 +252,31 @@ describe("OpportunityService (CRM Demo Slice 2.5)", () => {
     await createOpportunity(db, context, { companyId: "co_1", name: "B", stageId: "ps_2" });
     const scoped = await listOpportunities(db, context, { stageId: "ps_2" });
     expect(scoped.map((o) => o.name)).toEqual(["B"]);
+  });
+
+  it("soft-deletes an opportunity: emits crm.opportunity.deleted and hides it from default reads", async () => {
+    const { db, audits } = makeFakeDb();
+    const created = await createOpportunity(db, context, {
+      companyId: "co_1",
+      name: "ToDelete",
+      stageId: "ps_1"
+    });
+
+    await deleteOpportunity(db, context, created.id);
+
+    const deleteAudit = audits.find((a) => a.action === "crm.opportunity.deleted");
+    expect(deleteAudit).toBeDefined();
+    expect(deleteAudit!.resourceId).toBe(created.id);
+    expect(deleteAudit!.beforeSummary).toMatchObject({ name: "ToDelete" });
+
+    const list = await listOpportunities(db, context);
+    expect(list.find((o) => o.id === created.id)).toBeUndefined();
+  });
+
+  it("throws OpportunityNotFoundError when deleting a non-existent opportunity", async () => {
+    const { db } = makeFakeDb();
+    await expect(deleteOpportunity(db, context, "op_nope")).rejects.toBeInstanceOf(
+      OpportunityNotFoundError
+    );
   });
 });

@@ -66,7 +66,7 @@ export async function findLeadById(
   const result = await db.query<Lead>(
     `select ${LEAD_RETURN_COLUMNS}
        from leads
-      where id = $1 and organization_id = $2`,
+      where id = $1 and organization_id = $2 and deleted_at is null`,
     [id, context.organizationId]
   );
   return result.rows[0] ?? null;
@@ -86,6 +86,7 @@ export async function listLeads(
        from leads
       where organization_id = $1
         and ($2::text is null or status = $2)
+        and deleted_at is null
       order by created_at desc
       limit $3 offset $4`,
     [context.organizationId, filterStatus, limit, offset]
@@ -125,6 +126,22 @@ export async function updateLead(
       where id = $1 and organization_id = $2
       returning ${LEAD_RETURN_COLUMNS}`,
     values
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function softDeleteLead(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<{ id: string } | null> {
+  assertTenantContext(context);
+  const result = await db.query<{ id: string }>(
+    `update leads
+        set deleted_at = now(), updated_at = now()
+      where id = $1 and organization_id = $2 and deleted_at is null
+      returning id`,
+    [id, context.organizationId]
   );
   return result.rows[0] ?? null;
 }

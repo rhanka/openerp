@@ -17,6 +17,7 @@ import {
   findOpportunityById,
   insertOpportunity,
   listOpportunities as listOpportunitiesRepo,
+  softDeleteOpportunity,
   updateOpportunity as updateOpportunityRepo
 } from "./opportunities";
 
@@ -197,6 +198,31 @@ async function emitOpportunityTransition(
     resourceId: opp.id,
     entryType: auditAction,
     payloadSummary: afterCore as Record<string, unknown> as import("@sentropic/openerp-domain").PayloadSummary
+  });
+}
+
+export async function deleteOpportunity(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<void> {
+  assertTenantContext(context);
+  const before = await findOpportunityById(db, context, id);
+  if (!before) throw new OpportunityNotFoundError(id);
+  const deleted = await softDeleteOpportunity(db, context, id);
+  if (!deleted) throw new OpportunityNotFoundError(id);
+  await recordAuditEvent(db, context, {
+    action: "crm.opportunity.deleted",
+    resourceType: "opportunity",
+    resourceId: id,
+    beforeSummary: { name: before.name, status: before.status },
+    afterSummary: null
+  });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "opportunity",
+    resourceId: id,
+    entryType: "crm.opportunity.deleted",
+    payloadSummary: { name: before.name, status: before.status }
   });
 }
 

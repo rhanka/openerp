@@ -17,6 +17,7 @@ import {
   insertLead,
   listLeads as listLeadsRepo,
   markLeadConverted,
+  softDeleteLead,
   updateLead as updateLeadRepo
 } from "./leads";
 
@@ -90,6 +91,31 @@ export async function updateLead(
     afterSummary: { status: updated.status, displayName: updated.displayName }
   });
   return updated;
+}
+
+export async function deleteLead(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<void> {
+  assertTenantContext(context);
+  const before = await findLeadById(db, context, id);
+  if (!before) throw new LeadNotFoundError(id);
+  const deleted = await softDeleteLead(db, context, id);
+  if (!deleted) throw new LeadNotFoundError(id);
+  await recordAuditEvent(db, context, {
+    action: "crm.lead.deleted",
+    resourceType: "lead",
+    resourceId: id,
+    beforeSummary: { displayName: before.displayName, status: before.status },
+    afterSummary: null
+  });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "lead",
+    resourceId: id,
+    entryType: "crm.lead.deleted",
+    payloadSummary: { displayName: before.displayName, status: before.status }
+  });
 }
 
 export async function getLeadById(

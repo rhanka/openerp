@@ -6,6 +6,7 @@ import type { Queryable } from "../../src/db/client";
 import {
   CompanyNotFoundError,
   createCompany,
+  deleteCompany,
   listCompanies,
   updateCompany
 } from "../../src/crm/company-service";
@@ -80,7 +81,12 @@ function makeFakeDb() {
 
       if (t.includes("from companies") && t.includes("where id = $1")) {
         const [id, organizationId] = values as [string, string];
-        const found = companies.find((c) => c.id === id && c.organizationId === organizationId);
+        const found = companies.find(
+          (c) =>
+            c.id === id &&
+            c.organizationId === organizationId &&
+            !(c as unknown as { _deleted?: boolean })._deleted
+        );
         return { rows: found ? [found as unknown as T] : [] };
       }
 
@@ -93,10 +99,24 @@ function makeFakeDb() {
         ];
         const filtered = companies
           .filter((c) => c.organizationId === organizationId)
+          .filter((c) => !(c as unknown as { _deleted?: boolean })._deleted)
           .filter((c) => (status ? c.status === status : true))
           .sort((a, b) => a.displayName.localeCompare(b.displayName))
           .slice(offset, offset + limit);
         return { rows: filtered as unknown as T[] };
+      }
+
+      if (t.includes("update companies") && t.includes("deleted_at = now()")) {
+        const [id, organizationId] = values as [string, string];
+        const idx = companies.findIndex(
+          (c) =>
+            c.id === id &&
+            c.organizationId === organizationId &&
+            !(c as unknown as { _deleted?: boolean })._deleted
+        );
+        if (idx === -1) return { rows: [] };
+        (companies[idx] as unknown as { _deleted: boolean })._deleted = true;
+        return { rows: [{ id: companies[idx]!.id } as unknown as T] };
       }
 
       if (t.includes("update companies")) {
@@ -165,6 +185,10 @@ function makeFakeDb() {
         return { rows: [] };
       }
 
+      if (t.includes("insert into timeline_entries")) {
+        return { rows: [] };
+      }
+
       return { rows: [] };
     }
   };
@@ -213,5 +237,27 @@ describe("CompanyService (CRM Demo Slice 2)", () => {
 
     const archived = await listCompanies(db, context, { status: "archived" });
     expect(archived).toEqual([]);
+  });
+
+  it("soft-deletes a company: emits crm.company.deleted and hides it from default reads", async () => {
+    const { db, audits } = makeFakeDb();
+    const created = await createCompany(db, context, { displayName: "ToDelete" });
+
+    await deleteCompany(db, context, created.id);
+
+    const deleteAudit = audits.find((a) => a.action === "crm.company.deleted");
+    expect(deleteAudit).toBeDefined();
+    expect(deleteAudit!.resourceId).toBe(created.id);
+    expect(deleteAudit!.beforeSummary).toMatchObject({ displayName: "ToDelete" });
+
+    const list = await listCompanies(db, context);
+    expect(list.find((c) => c.id === created.id)).toBeUndefined();
+  });
+
+  it("throws CompanyNotFoundError when deleting a non-existent company", async () => {
+    const { db } = makeFakeDb();
+    await expect(deleteCompany(db, context, "co_nope")).rejects.toBeInstanceOf(
+      CompanyNotFoundError
+    );
   });
 });

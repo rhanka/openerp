@@ -7,6 +7,7 @@ import type { AppBindings } from "../app";
 import {
   ContactNotFoundError,
   createContact,
+  deleteContact,
   getContactById,
   listContacts,
   updateContact
@@ -91,6 +92,19 @@ export function mountCrmContactRoutes(app: Hono<AppBindings>): void {
     try {
       const updated = await updateContact(db, tenant, id, body);
       return c.json(updated);
+    } catch (err) {
+      if (err instanceof ContactNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
+      throw err;
+    }
+  });
+
+  app.delete("/crm/contacts/:id", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    try {
+      await deleteContact(db, tenant, id);
+      return c.body(null, 204);
     } catch (err) {
       if (err instanceof ContactNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
       throw err;

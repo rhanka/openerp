@@ -8,6 +8,7 @@ import {
   findContactById,
   insertContact,
   listContacts as listContactsRepo,
+  softDeleteContact,
   updateContact as updateContactRepo
 } from "./contacts";
 
@@ -88,6 +89,31 @@ export async function updateContact(
     }
   });
   return updated;
+}
+
+export async function deleteContact(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<void> {
+  assertTenantContext(context);
+  const before = await findContactById(db, context, id);
+  if (!before) throw new ContactNotFoundError(id);
+  const deleted = await softDeleteContact(db, context, id);
+  if (!deleted) throw new ContactNotFoundError(id);
+  await recordAuditEvent(db, context, {
+    action: "crm.contact.deleted",
+    resourceType: "contact",
+    resourceId: id,
+    beforeSummary: { displayName: before.displayName, status: before.status },
+    afterSummary: null
+  });
+  await emitCrmTimelineEntry(db, context, {
+    resourceType: "contact",
+    resourceId: id,
+    entryType: "crm.contact.deleted",
+    payloadSummary: { displayName: before.displayName }
+  });
 }
 
 export async function getContactById(
