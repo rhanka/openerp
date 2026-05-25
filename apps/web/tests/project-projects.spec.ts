@@ -53,3 +53,25 @@ test("project detail renders Tasks section with demo tasks (DS 3.1)", async ({ p
   await expect(taskItems).toHaveCount(2);
   await expect(taskItems.first()).toHaveAttribute("data-task-status", "done");
 });
+
+test("project detail renders Time section with demo time entries (DS 3.2)", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  await context.addCookies([
+    { name: "openerp_locale", value: "en", url: baseURL ?? "http://127.0.0.1:4173" }
+  ]);
+  await page.goto("/admin/project/projects/demo-pr-1");
+  await page.waitForLoadState("domcontentloaded");
+
+  // Time section heading visible
+  const timeHeading = page.getByTestId("time-entries-section-title");
+  await expect(timeHeading).toBeVisible();
+  await expect(timeHeading).toContainText("Time");
+
+  // Time entries list with at least 1 demo entry
+  const entriesList = page.getByTestId("project-time-entries-list");
+  await expect(entriesList).toBeVisible();
+  const entryItems = entriesList.locator(":scope > li");
+  await expect(entryItems).toHaveCount(2);
+  // First demo entry is approved
+  await expect(entryItems.first()).toHaveAttribute("data-entry-status", "approved");
+});

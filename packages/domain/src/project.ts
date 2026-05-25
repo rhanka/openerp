@@ -46,7 +46,12 @@ export const PROJECT_DOMAIN_EVENTS = [
   "project.task.created",
   "project.task.updated",
   "project.task.completed",
-  "project.task.deleted"
+  "project.task.deleted",
+  "project.time_entry.created",
+  "project.time_entry.updated",
+  "project.time_entry.submitted",
+  "project.time_entry.approved",
+  "project.time_entry.deleted"
 ] as const;
 
 export type ProjectDomainEvent = (typeof PROJECT_DOMAIN_EVENTS)[number];
@@ -90,4 +95,45 @@ export interface UpdateProjectTaskInput {
   dueDate?: string | null;
   completedAt?: string | null;
   parentTaskId?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// TimeEntry — DS 3.2
+// ---------------------------------------------------------------------------
+
+export type TimeEntryStatus = "draft" | "submitted" | "approved" | "rejected";
+
+export interface TimeEntry {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  projectTaskId: string | null;
+  userId: string;
+  entryDate: string;
+  minutes: number;
+  description: string | null;
+  billable: boolean;
+  status: TimeEntryStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTimeEntryInput {
+  projectId: string;
+  userId: string;
+  entryDate: string;
+  minutes: number;
+  projectTaskId?: string | null;
+  description?: string | null;
+  billable?: boolean;
+  status?: TimeEntryStatus;
+}
+
+export interface UpdateTimeEntryInput {
+  projectTaskId?: string | null;
+  entryDate?: string;
+  minutes?: number;
+  description?: string | null;
+  billable?: boolean;
+  status?: TimeEntryStatus;
 }

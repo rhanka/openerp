@@ -2,7 +2,7 @@
   import { enhance } from "$app/forms";
   import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
 
-  import type { Project, ProjectStatus, ProjectTask, ProjectTaskStatus } from "@sentropic/openerp-domain/project";
+  import type { Project, ProjectStatus, ProjectTask, ProjectTaskStatus, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -23,8 +23,13 @@
   );
   const project: Project | null = $derived(data.project);
   const tasks: ProjectTask[] = $derived(data.tasks ?? []);
+  const timeEntries: TimeEntry[] = $derived(data.timeEntries ?? []);
+  const billableTotal: number = $derived(
+    timeEntries.filter((e) => e.billable).reduce((sum, e) => sum + e.minutes, 0)
+  );
 
   let creatingTask = $state(false);
+  let loggingTime = $state(false);
 
   function statusLabel(status: ProjectStatus): string {
     return t(locale, `project.projects.status.${status}`);
@@ -42,6 +47,20 @@
     if (status === "blocked") return "warning";
     if (status === "in_progress") return "info";
     return "neutral";
+  }
+  function timeEntryStatusLabel(status: TimeEntryStatus): string {
+    return t(locale, `project.timeEntries.status.${status}`);
+  }
+  function timeEntryStatusTone(status: TimeEntryStatus): "success" | "warning" | "info" | "neutral" {
+    if (status === "approved") return "success";
+    if (status === "rejected") return "warning";
+    if (status === "submitted") return "info";
+    return "neutral";
+  }
+  function formatMinutes(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h${m > 0 ? ` ${m}min` : ""}` : `${m}min`;
   }
   function entryVerb(entryType: string): string {
     const parts = entryType.split(".");
@@ -203,6 +222,110 @@
           </li>
         {/each}
       </ol>
+    {/if}
+
+    <h2 class="page__section-title" data-testid="time-entries-section-title">
+      {t(locale, "project.timeEntries.section.title")}
+    </h2>
+
+    <Card>
+      <form
+        method="POST"
+        action="?/logTime"
+        use:enhance={() => {
+          loggingTime = true;
+          return async ({ update }) => {
+            loggingTime = false;
+            await update();
+          };
+        }}
+        class="page__task-form"
+      >
+        <fieldset>
+          <legend class="page__task-form-legend">{t(locale, "project.timeEntries.form.legend")}</legend>
+          <div class="page__task-form-fields">
+            <label>
+              <span>{t(locale, "project.timeEntries.field.entryDate")}</span>
+              <input type="date" name="entryDate" required />
+            </label>
+            <label>
+              <span>{t(locale, "project.timeEntries.field.minutes")}</span>
+              <input type="number" name="minutes" min="1" step="1" required placeholder="60" />
+            </label>
+            <label>
+              <span>{t(locale, "project.timeEntries.field.description")}</span>
+              <input type="text" name="description" placeholder={t(locale, "project.timeEntries.field.description")} />
+            </label>
+            <label class="page__checkbox-label">
+              <input type="checkbox" name="billable" checked />
+              <span>{t(locale, "project.timeEntries.field.billable")}</span>
+            </label>
+            <input type="hidden" name="userId" value={data.locale === "fr" ? "demo-user-1" : "demo-user-1"} />
+            <button type="submit" disabled={loggingTime}>
+              {loggingTime ? t(locale, "project.timeEntries.action.creating") : t(locale, "project.timeEntries.action.create")}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </Card>
+
+    {#if timeEntries.length === 0}
+      <EmptyState
+        title={t(locale, "project.timeEntries.empty.title")}
+        message={t(locale, "project.timeEntries.empty.message")}
+      />
+    {:else}
+      <ol class="page__tasks" data-testid="project-time-entries-list">
+        {#each timeEntries as entry (entry.id)}
+          <li class="page__task-item" data-entry-id={entry.id} data-entry-status={entry.status}>
+            <div class="page__task-status">
+              <Tag tone={timeEntryStatusTone(entry.status)}>{timeEntryStatusLabel(entry.status)}</Tag>
+            </div>
+            <div class="page__task-body">
+              <span class="page__task-title">{formatMinutes(entry.minutes)} — {entry.entryDate}</span>
+              {#if entry.description}
+                <span class="page__task-due">{entry.description}</span>
+              {/if}
+            </div>
+            <div class="page__task-actions">
+              {#if entry.status === "draft"}
+                <form method="POST" action="?/submitTimeEntry" use:enhance>
+                  <input type="hidden" name="entryId" value={entry.id} />
+                  <button type="submit" class="page__task-btn page__task-btn--done">
+                    {t(locale, "project.timeEntries.action.submit")}
+                  </button>
+                </form>
+              {/if}
+              {#if entry.status === "submitted"}
+                <form method="POST" action="?/approveTimeEntry" use:enhance>
+                  <input type="hidden" name="entryId" value={entry.id} />
+                  <button type="submit" class="page__task-btn page__task-btn--done">
+                    {t(locale, "project.timeEntries.action.approve")}
+                  </button>
+                </form>
+              {/if}
+              <form
+                method="POST"
+                action="?/deleteTimeEntry"
+                use:enhance
+                onsubmit={(e) => {
+                  if (!confirm(t(locale, "project.timeEntries.action.deleteConfirm"))) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <input type="hidden" name="entryId" value={entry.id} />
+                <button type="submit" class="page__task-btn page__task-btn--delete">
+                  {t(locale, "project.timeEntries.action.delete")}
+                </button>
+              </form>
+            </div>
+          </li>
+        {/each}
+      </ol>
+      <p class="page__time-total">
+        {t(locale, "project.timeEntries.section.total")}: <strong>{formatMinutes(billableTotal)}</strong>
+      </p>
     {/if}
 
     <h2 class="page__section-title">
@@ -382,5 +505,17 @@
   }
   .page__task-btn--delete {
     color: var(--sent-color-text-muted);
+  }
+  .page__checkbox-label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sent-space-xs);
+    font-size: var(--sent-font-size-sm);
+  }
+  .page__time-total {
+    font-size: var(--sent-font-size-sm);
+    color: var(--sent-color-text-muted);
+    margin: var(--sent-space-xs) 0 0 0;
   }
 </style>

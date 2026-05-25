@@ -15,6 +15,7 @@ import { mountCrmTimelineRoutes } from "./handlers/crm-timeline";
 import { mountProjectRoutes } from "./handlers/project-projects";
 import { mountProjectTaskRoutes } from "./handlers/project-tasks";
 import { mountProjectTimelineRoutes } from "./handlers/project-timeline";
+import { mountTimeEntryRoutes } from "./handlers/project-time-entries";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
@@ -96,6 +97,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountProjectRoutes(app);
   mountProjectTaskRoutes(app);
   mountProjectTimelineRoutes(app);
+  mountTimeEntryRoutes(app);
 
   return app;
 }

@@ -1,6 +1,6 @@
 import { env } from "$env/dynamic/private";
 
-import type { Project, ProjectTask } from "@sentropic/openerp-domain/project";
+import type { Project, ProjectTask, TimeEntry } from "@sentropic/openerp-domain/project";
 import type { TimelineEntry } from "@sentropic/openerp-domain";
 
 import { createApiClient } from "$lib/api/client";
@@ -25,7 +25,7 @@ function clientFromLocalsOrEnv(
   };
 }
 
-const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: ProjectTask[] } = {
+const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: ProjectTask[]; timeEntries: TimeEntry[] } = {
   project: {
     id: "demo-pr-1",
     organizationId: "demo-org",
@@ -91,6 +91,36 @@ const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: Proje
       createdAt: new Date(Date.now() - 86_400_000).toISOString(),
       updatedAt: new Date(Date.now() - 3_600_000).toISOString()
     }
+  ],
+  timeEntries: [
+    {
+      id: "demo-te-1",
+      organizationId: "demo-org",
+      projectId: "demo-pr-1",
+      projectTaskId: "demo-tk-1",
+      userId: "demo-user-1",
+      entryDate: "2026-05-22",
+      minutes: 120,
+      description: "Set up project scaffolding",
+      billable: true,
+      status: "approved",
+      createdAt: new Date(Date.now() - 86_400_000 * 3).toISOString(),
+      updatedAt: new Date(Date.now() - 86_400_000 * 2).toISOString()
+    },
+    {
+      id: "demo-te-2",
+      organizationId: "demo-org",
+      projectId: "demo-pr-1",
+      projectTaskId: "demo-tk-2",
+      userId: "demo-user-1",
+      entryDate: "2026-05-24",
+      minutes: 90,
+      description: "API endpoint implementation",
+      billable: true,
+      status: "submitted",
+      createdAt: new Date(Date.now() - 86_400_000).toISOString(),
+      updatedAt: new Date(Date.now() - 3_600_000).toISOString()
+    }
   ]
 };
 
@@ -104,18 +134,20 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
     };
   }
   try {
-    const [project, timeline, tasks] = await Promise.all([
+    const [project, timeline, tasks, timeEntries] = await Promise.all([
       session.client.getProject(params.id),
       session.client.listProjectTimeline({
         resourceId: params.id,
         limit: 50
       }),
-      session.client.listProjectTasks({ projectId: params.id, limit: 100 })
+      session.client.listProjectTasks({ projectId: params.id, limit: 100 }),
+      session.client.listTimeEntries({ projectId: params.id, limit: 200 })
     ]);
     return {
       project,
       timeline,
       tasks,
+      timeEntries,
       source: "api" as const,
       locale: locals.locale
     };
@@ -127,6 +159,7 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       project: null as Project | null,
       timeline: [] as TimelineEntry[],
       tasks: [] as ProjectTask[],
+      timeEntries: [] as TimeEntry[],
       source: notFound ? ("not_found" as const) : ("error" as const),
       locale: locals.locale,
       message
@@ -178,6 +211,82 @@ export const actions: Actions = {
     if (!taskId) return { ok: false, code: "TASK_ID_REQUIRED" };
     try {
       await session.client.deleteProjectTask(taskId);
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  logTime: async ({ fetch, locals, params, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const minutesRaw = String(formData.get("minutes") ?? "").trim();
+    const entryDate = String(formData.get("entryDate") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim() || null;
+    const billable = formData.get("billable") !== null;
+    const projectTaskId = String(formData.get("projectTaskId") ?? "").trim() || null;
+    const userId = String(formData.get("userId") ?? "").trim();
+    const minutes = parseInt(minutesRaw, 10);
+    if (!entryDate) return { ok: false, code: "ENTRY_DATE_REQUIRED" };
+    if (!Number.isFinite(minutes) || minutes <= 0) return { ok: false, code: "MINUTES_REQUIRED" };
+    if (!userId) return { ok: false, code: "USER_ID_REQUIRED" };
+    try {
+      await session.client.createTimeEntry({
+        projectId: params.id,
+        userId,
+        entryDate,
+        minutes,
+        description: description ?? undefined,
+        billable,
+        projectTaskId: projectTaskId ?? undefined
+      });
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  submitTimeEntry: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const entryId = String(formData.get("entryId") ?? "").trim();
+    if (!entryId) return { ok: false, code: "ENTRY_ID_REQUIRED" };
+    try {
+      await session.client.updateTimeEntry(entryId, { status: "submitted" });
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  approveTimeEntry: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const entryId = String(formData.get("entryId") ?? "").trim();
+    if (!entryId) return { ok: false, code: "ENTRY_ID_REQUIRED" };
+    try {
+      await session.client.updateTimeEntry(entryId, { status: "approved" });
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  deleteTimeEntry: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const entryId = String(formData.get("entryId") ?? "").trim();
+    if (!entryId) return { ok: false, code: "ENTRY_ID_REQUIRED" };
+    try {
+      await session.client.deleteTimeEntry(entryId);
       return { ok: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

@@ -1044,6 +1044,118 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   });
 
+  it("TimeEntry end-to-end (DS 3.2): create -> submit -> approve -> soft-delete emits project.time_entry.* audit + timeline", async () => {
+    const { createProject } = await import("../../src/project/project-service");
+    const { createProjectTask } = await import("../../src/project/project-task-service");
+    const {
+      createTimeEntry,
+      deleteTimeEntry,
+      listTimeEntries,
+      updateTimeEntry
+    } = await import("../../src/project/time-entry-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('TimeCo DS32', 'TimeCo DS32', 'timeco-ds32', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-ds32-id@timeco.local', 'PM DS32', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm-ds32@timeco.local', 'PM DS32', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userId = userRes.rows[0]!.id;
+        const tenant = { organizationId: orgId, actorUserId: userId };
+
+        const project = await createProject(client, tenant, {
+          name: "DS 3.2 Host Project",
+          code: "DS32"
+        });
+
+        const task = await createProjectTask(client, tenant, {
+          projectId: project.id,
+          title: "Implement time tracking"
+        });
+
+        // Log a time entry against the project + task
+        const entry = await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          projectTaskId: task.id,
+          userId,
+          entryDate: "2026-05-25",
+          minutes: 90,
+          description: "Initial implementation",
+          billable: true
+        });
+        expect(entry.id).toBeTruthy();
+        expect(entry.status).toBe("draft");
+        expect(entry.minutes).toBe(90);
+        expect(entry.projectId).toBe(project.id);
+        expect(entry.projectTaskId).toBe(task.id);
+
+        // Submit — emits project.time_entry.submitted distinctly
+        const submitted = await updateTimeEntry(client, tenant, entry.id, { status: "submitted" });
+        expect(submitted.status).toBe("submitted");
+
+        // Approve — emits project.time_entry.approved distinctly
+        const approved = await updateTimeEntry(client, tenant, entry.id, { status: "approved" });
+        expect(approved.status).toBe("approved");
+
+        // listTimeEntries still returns it (soft-delete not yet applied)
+        const listBefore = await listTimeEntries(client, tenant, { projectId: project.id });
+        expect(listBefore.length).toBe(1);
+        expect(listBefore[0]!.id).toBe(entry.id);
+
+        // Soft-delete
+        await deleteTimeEntry(client, tenant, entry.id);
+        const listAfter = await listTimeEntries(client, tenant, { projectId: project.id });
+        expect(listAfter.length).toBe(0);
+
+        // Audit rows preserved: created, updated (x2 for submit+approve), submitted, approved, deleted
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'time_entry' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, entry.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("project.time_entry.created");
+        expect(actions).toContain("project.time_entry.submitted");
+        expect(actions).toContain("project.time_entry.approved");
+        expect(actions).toContain("project.time_entry.deleted");
+
+        // Timeline rows preserved for time_entry resource
+        const tlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'time_entry' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, entry.id]
+        );
+        const entryTypes = tlRows.rows.map((r) => r.entry_type);
+        expect(entryTypes).toContain("project.time_entry.created");
+        expect(entryTypes).toContain("project.time_entry.submitted");
+        expect(entryTypes).toContain("project.time_entry.approved");
+        expect(entryTypes).toContain("project.time_entry.deleted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("Project end-to-end: create -> update -> soft-delete emits project.project.* audit + timeline (DS 3.0)", async () => {
     const {
       createProject,

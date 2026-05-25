@@ -2,12 +2,16 @@ import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/open
 import type {
   CreateProjectInput,
   CreateProjectTaskInput,
+  CreateTimeEntryInput,
   Project,
   ProjectStatus,
   ProjectTask,
   ProjectTaskStatus,
+  TimeEntry,
+  TimeEntryStatus,
   UpdateProjectInput,
-  UpdateProjectTaskInput
+  UpdateProjectTaskInput,
+  UpdateTimeEntryInput
 } from "@sentropic/openerp-domain/project";
 import type {
   Company,
@@ -390,6 +394,44 @@ export function createApiClient(options: ApiClientOptions) {
 
     async deleteProjectTask(id: string): Promise<void> {
       return requestNoContent(`/project/tasks/${encodeURIComponent(id)}`);
+    },
+
+    async listTimeEntries(query: {
+      projectId?: string;
+      projectTaskId?: string;
+      userId?: string;
+      status?: TimeEntryStatus;
+      billable?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {}): Promise<TimeEntry[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: TimeEntry[] }>(`/project/time-entries${suffix}`);
+      return body.items;
+    },
+
+    async createTimeEntry(input: CreateTimeEntryInput): Promise<TimeEntry> {
+      return request<TimeEntry>(`/project/time-entries`, { method: "POST", body: input });
+    },
+
+    async updateTimeEntry(id: string, patch: UpdateTimeEntryInput): Promise<TimeEntry> {
+      return request<TimeEntry>(`/project/time-entries/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async getTimeEntry(id: string): Promise<TimeEntry> {
+      return request<TimeEntry>(`/project/time-entries/${encodeURIComponent(id)}`);
+    },
+
+    async deleteTimeEntry(id: string): Promise<void> {
+      return requestNoContent(`/project/time-entries/${encodeURIComponent(id)}`);
     }
   };
 }
