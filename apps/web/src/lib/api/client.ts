@@ -1,9 +1,13 @@
 import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
   CreateProjectInput,
+  CreateProjectTaskInput,
   Project,
   ProjectStatus,
-  UpdateProjectInput
+  ProjectTask,
+  ProjectTaskStatus,
+  UpdateProjectInput,
+  UpdateProjectTaskInput
 } from "@sentropic/openerp-domain/project";
 import type {
   Company,
@@ -351,6 +355,41 @@ export function createApiClient(options: ApiClientOptions) {
         `/project/timeline?${params.toString()}`
       );
       return body.items;
+    },
+
+    async listProjectTasks(query: {
+      projectId?: string;
+      status?: ProjectTaskStatus;
+      limit?: number;
+      offset?: number;
+    } = {}): Promise<ProjectTask[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: ProjectTask[] }>(`/project/tasks${suffix}`);
+      return body.items;
+    },
+
+    async createProjectTask(input: CreateProjectTaskInput): Promise<ProjectTask> {
+      return request<ProjectTask>(`/project/tasks`, { method: "POST", body: input });
+    },
+
+    async updateProjectTask(id: string, patch: UpdateProjectTaskInput): Promise<ProjectTask> {
+      return request<ProjectTask>(`/project/tasks/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async getProjectTask(id: string): Promise<ProjectTask> {
+      return request<ProjectTask>(`/project/tasks/${encodeURIComponent(id)}`);
+    },
+
+    async deleteProjectTask(id: string): Promise<void> {
+      return requestNoContent(`/project/tasks/${encodeURIComponent(id)}`);
     }
   };
 }

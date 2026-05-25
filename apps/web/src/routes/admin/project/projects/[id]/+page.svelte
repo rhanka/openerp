@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
 
-  import type { Project, ProjectStatus } from "@sentropic/openerp-domain/project";
+  import type { Project, ProjectStatus, ProjectTask, ProjectTaskStatus } from "@sentropic/openerp-domain/project";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -21,6 +22,9 @@
         : t(locale, "approval.source.demo")
   );
   const project: Project | null = $derived(data.project);
+  const tasks: ProjectTask[] = $derived(data.tasks ?? []);
+
+  let creatingTask = $state(false);
 
   function statusLabel(status: ProjectStatus): string {
     return t(locale, `project.projects.status.${status}`);
@@ -28,6 +32,15 @@
   function statusTone(status: ProjectStatus): "success" | "warning" | "neutral" {
     if (status === "active") return "success";
     if (status === "on_hold") return "warning";
+    return "neutral";
+  }
+  function taskStatusLabel(status: ProjectTaskStatus): string {
+    return t(locale, `project.tasks.status.${status}`);
+  }
+  function taskStatusTone(status: ProjectTaskStatus): "success" | "warning" | "info" | "neutral" {
+    if (status === "done") return "success";
+    if (status === "blocked") return "warning";
+    if (status === "in_progress") return "info";
     return "neutral";
   }
   function entryVerb(entryType: string): string {
@@ -107,6 +120,90 @@
         {/if}
       </div>
     </Card>
+
+    <h2 class="page__section-title" data-testid="tasks-section-title">
+      {t(locale, "project.tasks.section.title")}
+    </h2>
+
+    <Card>
+      <form
+        method="POST"
+        action="?/createTask"
+        use:enhance={() => {
+          creatingTask = true;
+          return async ({ update }) => {
+            creatingTask = false;
+            await update();
+          };
+        }}
+        class="page__task-form"
+      >
+        <fieldset>
+          <legend class="page__task-form-legend">{t(locale, "project.tasks.form.legend")}</legend>
+          <div class="page__task-form-fields">
+            <label>
+              <span>{t(locale, "project.tasks.field.title")}</span>
+              <input type="text" name="title" required placeholder={t(locale, "project.tasks.field.title")} />
+            </label>
+            <label>
+              <span>{t(locale, "project.tasks.field.dueDate")}</span>
+              <input type="date" name="dueDate" />
+            </label>
+            <button type="submit" disabled={creatingTask}>
+              {creatingTask ? t(locale, "project.tasks.action.creating") : t(locale, "project.tasks.action.create")}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </Card>
+
+    {#if tasks.length === 0}
+      <EmptyState
+        title={t(locale, "project.tasks.empty.title")}
+        message={t(locale, "project.tasks.empty.message")}
+      />
+    {:else}
+      <ol class="page__tasks" data-testid="project-tasks-list">
+        {#each tasks as task (task.id)}
+          <li class="page__task-item" data-task-id={task.id} data-task-status={task.status}>
+            <div class="page__task-status">
+              <Tag tone={taskStatusTone(task.status)}>{taskStatusLabel(task.status)}</Tag>
+            </div>
+            <div class="page__task-body">
+              <span class="page__task-title">{task.title}</span>
+              {#if task.dueDate}
+                <span class="page__task-due">{task.dueDate}</span>
+              {/if}
+            </div>
+            <div class="page__task-actions">
+              {#if task.status !== "done" && task.status !== "cancelled"}
+                <form method="POST" action="?/markDone" use:enhance>
+                  <input type="hidden" name="taskId" value={task.id} />
+                  <button type="submit" class="page__task-btn page__task-btn--done">
+                    {t(locale, "project.tasks.action.markDone")}
+                  </button>
+                </form>
+              {/if}
+              <form
+                method="POST"
+                action="?/deleteTask"
+                use:enhance
+                onsubmit={(e) => {
+                  if (!confirm(t(locale, "project.tasks.action.deleteConfirm"))) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <input type="hidden" name="taskId" value={task.id} />
+                <button type="submit" class="page__task-btn page__task-btn--delete">
+                  {t(locale, "project.tasks.action.delete")}
+                </button>
+              </form>
+            </div>
+          </li>
+        {/each}
+      </ol>
+    {/if}
 
     <h2 class="page__section-title">
       {t(locale, "project.projects.detail.timeline.title")}
@@ -201,5 +298,89 @@
     display: flex;
     gap: var(--sent-space-xs);
     flex-wrap: wrap;
+  }
+  .page__task-form {
+    padding: var(--sent-space-sm) 0;
+  }
+  .page__task-form-legend {
+    font-size: var(--sent-font-size-sm);
+    font-weight: 600;
+    margin-bottom: var(--sent-space-sm);
+  }
+  .page__task-form-fields {
+    display: flex;
+    gap: var(--sent-space-sm);
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .page__task-form-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sent-space-2xs);
+    font-size: var(--sent-font-size-sm);
+  }
+  .page__task-form-fields input {
+    padding: var(--sent-space-xs) var(--sent-space-sm);
+    border: 1px solid var(--sent-color-border-default);
+    border-radius: var(--sent-radius-sm);
+    font-size: var(--sent-font-size-sm);
+  }
+  .page__task-form-fields button {
+    padding: var(--sent-space-xs) var(--sent-space-md);
+    border-radius: var(--sent-radius-sm);
+    border: none;
+    background: var(--sent-color-action-primary);
+    color: var(--sent-color-text-on-primary);
+    font-size: var(--sent-font-size-sm);
+    cursor: pointer;
+  }
+  .page__tasks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sent-space-sm);
+  }
+  .page__task-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sent-space-md);
+    padding: var(--sent-space-sm);
+    background: var(--sent-color-surface-default);
+    border: 1px solid var(--sent-color-border-default);
+    border-radius: var(--sent-radius-sm);
+  }
+  .page__task-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sent-space-2xs);
+  }
+  .page__task-title {
+    font-size: var(--sent-font-size-sm);
+  }
+  .page__task-due {
+    font-size: var(--sent-font-size-xs);
+    color: var(--sent-color-text-muted);
+  }
+  .page__task-actions {
+    display: flex;
+    gap: var(--sent-space-xs);
+  }
+  .page__task-btn {
+    padding: var(--sent-space-2xs) var(--sent-space-sm);
+    border-radius: var(--sent-radius-sm);
+    border: 1px solid var(--sent-color-border-default);
+    font-size: var(--sent-font-size-xs);
+    cursor: pointer;
+    background: transparent;
+  }
+  .page__task-btn--done {
+    color: var(--sent-color-success);
+    border-color: var(--sent-color-success);
+  }
+  .page__task-btn--delete {
+    color: var(--sent-color-text-muted);
   }
 </style>

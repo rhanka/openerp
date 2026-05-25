@@ -32,3 +32,24 @@ test("project detail renders timeline in demo mode", async ({ page, context, bas
   const items = timeline.locator(":scope > li");
   await expect(items.first()).toHaveAttribute("data-entry-type", "project.project.created");
 });
+
+test("project detail renders Tasks section with demo tasks (DS 3.1)", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  await context.addCookies([
+    { name: "openerp_locale", value: "en", url: baseURL ?? "http://127.0.0.1:4173" }
+  ]);
+  await page.goto("/admin/project/projects/demo-pr-1");
+  await page.waitForLoadState("domcontentloaded");
+
+  // Tasks section heading visible
+  const tasksHeading = page.getByTestId("tasks-section-title");
+  await expect(tasksHeading).toBeVisible();
+  await expect(tasksHeading).toContainText("Tasks");
+
+  // Task list with at least one task
+  const tasksList = page.getByTestId("project-tasks-list");
+  await expect(tasksList).toBeVisible();
+  const taskItems = tasksList.locator(":scope > li");
+  await expect(taskItems).toHaveCount(2);
+  await expect(taskItems.first()).toHaveAttribute("data-task-status", "done");
+});

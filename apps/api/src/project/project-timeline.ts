@@ -11,6 +11,8 @@ export interface EmitProjectTimelineInput {
   resourceId: string;
   entryType: string;
   payloadSummary: PayloadSummary;
+  /** Defaults to "project". Use "project_task" for ProjectTask timeline entries. */
+  resourceType?: string;
 }
 
 export async function emitProjectTimelineEntry(
@@ -19,7 +21,7 @@ export async function emitProjectTimelineEntry(
   input: EmitProjectTimelineInput
 ): Promise<void> {
   await insertTimelineEntry(db, context, {
-    resourceType: "project",
+    resourceType: input.resourceType ?? "project",
     resourceId: input.resourceId,
     actorUserIdentityId: context.actorUserId,
     entryType: input.entryType,

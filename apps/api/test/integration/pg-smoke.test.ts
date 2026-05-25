@@ -952,6 +952,98 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   });
 
+  it("ProjectTask end-to-end (DS 3.1): create -> mark done -> soft-delete emits project.task.* audit + timeline", async () => {
+    const { createProject } = await import("../../src/project/project-service");
+    const {
+      createProjectTask,
+      deleteProjectTask,
+      listProjectTasks,
+      updateProjectTask
+    } = await import("../../src/project/project-task-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('TaskCo DS31', 'TaskCo DS31', 'taskco-ds31', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-ds31-id@taskco.local', 'PM DS31', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm-ds31@taskco.local', 'PM DS31', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        const project = await createProject(client, tenant, {
+          name: "DS 3.1 Host Project",
+          code: "DS31"
+        });
+
+        const task = await createProjectTask(client, tenant, {
+          projectId: project.id,
+          title: "Implement ProjectTask entity"
+        });
+        expect(task.id).toBeTruthy();
+        expect(task.status).toBe("todo");
+        expect(task.projectId).toBe(project.id);
+
+        // Move to done — should emit project.task.updated + project.task.completed
+        const done = await updateProjectTask(client, tenant, task.id, { status: "done" });
+        expect(done.status).toBe("done");
+        expect(done.completedAt).toBeTruthy();
+
+        // List still shows the task (not deleted)
+        const listBefore = await listProjectTasks(client, tenant, { projectId: project.id });
+        expect(listBefore.length).toBe(1);
+
+        // Soft-delete
+        await deleteProjectTask(client, tenant, task.id);
+        const listAfter = await listProjectTasks(client, tenant, { projectId: project.id });
+        expect(listAfter.length).toBe(0);
+
+        // Audit rows preserved: created, updated, completed, deleted
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'project_task' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, task.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("project.task.created");
+        expect(actions).toContain("project.task.updated");
+        expect(actions).toContain("project.task.completed");
+        expect(actions).toContain("project.task.deleted");
+
+        // Timeline rows preserved for project_task resource
+        const tlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'project_task' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, task.id]
+        );
+        const entryTypes = tlRows.rows.map((r) => r.entry_type);
+        expect(entryTypes).toContain("project.task.created");
+        expect(entryTypes).toContain("project.task.completed");
+        expect(entryTypes).toContain("project.task.deleted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
+
   it("Project end-to-end: create -> update -> soft-delete emits project.project.* audit + timeline (DS 3.0)", async () => {
     const {
       createProject,
