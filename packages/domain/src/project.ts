@@ -57,7 +57,12 @@ export const PROJECT_DOMAIN_EVENTS = [
   "project.rate.deleted",
   "project.assignment.created",
   "project.assignment.updated",
-  "project.assignment.deleted"
+  "project.assignment.deleted",
+  "project.invoice_proposal.created",
+  "project.invoice_proposal.submitted",
+  "project.invoice_proposal.approved",
+  "project.invoice_proposal.rejected",
+  "project.invoice_proposal.deleted"
 ] as const;
 
 export type ProjectDomainEvent = (typeof PROJECT_DOMAIN_EVENTS)[number];
@@ -217,4 +222,56 @@ export interface UpdateAssignmentInput {
   startDate?: string | null;
   endDate?: string | null;
   billableRateId?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// InvoiceProposal + InvoiceProposalLine — DS 3.4 (time-to-invoice handoff)
+// ---------------------------------------------------------------------------
+
+// Money snapshot aligned with CRM MoneySnapshot and Rate's RateMoney.
+export interface ProposalMoney {
+  amountMinor: number;
+  currency: string;
+  scale: number;
+}
+
+export type InvoiceProposalStatus = "draft" | "submitted" | "approved" | "rejected";
+
+export interface InvoiceProposal {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  companyId: string | null;
+  status: InvoiceProposalStatus;
+  periodStart: string | null;
+  periodEnd: string | null;
+  total: ProposalMoney;
+  currency: string;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceProposalLine {
+  id: string;
+  organizationId: string;
+  invoiceProposalId: string;
+  sourceType: string;
+  sourceId: string | null;
+  description: string | null;
+  quantityMinutes: number;
+  unitRate: ProposalMoney;
+  amount: ProposalMoney;
+  createdAt: string;
+}
+
+export interface CreateInvoiceProposalInput {
+  projectId: string;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  currency?: string;
+}
+
+export interface InvoiceProposalWithLines extends InvoiceProposal {
+  lines: InvoiceProposalLine[];
 }

@@ -1377,4 +1377,176 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   });
+
+  it("InvoiceProposal end-to-end (DS 3.4): create project + rate + assignment + 2 approved billable entries -> generate -> 2 lines -> summed total -> submit -> approve", async () => {
+    const { createProject } = await import("../../src/project/project-service");
+    const { createRate } = await import("../../src/project/rate-service");
+    const { createAssignment } = await import("../../src/project/assignment-service");
+    const { createTimeEntry } = await import("../../src/project/time-entry-service");
+    const {
+      generateInvoiceProposal,
+      submitInvoiceProposal,
+      approveInvoiceProposal,
+      deleteInvoiceProposal,
+      InvoiceProposalTransitionError
+    } = await import("../../src/project/invoice-proposal-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('InvProp Co DS34', 'InvProp Co DS34', 'invprop-ds34', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-ds34-id@invprop.local', 'PM DS34', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm-ds34@invprop.local', 'PM DS34', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userId = userRes.rows[0]!.id;
+        const tenant = { organizationId: orgId, actorUserId: userId };
+
+        // Create a project
+        const project = await createProject(client, tenant, {
+          name: "DS 3.4 Invoice Test",
+          code: "DS34"
+        });
+
+        // Create a rate: $100/hr in CAD (amountMinor = 10000, scale = 2)
+        const rate = await createRate(client, tenant, {
+          name: "Standard hourly",
+          amount: { amountMinor: 10000, currency: "CAD", scale: 2 },
+          effectiveFrom: "2026-01-01",
+          active: true
+        });
+
+        // Assign user to project with the rate
+        await createAssignment(client, tenant, {
+          projectId: project.id,
+          userId,
+          billableRateId: rate.id
+        });
+
+        // Create 2 approved billable time entries
+        // Entry 1: 60 minutes (1h) → $100.00
+        const te1 = await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          userId,
+          entryDate: "2026-05-01",
+          minutes: 60,
+          billable: true,
+          status: "approved"
+        });
+
+        // Entry 2: 30 minutes (0.5h) → $50.00
+        const te2 = await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          userId,
+          entryDate: "2026-05-02",
+          minutes: 30,
+          billable: true,
+          status: "approved"
+        });
+
+        // Generate proposal — should produce 2 lines, total = 15000 (amountMinor)
+        const proposal = await generateInvoiceProposal(client, tenant, {
+          projectId: project.id,
+          currency: "CAD"
+        });
+
+        expect(proposal.status).toBe("draft");
+        expect(proposal.projectId).toBe(project.id);
+        expect(proposal.lines).toHaveLength(2);
+
+        const lineSourceIds = proposal.lines.map((l) => l.sourceId).sort();
+        expect(lineSourceIds).toContain(te1.id);
+        expect(lineSourceIds).toContain(te2.id);
+
+        // Total: 60 min → 10000 * 60 / 60 = 10000; 30 min → 10000 * 30 / 60 = 5000; sum = 15000
+        expect(proposal.total.amountMinor).toBe(15000);
+        expect(proposal.total.currency).toBe("CAD");
+
+        // Audit: created
+        const auditAfterGenerate = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice_proposal' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, proposal.id]
+        );
+        expect(auditAfterGenerate.rows.map((r) => r.action)).toContain("project.invoice_proposal.created");
+
+        // Timeline: created
+        const tlAfterGenerate = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'invoice_proposal' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, proposal.id]
+        );
+        expect(tlAfterGenerate.rows.map((r) => r.entry_type)).toContain("project.invoice_proposal.created");
+
+        // Illegal transition: approve from draft → must throw
+        await expect(approveInvoiceProposal(client, tenant, proposal.id)).rejects.toBeInstanceOf(
+          InvoiceProposalTransitionError
+        );
+
+        // Submit
+        const submitted = await submitInvoiceProposal(client, tenant, proposal.id);
+        expect(submitted.status).toBe("submitted");
+        expect(submitted.submittedAt).toBeTruthy();
+
+        // Approve
+        const approved = await approveInvoiceProposal(client, tenant, proposal.id);
+        expect(approved.status).toBe("approved");
+
+        // Audit chain: created, submitted, approved
+        const auditFinal = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice_proposal' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, proposal.id]
+        );
+        const actions = auditFinal.rows.map((r) => r.action);
+        expect(actions).toContain("project.invoice_proposal.created");
+        expect(actions).toContain("project.invoice_proposal.submitted");
+        expect(actions).toContain("project.invoice_proposal.approved");
+
+        // Timeline chain
+        const tlFinal = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'invoice_proposal' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, proposal.id]
+        );
+        const entryTypesFinal = tlFinal.rows.map((r) => r.entry_type);
+        expect(entryTypesFinal).toContain("project.invoice_proposal.created");
+        expect(entryTypesFinal).toContain("project.invoice_proposal.submitted");
+        expect(entryTypesFinal).toContain("project.invoice_proposal.approved");
+
+        // Soft-delete (the service allows deletion from any non-deleted state in our implementation;
+        // here we confirm it emits the audit event)
+        await deleteInvoiceProposal(client, tenant, proposal.id);
+        const auditDeleted = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice_proposal' and resource_id = $2::text
+              and action = 'project.invoice_proposal.deleted'`,
+          [orgId, proposal.id]
+        );
+        expect(auditDeleted.rows).toHaveLength(1);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
 });

@@ -75,3 +75,24 @@ test("project detail renders Time section with demo time entries (DS 3.2)", asyn
   // First demo entry is approved
   await expect(entryItems.first()).toHaveAttribute("data-entry-status", "approved");
 });
+
+test("project detail renders Invoicing section with demo proposal (DS 3.4)", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  await context.addCookies([
+    { name: "openerp_locale", value: "en", url: baseURL ?? "http://127.0.0.1:4173" }
+  ]);
+  await page.goto("/admin/project/projects/demo-pr-1");
+  await page.waitForLoadState("domcontentloaded");
+
+  // Invoicing section heading visible
+  const invoicingHeading = page.getByTestId("invoice-proposals-section-title");
+  await expect(invoicingHeading).toBeVisible();
+  await expect(invoicingHeading).toContainText("Invoicing");
+
+  // Demo proposal renders in the list
+  const proposalsList = page.getByTestId("project-proposals-list");
+  await expect(proposalsList).toBeVisible();
+  const proposalItems = proposalsList.locator(":scope > li");
+  await expect(proposalItems).toHaveCount(1);
+  await expect(proposalItems.first()).toHaveAttribute("data-proposal-status", "draft");
+});

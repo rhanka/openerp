@@ -4,6 +4,7 @@ import type { RouteContract } from "./foundation";
 // Extended in DS 3.1 with ProjectTask CRUD.
 // Extended in DS 3.2 with TimeEntry CRUD.
 // Extended in DS 3.3 with Rate + Assignment CRUD.
+// Extended in DS 3.4 with InvoiceProposal (generate + lifecycle).
 export function buildProjectRoutes(): RouteContract[] {
   return [
     { method: "GET", path: "/project/projects", audited: false },
@@ -31,6 +32,13 @@ export function buildProjectRoutes(): RouteContract[] {
     { method: "POST", path: "/project/assignments", audited: true },
     { method: "GET", path: "/project/assignments/:id", audited: false },
     { method: "PATCH", path: "/project/assignments/:id", audited: true },
-    { method: "DELETE", path: "/project/assignments/:id", audited: true }
+    { method: "DELETE", path: "/project/assignments/:id", audited: true },
+    { method: "GET", path: "/project/invoice-proposals", audited: false },
+    { method: "POST", path: "/project/invoice-proposals/generate", audited: true },
+    { method: "GET", path: "/project/invoice-proposals/:id", audited: false },
+    { method: "POST", path: "/project/invoice-proposals/:id/submit", audited: true },
+    { method: "POST", path: "/project/invoice-proposals/:id/approve", audited: true },
+    { method: "POST", path: "/project/invoice-proposals/:id/reject", audited: true },
+    { method: "DELETE", path: "/project/invoice-proposals/:id", audited: true }
   ];
 }

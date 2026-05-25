@@ -1,6 +1,6 @@
 import { env } from "$env/dynamic/private";
 
-import type { Assignment, Project, ProjectTask, TimeEntry } from "@sentropic/openerp-domain/project";
+import type { Assignment, InvoiceProposal, InvoiceProposalWithLines, Project, ProjectTask, TimeEntry } from "@sentropic/openerp-domain/project";
 import type { TimelineEntry } from "@sentropic/openerp-domain";
 
 import { createApiClient } from "$lib/api/client";
@@ -41,7 +41,38 @@ const DEMO_ASSIGNMENTS: Assignment[] = [
   }
 ];
 
-const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: ProjectTask[]; timeEntries: TimeEntry[]; assignments: Assignment[] } = {
+const DEMO_PROPOSALS: InvoiceProposalWithLines[] = [
+  {
+    id: "demo-prop-1",
+    organizationId: "demo-org",
+    projectId: "demo-pr-1",
+    companyId: null,
+    status: "draft",
+    periodStart: "2026-05-01",
+    periodEnd: "2026-05-31",
+    total: { amountMinor: 15000, currency: "CAD", scale: 2 },
+    currency: "CAD",
+    submittedAt: null,
+    createdAt: new Date(Date.now() - 3_600_000).toISOString(),
+    updatedAt: new Date(Date.now() - 3_600_000).toISOString(),
+    lines: [
+      {
+        id: "demo-line-1",
+        organizationId: "demo-org",
+        invoiceProposalId: "demo-prop-1",
+        sourceType: "time_entry",
+        sourceId: "demo-te-1",
+        description: "Set up project scaffolding",
+        quantityMinutes: 120,
+        unitRate: { amountMinor: 7500, currency: "CAD", scale: 2 },
+        amount: { amountMinor: 15000, currency: "CAD", scale: 2 },
+        createdAt: new Date(Date.now() - 3_600_000).toISOString()
+      }
+    ]
+  }
+];
+
+const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: ProjectTask[]; timeEntries: TimeEntry[]; assignments: Assignment[]; proposals: InvoiceProposalWithLines[] } = {
   project: {
     id: "demo-pr-1",
     organizationId: "demo-org",
@@ -138,7 +169,8 @@ const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: Proje
       updatedAt: new Date(Date.now() - 3_600_000).toISOString()
     }
   ],
-  assignments: DEMO_ASSIGNMENTS
+  assignments: DEMO_ASSIGNMENTS,
+  proposals: DEMO_PROPOSALS
 };
 
 export const load: PageServerLoad = async ({ fetch, locals, params }) => {
@@ -151,7 +183,7 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
     };
   }
   try {
-    const [project, timeline, tasks, timeEntries, assignments] = await Promise.all([
+    const [project, timeline, tasks, timeEntries, assignments, proposals] = await Promise.all([
       session.client.getProject(params.id),
       session.client.listProjectTimeline({
         resourceId: params.id,
@@ -159,7 +191,8 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       }),
       session.client.listProjectTasks({ projectId: params.id, limit: 100 }),
       session.client.listTimeEntries({ projectId: params.id, limit: 200 }),
-      session.client.listAssignments({ projectId: params.id, limit: 100 })
+      session.client.listAssignments({ projectId: params.id, limit: 100 }),
+      session.client.listInvoiceProposals({ projectId: params.id, limit: 50 })
     ]);
     return {
       project,
@@ -167,6 +200,7 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       tasks,
       timeEntries,
       assignments,
+      proposals,
       source: "api" as const,
       locale: locals.locale
     };
@@ -180,6 +214,7 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       tasks: [] as ProjectTask[],
       timeEntries: [] as TimeEntry[],
       assignments: [] as Assignment[],
+      proposals: [] as InvoiceProposal[],
       source: notFound ? ("not_found" as const) : ("error" as const),
       locale: locals.locale,
       message
@@ -347,6 +382,78 @@ export const actions: Actions = {
     if (!assignmentId) return { ok: false, code: "ASSIGNMENT_ID_REQUIRED" };
     try {
       await session.client.deleteAssignment(assignmentId);
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  generateProposal: async ({ fetch, locals, params }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    try {
+      await session.client.generateInvoiceProposal({ projectId: params.id });
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  submitProposal: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const proposalId = String(formData.get("proposalId") ?? "").trim();
+    if (!proposalId) return { ok: false, code: "PROPOSAL_ID_REQUIRED" };
+    try {
+      await session.client.submitInvoiceProposal(proposalId);
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  approveProposal: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const proposalId = String(formData.get("proposalId") ?? "").trim();
+    if (!proposalId) return { ok: false, code: "PROPOSAL_ID_REQUIRED" };
+    try {
+      await session.client.approveInvoiceProposal(proposalId);
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  rejectProposal: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const proposalId = String(formData.get("proposalId") ?? "").trim();
+    if (!proposalId) return { ok: false, code: "PROPOSAL_ID_REQUIRED" };
+    try {
+      await session.client.rejectInvoiceProposal(proposalId);
+      return { ok: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, message };
+    }
+  },
+
+  deleteProposal: async ({ fetch, locals, request }) => {
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return { ok: false, code: "NO_SESSION" };
+    const formData = await request.formData();
+    const proposalId = String(formData.get("proposalId") ?? "").trim();
+    if (!proposalId) return { ok: false, code: "PROPOSAL_ID_REQUIRED" };
+    try {
+      await session.client.deleteInvoiceProposal(proposalId);
       return { ok: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

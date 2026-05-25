@@ -2,10 +2,14 @@ import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/open
 import type {
   Assignment,
   CreateAssignmentInput,
+  CreateInvoiceProposalInput,
   CreateProjectInput,
   CreateProjectTaskInput,
   CreateRateInput,
   CreateTimeEntryInput,
+  InvoiceProposal,
+  InvoiceProposalStatus,
+  InvoiceProposalWithLines,
   Project,
   ProjectStatus,
   ProjectTask,
@@ -498,6 +502,55 @@ export function createApiClient(options: ApiClientOptions) {
 
     async deleteAssignment(id: string): Promise<void> {
       return requestNoContent(`/project/assignments/${encodeURIComponent(id)}`);
+    },
+
+    async listInvoiceProposals(query: {
+      projectId?: string;
+      status?: InvoiceProposalStatus;
+      limit?: number;
+      offset?: number;
+    } = {}): Promise<InvoiceProposal[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: InvoiceProposal[] }>(`/project/invoice-proposals${suffix}`);
+      return body.items;
+    },
+
+    async getInvoiceProposal(id: string): Promise<InvoiceProposalWithLines> {
+      return request<InvoiceProposalWithLines>(`/project/invoice-proposals/${encodeURIComponent(id)}`);
+    },
+
+    async generateInvoiceProposal(input: CreateInvoiceProposalInput): Promise<InvoiceProposalWithLines> {
+      return request<InvoiceProposalWithLines>(`/project/invoice-proposals/generate`, {
+        method: "POST",
+        body: input
+      });
+    },
+
+    async submitInvoiceProposal(id: string): Promise<InvoiceProposal> {
+      return request<InvoiceProposal>(`/project/invoice-proposals/${encodeURIComponent(id)}/submit`, {
+        method: "POST"
+      });
+    },
+
+    async approveInvoiceProposal(id: string): Promise<InvoiceProposal> {
+      return request<InvoiceProposal>(`/project/invoice-proposals/${encodeURIComponent(id)}/approve`, {
+        method: "POST"
+      });
+    },
+
+    async rejectInvoiceProposal(id: string): Promise<InvoiceProposal> {
+      return request<InvoiceProposal>(`/project/invoice-proposals/${encodeURIComponent(id)}/reject`, {
+        method: "POST"
+      });
+    },
+
+    async deleteInvoiceProposal(id: string): Promise<void> {
+      return requestNoContent(`/project/invoice-proposals/${encodeURIComponent(id)}`);
     }
   };
 }

@@ -2,7 +2,7 @@
   import { enhance } from "$app/forms";
   import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
 
-  import type { Assignment, Project, ProjectStatus, ProjectTask, ProjectTaskStatus, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
+  import type { Assignment, InvoiceProposal, InvoiceProposalStatus, Project, ProjectStatus, ProjectTask, ProjectTaskStatus, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -25,6 +25,7 @@
   const tasks: ProjectTask[] = $derived(data.tasks ?? []);
   const timeEntries: TimeEntry[] = $derived(data.timeEntries ?? []);
   const assignments: Assignment[] = $derived(data.assignments ?? []);
+  const proposals: InvoiceProposal[] = $derived(data.proposals ?? []);
   const billableTotal: number = $derived(
     timeEntries.filter((e) => e.billable).reduce((sum, e) => sum + e.minutes, 0)
   );
@@ -32,6 +33,7 @@
   let creatingTask = $state(false);
   let loggingTime = $state(false);
   let creatingAssignment = $state(false);
+  let generatingProposal = $state(false);
 
   function statusLabel(status: ProjectStatus): string {
     return t(locale, `project.projects.status.${status}`);
@@ -80,6 +82,22 @@
   }
   function formatTimestamp(iso: string): string {
     return new Date(iso).toLocaleString(locale === "fr" ? "fr-CA" : "en-CA");
+  }
+  function proposalStatusLabel(status: InvoiceProposalStatus): string {
+    return t(locale, `project.invoiceProposals.status.${status}`);
+  }
+  function proposalStatusTone(status: InvoiceProposalStatus): "success" | "warning" | "info" | "neutral" {
+    if (status === "approved") return "success";
+    if (status === "rejected") return "warning";
+    if (status === "submitted") return "info";
+    return "neutral";
+  }
+  function formatMoney(amountMinor: number, currency: string, scale: number): string {
+    const amount = amountMinor / Math.pow(10, scale);
+    return new Intl.NumberFormat(locale === "fr" ? "fr-CA" : "en-CA", {
+      style: "currency",
+      currency
+    }).format(amount);
   }
 </script>
 
@@ -406,6 +424,99 @@
                 <input type="hidden" name="assignmentId" value={assignment.id} />
                 <button type="submit" class="page__task-btn page__task-btn--delete">
                   {t(locale, "project.assignments.action.delete")}
+                </button>
+              </form>
+            </div>
+          </li>
+        {/each}
+      </ol>
+    {/if}
+
+    <h2 class="page__section-title" data-testid="invoice-proposals-section-title">
+      {t(locale, "project.invoiceProposals.section.title")}
+    </h2>
+
+    <Card>
+      <form
+        method="POST"
+        action="?/generateProposal"
+        use:enhance={() => {
+          generatingProposal = true;
+          return async ({ update }) => {
+            generatingProposal = false;
+            await update();
+          };
+        }}
+        class="page__task-form"
+      >
+        <div class="page__task-form-fields">
+          <button type="submit" disabled={generatingProposal}>
+            {generatingProposal
+              ? t(locale, "project.invoiceProposals.action.generating")
+              : t(locale, "project.invoiceProposals.action.generate")}
+          </button>
+        </div>
+      </form>
+    </Card>
+
+    {#if proposals.length === 0}
+      <EmptyState
+        title={t(locale, "project.invoiceProposals.empty.title")}
+        message={t(locale, "project.invoiceProposals.empty.message")}
+      />
+    {:else}
+      <ol class="page__tasks" data-testid="project-proposals-list">
+        {#each proposals as proposal (proposal.id)}
+          <li class="page__task-item" data-proposal-id={proposal.id} data-proposal-status={proposal.status}>
+            <div class="page__task-status">
+              <Tag tone={proposalStatusTone(proposal.status)}>{proposalStatusLabel(proposal.status)}</Tag>
+            </div>
+            <div class="page__task-body">
+              <span class="page__task-title">
+                {formatMoney(proposal.total.amountMinor, proposal.total.currency, proposal.total.scale)}
+              </span>
+              {#if proposal.periodStart || proposal.periodEnd}
+                <span class="page__task-due">
+                  {proposal.periodStart ?? "—"} → {proposal.periodEnd ?? "—"}
+                </span>
+              {/if}
+            </div>
+            <div class="page__task-actions">
+              {#if proposal.status === "draft"}
+                <form method="POST" action="?/submitProposal" use:enhance>
+                  <input type="hidden" name="proposalId" value={proposal.id} />
+                  <button type="submit" class="page__task-btn page__task-btn--done">
+                    {t(locale, "project.invoiceProposals.action.submit")}
+                  </button>
+                </form>
+              {/if}
+              {#if proposal.status === "submitted"}
+                <form method="POST" action="?/approveProposal" use:enhance>
+                  <input type="hidden" name="proposalId" value={proposal.id} />
+                  <button type="submit" class="page__task-btn page__task-btn--done">
+                    {t(locale, "project.invoiceProposals.action.approve")}
+                  </button>
+                </form>
+                <form method="POST" action="?/rejectProposal" use:enhance>
+                  <input type="hidden" name="proposalId" value={proposal.id} />
+                  <button type="submit" class="page__task-btn page__task-btn--delete">
+                    {t(locale, "project.invoiceProposals.action.reject")}
+                  </button>
+                </form>
+              {/if}
+              <form
+                method="POST"
+                action="?/deleteProposal"
+                use:enhance
+                onsubmit={(e) => {
+                  if (!confirm(t(locale, "project.invoiceProposals.action.deleteConfirm"))) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <input type="hidden" name="proposalId" value={proposal.id} />
+                <button type="submit" class="page__task-btn page__task-btn--delete">
+                  {t(locale, "project.invoiceProposals.action.delete")}
                 </button>
               </form>
             </div>
