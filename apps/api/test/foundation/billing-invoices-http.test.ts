@@ -27,8 +27,8 @@ function makeFakeDb(
 
       // INSERT invoices
       if (t.includes("insert into invoices")) {
-        const [orgId, companyId, projectId, invoiceProposalId, invoiceNumber, status, currency, subtotal, taxTotal, total, issueDate, dueDate] =
-          values as [string, string, string | null, string | null, string, string, string, string, string, string, string | null, string | null];
+        const [orgId, companyId, projectId, invoiceProposalId, invoiceNumber, status, currency, subtotal, taxTotal, total, taxCategoryId, issueDate, dueDate] =
+          values as [string, string, string | null, string | null, string, string, string, string, string, string, string | null, string | null, string | null];
         const row: Invoice = {
           id: `inv_${invoices.length + 1}`,
           organizationId: orgId,
@@ -41,6 +41,8 @@ function makeFakeDb(
           subtotal: JSON.parse(subtotal) as BillingMoney,
           taxTotal: JSON.parse(taxTotal) as BillingMoney,
           total: JSON.parse(total) as BillingMoney,
+          taxCategoryId,
+          taxBreakdown: null,
           issueDate,
           dueDate,
           issuedAt: null,

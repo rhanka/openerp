@@ -1,4 +1,4 @@
-import type { Invoice, InvoiceLine, InvoiceStatus, BillingMoney } from "@sentropic/openerp-domain/billing";
+import type { Invoice, InvoiceLine, InvoiceStatus, BillingMoney, TaxBreakdownLine } from "@sentropic/openerp-domain/billing";
 
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
@@ -18,6 +18,8 @@ const INVOICE_RETURN_COLUMNS = `
   subtotal,
   tax_total as "taxTotal",
   total,
+  tax_category_id as "taxCategoryId",
+  tax_breakdown as "taxBreakdown",
   issue_date as "issueDate",
   due_date as "dueDate",
   issued_at as "issuedAt",
@@ -51,6 +53,7 @@ export async function insertInvoice(
     subtotal: BillingMoney;
     taxTotal: BillingMoney;
     total: BillingMoney;
+    taxCategoryId?: string | null;
     issueDate: string | null;
     dueDate: string | null;
   }
@@ -60,8 +63,8 @@ export async function insertInvoice(
     `insert into invoices (
        organization_id, company_id, project_id, invoice_proposal_id,
        invoice_number, status, currency, subtotal, tax_total, total,
-       issue_date, due_date
-     ) values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12)
+       tax_category_id, issue_date, due_date
+     ) values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12, $13)
      returning ${INVOICE_RETURN_COLUMNS}`,
     [
       context.organizationId,
@@ -74,11 +77,62 @@ export async function insertInvoice(
       JSON.stringify(input.subtotal),
       JSON.stringify(input.taxTotal),
       JSON.stringify(input.total),
+      input.taxCategoryId ?? null,
       input.issueDate ?? null,
       input.dueDate ?? null
     ]
   );
   return result.rows[0]!;
+}
+
+/** Update tax totals and breakdown on an invoice (used by computeInvoiceTaxes). */
+export async function updateInvoiceTaxes(
+  db: Queryable,
+  context: TenantContext,
+  id: string,
+  input: {
+    taxTotal: BillingMoney;
+    total: BillingMoney;
+    taxBreakdown: TaxBreakdownLine[];
+  }
+): Promise<Invoice | null> {
+  assertTenantContext(context);
+  const result = await db.query<Invoice>(
+    `update invoices
+        set tax_total = $3::jsonb,
+            total = $4::jsonb,
+            tax_breakdown = $5::jsonb,
+            updated_at = now()
+      where id = $1 and organization_id = $2 and deleted_at is null
+      returning ${INVOICE_RETURN_COLUMNS}`,
+    [
+      id,
+      context.organizationId,
+      JSON.stringify(input.taxTotal),
+      JSON.stringify(input.total),
+      JSON.stringify(input.taxBreakdown)
+    ]
+  );
+  return result.rows[0] ?? null;
+}
+
+/** Update the tax_category_id on an invoice. */
+export async function updateInvoiceTaxCategory(
+  db: Queryable,
+  context: TenantContext,
+  id: string,
+  taxCategoryId: string | null
+): Promise<Invoice | null> {
+  assertTenantContext(context);
+  const result = await db.query<Invoice>(
+    `update invoices
+        set tax_category_id = $3,
+            updated_at = now()
+      where id = $1 and organization_id = $2 and deleted_at is null
+      returning ${INVOICE_RETURN_COLUMNS}`,
+    [id, context.organizationId, taxCategoryId]
+  );
+  return result.rows[0] ?? null;
 }
 
 export async function findInvoiceById(

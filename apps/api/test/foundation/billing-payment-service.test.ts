@@ -151,6 +151,8 @@ function makeIssuedInvoice(id: string, totalMinor: number): Invoice {
     subtotal: money,
     taxTotal: { amountMinor: 0, currency: "CAD", scale: 2 },
     total: money,
+    taxCategoryId: null,
+    taxBreakdown: null,
     issueDate: "2026-05-01",
     dueDate: null,
     issuedAt: "2026-05-01T00:00:00.000Z",

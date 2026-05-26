@@ -102,6 +102,7 @@ export async function createInvoice(
     subtotal,
     taxTotal,
     total,
+    taxCategoryId: input.taxCategoryId ?? null,
     issueDate: null,
     dueDate: null
   });

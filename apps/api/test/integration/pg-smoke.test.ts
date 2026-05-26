@@ -1975,4 +1975,151 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   });
+
+  it("Invoice taxes end-to-end (DS 4.2): GST+QST data-driven computation — exact Quebec math anchor", async () => {
+    const { createTaxCategory, createTaxRateVersion, computeInvoiceTaxes } = await import(
+      "../../src/billing/tax-service"
+    );
+    const { createInvoice, getInvoiceById } = await import("../../src/billing/invoice-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        // Seed org + user identity via CTE pattern.
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('TaxCo DS42', 'TaxCo DS42', 'taxco-ds42', 'active', 'fr', 'CAD',
+             'America/Montreal', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('billing-ds42-id@taxco.local', 'Billing DS42', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'billing-ds42@taxco.local', 'Billing DS42', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        // Create a company for the invoice
+        const companyRes = await client.query<{ id: string }>(
+          `insert into companies (organization_id, display_name, status)
+           values ($1, 'DS42 Client Corp', 'active')
+           returning id`,
+          [orgId]
+        );
+        const companyId = companyRes.rows[0]!.id;
+
+        // Create a tax category: "Standard rate" with code "STD"
+        const category = await createTaxCategory(client, tenant, {
+          name: "Standard rate",
+          code: "STD",
+          description: "Federal + Quebec provincial taxes",
+          active: true
+        });
+        expect(category.id).toBeTruthy();
+        expect(category.code).toBe("STD");
+
+        // Create GST rate version (5.000% → rateBps = 5000 milli-percent, non-compound).
+        const gstRate = await createTaxRateVersion(client, tenant, {
+          taxCategoryId: category.id,
+          jurisdiction: "CA-GST",
+          label: "Federal GST",
+          rateBps: 5000,
+          compound: false,
+          effectiveFrom: "2013-01-01",
+          active: true
+        });
+        expect(gstRate.rateBps).toBe(5000);
+        expect(gstRate.compound).toBe(false);
+
+        // Create QST rate version (9.975% → rateBps = 9975 milli-percent, non-compound).
+        // Per 2013 Quebec rule: QST applies on the pre-GST base (not compounded).
+        const qstRate = await createTaxRateVersion(client, tenant, {
+          taxCategoryId: category.id,
+          jurisdiction: "CA-QC-QST",
+          label: "Quebec QST",
+          rateBps: 9975,
+          compound: false,
+          effectiveFrom: "2013-01-01",
+          active: true
+        });
+        expect(qstRate.rateBps).toBe(9975);
+        expect(qstRate.compound).toBe(false);
+
+        // Create an invoice with subtotal $100.00 (10000 minor, scale 2) and assign the tax category.
+        const invoice = await createInvoice(client, tenant, {
+          companyId,
+          taxCategoryId: category.id,
+          currency: "CAD",
+          lines: [
+            {
+              description: "Consulting services",
+              quantity: 1,
+              unitPrice: { amountMinor: 10000, currency: "CAD", scale: 2 },
+              amount: { amountMinor: 10000, currency: "CAD", scale: 2 }
+            }
+          ]
+        });
+        expect(invoice.subtotal.amountMinor).toBe(10000);
+        expect(invoice.taxCategoryId).toBe(category.id);
+
+        // Run computeInvoiceTaxes — the Quebec math anchor.
+        const computed = await computeInvoiceTaxes(client, tenant, invoice.id, "2026-05-25");
+
+        // Verify exact integers from the spec anchor:
+        //   subtotal = 10000, GST 5000 bps → round(10000*5000/100000) = round(500) = 500
+        //   QST  9975 bps → round(10000*9975/100000) = round(997.5) = 998
+        //   tax_total = 500 + 998 = 1498, total = 10000 + 1498 = 11498
+        expect(computed.taxTotal.amountMinor).toBe(1498);
+        expect(computed.total.amountMinor).toBe(11498);
+
+        const gstLine = computed.taxBreakdown?.find((l) => l.jurisdiction === "CA-GST");
+        expect(gstLine?.amount.amountMinor).toBe(500);
+
+        const qstLine = computed.taxBreakdown?.find((l) => l.jurisdiction === "CA-QC-QST");
+        expect(qstLine?.amount.amountMinor).toBe(998);
+
+        // Verify audit events for tax_category + tax_rate_version + invoice.updated
+        const auditRows = await client.query<{ action: string; resource_type: string }>(
+          `select action, resource_type from audit_events
+            where organization_id = $1
+            order by created_at asc`,
+          [orgId]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("billing.tax_category.created");
+        expect(actions).toContain("billing.tax_rate_version.created");
+        expect(actions).toContain("billing.invoice.updated");
+
+        // Verify timeline entries for tax events
+        const tlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1
+            order by occurred_at asc`,
+          [orgId]
+        );
+        const entryTypes = tlRows.rows.map((r) => r.entry_type);
+        expect(entryTypes).toContain("billing.tax_category.created");
+        expect(entryTypes).toContain("billing.tax_rate_version.created");
+        expect(entryTypes).toContain("billing.invoice.updated");
+
+        // Verify the persisted state via getInvoiceById.
+        const persisted = await getInvoiceById(client, tenant, invoice.id);
+        expect(persisted!.taxTotal.amountMinor).toBe(1498);
+        expect(persisted!.total.amountMinor).toBe(11498);
+        expect(persisted!.taxBreakdown).toHaveLength(2);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 20000);
 });

@@ -8,7 +8,13 @@ import type {
   BillingMoney,
   Payment,
   PaymentMethod,
-  CreatePaymentInput
+  CreatePaymentInput,
+  TaxCategory,
+  TaxRateVersion,
+  CreateTaxCategoryInput,
+  UpdateTaxCategoryInput,
+  CreateTaxRateVersionInput,
+  UpdateTaxRateVersionInput
 } from "@sentropic/openerp-domain/billing";
 import type {
   Assignment,
@@ -638,12 +644,87 @@ export function createApiClient(options: ApiClientOptions) {
 
     async deletePayment(id: string): Promise<void> {
       return requestNoContent(`/billing/payments/${encodeURIComponent(id)}`);
+    },
+
+    // ---------------------------------------------------------------------------
+    // Tax categories (DS 4.2)
+    // ---------------------------------------------------------------------------
+
+    async listTaxCategories(query: { activeOnly?: boolean } = {}): Promise<TaxCategory[]> {
+      const params = new URLSearchParams();
+      if (query.activeOnly) params.set("activeOnly", "true");
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: TaxCategory[] }>(`/billing/tax-categories${suffix}`);
+      return body.items;
+    },
+
+    async createTaxCategory(input: CreateTaxCategoryInput): Promise<TaxCategory> {
+      return request<TaxCategory>(`/billing/tax-categories`, { method: "POST", body: input });
+    },
+
+    async getTaxCategory(id: string): Promise<TaxCategory> {
+      return request<TaxCategory>(`/billing/tax-categories/${encodeURIComponent(id)}`);
+    },
+
+    async updateTaxCategory(id: string, patch: UpdateTaxCategoryInput): Promise<TaxCategory> {
+      return request<TaxCategory>(`/billing/tax-categories/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteTaxCategory(id: string): Promise<void> {
+      return requestNoContent(`/billing/tax-categories/${encodeURIComponent(id)}`);
+    },
+
+    // ---------------------------------------------------------------------------
+    // Tax rate versions (DS 4.2)
+    // ---------------------------------------------------------------------------
+
+    async listTaxRateVersions(query: { taxCategoryId?: string; activeOnly?: boolean; asOfDate?: string } = {}): Promise<TaxRateVersion[]> {
+      const params = new URLSearchParams();
+      if (query.taxCategoryId) params.set("taxCategoryId", query.taxCategoryId);
+      if (query.activeOnly) params.set("activeOnly", "true");
+      if (query.asOfDate) params.set("asOfDate", query.asOfDate);
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: TaxRateVersion[] }>(`/billing/tax-rate-versions${suffix}`);
+      return body.items;
+    },
+
+    async createTaxRateVersion(input: CreateTaxRateVersionInput): Promise<TaxRateVersion> {
+      return request<TaxRateVersion>(`/billing/tax-rate-versions`, { method: "POST", body: input });
+    },
+
+    async getTaxRateVersion(id: string): Promise<TaxRateVersion> {
+      return request<TaxRateVersion>(`/billing/tax-rate-versions/${encodeURIComponent(id)}`);
+    },
+
+    async updateTaxRateVersion(id: string, patch: UpdateTaxRateVersionInput): Promise<TaxRateVersion> {
+      return request<TaxRateVersion>(`/billing/tax-rate-versions/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteTaxRateVersion(id: string): Promise<void> {
+      return requestNoContent(`/billing/tax-rate-versions/${encodeURIComponent(id)}`);
+    },
+
+    // ---------------------------------------------------------------------------
+    // Invoice compute-taxes action (DS 4.2)
+    // ---------------------------------------------------------------------------
+
+    async computeInvoiceTaxes(invoiceId: string, asOfDate?: string): Promise<Invoice> {
+      return request<Invoice>(`/billing/invoices/${encodeURIComponent(invoiceId)}/compute-taxes`, {
+        method: "POST",
+        body: asOfDate ? { asOfDate } : {}
+      });
     }
   };
 }
 
 // Re-export billing types so web pages can import from the client module
-export type { Invoice, InvoiceLine, InvoiceStatus, InvoiceWithLines, BillingMoney, Payment, PaymentMethod, CreatePaymentInput };
+export type { Invoice, InvoiceLine, InvoiceStatus, InvoiceWithLines, BillingMoney, Payment, PaymentMethod, CreatePaymentInput, TaxCategory, TaxRateVersion, CreateTaxCategoryInput, UpdateTaxCategoryInput, CreateTaxRateVersionInput, UpdateTaxRateVersionInput };
 
 async function safeJson(response: Response): Promise<unknown | null> {
   try {

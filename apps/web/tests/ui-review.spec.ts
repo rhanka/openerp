@@ -42,6 +42,11 @@ const reviewedRoutes: Array<{
     labels: { en: "Invoices", fr: "Factures" },
     activeNav: true
   },
+  {
+    path: "/admin/billing/taxes",
+    labels: { en: "Taxes", fr: "Taxes" },
+    activeNav: true
+  },
   { path: "/login", labels: { en: "Sign in", fr: "Connexion" } },
   { path: "/register-passkey", labels: { en: "Create a passkey", fr: "Créer une passkey" } }
 ];

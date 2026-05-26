@@ -1,5 +1,5 @@
 import { env } from "$env/dynamic/private";
-import { error } from "@sveltejs/kit";
+import { error, fail, type Actions } from "@sveltejs/kit";
 
 import type { InvoiceWithLines, Payment } from "@sentropic/openerp-domain/billing";
 
@@ -19,6 +19,8 @@ const DEMO_FALLBACK: InvoiceWithLines = {
   subtotal: { amountMinor: 15000, currency: "CAD", scale: 2 },
   taxTotal: { amountMinor: 0, currency: "CAD", scale: 2 },
   total: { amountMinor: 15000, currency: "CAD", scale: 2 },
+  taxCategoryId: null,
+  taxBreakdown: null,
   issueDate: "2026-05-01",
   dueDate: null,
   issuedAt: new Date().toISOString(),
@@ -111,5 +113,22 @@ export const load: PageServerLoad = async ({ params, fetch, locals }) => {
       error(404, "Invoice not found");
     }
     error(500, "Could not load invoice");
+  }
+};
+
+export const actions: Actions = {
+  computeTaxes: async ({ params, fetch, locals }) => {
+    const id = params.id;
+    if (!id) return fail(400, { code: "ID_REQUIRED" });
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return fail(503, { code: "DEMO_MODE_NO_API" });
+    try {
+      const updated = await session.client.computeInvoiceTaxes(id);
+      return { ok: true as const, id: updated.id, action: "taxesComputed" };
+    } catch (err) {
+      const apiErr = err as { status?: number; code?: string };
+      if (apiErr.status === 404) return fail(404, { code: "NOT_FOUND" });
+      return fail(502, { code: "API_ERROR", message: err instanceof Error ? err.message : String(err) });
+    }
   }
 };

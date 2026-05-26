@@ -62,6 +62,8 @@ function makeFakeDb(
           subtotal: JSON.parse(subtotal) as BillingMoney,
           taxTotal: JSON.parse(taxTotal) as BillingMoney,
           total: JSON.parse(total) as BillingMoney,
+          taxCategoryId: null,
+          taxBreakdown: null,
           issueDate,
           dueDate,
           issuedAt: null,

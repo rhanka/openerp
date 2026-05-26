@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import {
+    Alert,
     Button,
     Card,
     EmptyState,
@@ -10,13 +12,15 @@
 
   import { t, type LocaleCode } from "$lib/i18n";
 
-  import type { PageData } from "./$types";
+  import type { PageData, ActionData } from "./$types";
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: ActionData } = $props();
 
   const locale: LocaleCode = $derived(data.locale);
   const invoice: InvoiceWithLines = $derived(data.invoice);
   const payments: Payment[] = $derived(data.payments ?? []);
+
+  let computingTaxes = $state(false);
 
   function statusLabel(status: InvoiceWithLines["status"]): string {
     return t(locale, `billing.invoices.status.${status}`);
@@ -73,6 +77,75 @@
       {/if}
     </div>
   </header>
+
+  {#if form && "ok" in form && form.ok}
+    <Alert tone="success" title={t(locale, "approval.success.title")}>
+      {"action" in form ? String(form.action) : ""}
+    </Alert>
+  {/if}
+
+  {#if form && "code" in form && !("ok" in form)}
+    <Alert tone="warning" title={t(locale, "approval.actionError.title")}>
+      {form.code}
+    </Alert>
+  {/if}
+
+  <!-- Tax breakdown card -->
+  <Card>
+    <div class="page__taxes-header">
+      <h2>{t(locale, "billing.invoices.taxes.title")}</h2>
+      {#if invoice.taxCategoryId}
+        <form
+          method="POST"
+          action="?/computeTaxes"
+          use:enhance={() => {
+            computingTaxes = true;
+            return async ({ update }) => {
+              await update({ reset: false });
+              computingTaxes = false;
+            };
+          }}
+        >
+          <Button type="submit" variant="secondary" size="sm" disabled={computingTaxes} data-testid="compute-taxes-btn">
+            {computingTaxes
+              ? t(locale, "billing.invoices.action.computingTaxes")
+              : t(locale, "billing.invoices.action.computeTaxes")}
+          </Button>
+        </form>
+      {/if}
+    </div>
+
+    {#if invoice.taxBreakdown && invoice.taxBreakdown.length > 0}
+      <table class="page__lines" data-testid="tax-breakdown-table">
+        <thead>
+          <tr>
+            <th>{t(locale, "billing.invoices.taxes.jurisdiction")}</th>
+            <th>{t(locale, "billing.invoices.taxes.label")}</th>
+            <th class="page__col-num">{t(locale, "billing.invoices.taxes.amount")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each invoice.taxBreakdown as line}
+            <tr>
+              <td>{line.jurisdiction}</td>
+              <td>{line.label}</td>
+              <td class="page__col-num">{formatMoney(line.amount.amountMinor, line.amount.scale, line.amount.currency)}</td>
+            </tr>
+          {/each}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2"><strong>{t(locale, "billing.invoices.taxes.total")}</strong></td>
+            <td class="page__col-num" data-testid="tax-total">
+              <strong>{formatMoney(invoice.taxTotal.amountMinor, invoice.taxTotal.scale, invoice.taxTotal.currency)}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    {:else}
+      <p class="page__taxes-empty" data-testid="tax-breakdown-empty">{t(locale, "billing.invoices.taxes.empty")}</p>
+    {/if}
+  </Card>
 
   <Card>
     <h2>{t(locale, "billing.invoices.detail.lines.title")}</h2>
@@ -193,5 +266,23 @@
 
   .page__lines tfoot tr {
     border-top: 2px solid var(--sent-color-border-subtle);
+  }
+
+  .page__taxes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--sent-space-sm);
+    margin-bottom: var(--sent-space-md);
+  }
+
+  .page__taxes-header h2 {
+    margin: 0;
+  }
+
+  .page__taxes-empty {
+    margin: 0;
+    color: var(--sent-color-text-muted);
+    font-size: var(--sent-font-size-sm);
   }
 </style>

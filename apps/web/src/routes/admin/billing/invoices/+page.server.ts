@@ -20,6 +20,8 @@ const DEMO_FALLBACK: Invoice[] = [
     subtotal: { amountMinor: 15000, currency: "CAD", scale: 2 },
     taxTotal: { amountMinor: 0, currency: "CAD", scale: 2 },
     total: { amountMinor: 15000, currency: "CAD", scale: 2 },
+    taxCategoryId: null,
+    taxBreakdown: null,
     issueDate: null,
     dueDate: null,
     issuedAt: null,
