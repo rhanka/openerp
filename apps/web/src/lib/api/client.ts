@@ -5,7 +5,10 @@ import type {
   InvoiceStatus,
   InvoiceWithLines,
   CreateInvoiceInput,
-  BillingMoney
+  BillingMoney,
+  Payment,
+  PaymentMethod,
+  CreatePaymentInput
 } from "@sentropic/openerp-domain/billing";
 import type {
   Assignment,
@@ -607,12 +610,40 @@ export function createApiClient(options: ApiClientOptions) {
 
     async deleteInvoice(id: string): Promise<void> {
       return requestNoContent(`/billing/invoices/${encodeURIComponent(id)}`);
+    },
+
+    async listPayments(query: {
+      invoiceId?: string;
+      companyId?: string;
+      limit?: number;
+      offset?: number;
+    } = {}): Promise<Payment[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Payment[] }>(`/billing/payments${suffix}`);
+      return body.items;
+    },
+
+    async recordPayment(input: CreatePaymentInput): Promise<Payment> {
+      return request<Payment>(`/billing/payments`, { method: "POST", body: input });
+    },
+
+    async getPayment(id: string): Promise<Payment> {
+      return request<Payment>(`/billing/payments/${encodeURIComponent(id)}`);
+    },
+
+    async deletePayment(id: string): Promise<void> {
+      return requestNoContent(`/billing/payments/${encodeURIComponent(id)}`);
     }
   };
 }
 
 // Re-export billing types so web pages can import from the client module
-export type { Invoice, InvoiceLine, InvoiceStatus, InvoiceWithLines, BillingMoney };
+export type { Invoice, InvoiceLine, InvoiceStatus, InvoiceWithLines, BillingMoney, Payment, PaymentMethod, CreatePaymentInput };
 
 async function safeJson(response: Response): Promise<unknown | null> {
   try {

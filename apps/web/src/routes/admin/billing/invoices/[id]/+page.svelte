@@ -6,7 +6,7 @@
     Tag
   } from "@sentropic/design-system-svelte";
 
-  import type { InvoiceWithLines } from "@sentropic/openerp-domain/billing";
+  import type { InvoiceWithLines, Payment } from "@sentropic/openerp-domain/billing";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -16,6 +16,7 @@
 
   const locale: LocaleCode = $derived(data.locale);
   const invoice: InvoiceWithLines = $derived(data.invoice);
+  const payments: Payment[] = $derived(data.payments ?? []);
 
   function statusLabel(status: InvoiceWithLines["status"]): string {
     return t(locale, `billing.invoices.status.${status}`);
@@ -31,6 +32,13 @@
     const amount = minor / Math.pow(10, scale);
     return `${amount.toFixed(scale)} ${currency}`;
   }
+
+  const totalPaid = $derived(
+    payments.reduce((acc, p) => acc + p.amount.amountMinor, 0)
+  );
+  const balanceDue = $derived(
+    Math.max(0, invoice.total.amountMinor - totalPaid)
+  );
 </script>
 
 <section class="page">
@@ -98,6 +106,46 @@
             <td colspan="3"><strong>{t(locale, "billing.invoices.field.total")}</strong></td>
             <td class="page__col-num">
               <strong>{formatMoney(invoice.total.amountMinor, invoice.total.scale, invoice.total.currency)}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    {/if}
+  </Card>
+
+  <Card>
+    <h2 data-testid="payments-section-title">{t(locale, "billing.payments.section.title")}</h2>
+
+    {#if payments.length === 0}
+      <EmptyState
+        title={t(locale, "billing.payments.empty.title")}
+        message={t(locale, "billing.payments.empty.message")}
+      />
+    {:else}
+      <table class="page__lines" data-testid="payments-table">
+        <thead>
+          <tr>
+            <th>{t(locale, "billing.payments.field.paymentDate")}</th>
+            <th>{t(locale, "billing.payments.field.method")}</th>
+            <th>{t(locale, "billing.payments.field.reference")}</th>
+            <th class="page__col-num">{t(locale, "billing.payments.field.amount")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each payments as payment (payment.id)}
+            <tr>
+              <td>{payment.paymentDate}</td>
+              <td>{t(locale, `billing.payments.method.${payment.method}`)}</td>
+              <td>{payment.reference ?? "—"}</td>
+              <td class="page__col-num">{formatMoney(payment.amount.amountMinor, payment.amount.scale, payment.amount.currency)}</td>
+            </tr>
+          {/each}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3"><strong>{t(locale, "billing.payments.balanceDue")}</strong></td>
+            <td class="page__col-num" data-testid="balance-due">
+              <strong>{formatMoney(balanceDue, invoice.total.scale, invoice.total.currency)}</strong>
             </td>
           </tr>
         </tfoot>

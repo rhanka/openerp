@@ -1,7 +1,7 @@
 import { env } from "$env/dynamic/private";
 import { error } from "@sveltejs/kit";
 
-import type { InvoiceWithLines } from "@sentropic/openerp-domain/billing";
+import type { InvoiceWithLines, Payment } from "@sentropic/openerp-domain/billing";
 
 import { createApiClient } from "$lib/api/client";
 
@@ -14,14 +14,14 @@ const DEMO_FALLBACK: InvoiceWithLines = {
   projectId: null,
   invoiceProposalId: null,
   invoiceNumber: "INV-000001",
-  status: "draft",
+  status: "issued",
   currency: "CAD",
   subtotal: { amountMinor: 15000, currency: "CAD", scale: 2 },
   taxTotal: { amountMinor: 0, currency: "CAD", scale: 2 },
   total: { amountMinor: 15000, currency: "CAD", scale: 2 },
-  issueDate: null,
+  issueDate: "2026-05-01",
   dueDate: null,
-  issuedAt: null,
+  issuedAt: new Date().toISOString(),
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   lines: [
@@ -52,6 +52,21 @@ const DEMO_FALLBACK: InvoiceWithLines = {
   ]
 };
 
+const DEMO_PAYMENTS: Payment[] = [
+  {
+    id: "demo-pay-1",
+    organizationId: "demo-org",
+    invoiceId: "demo-inv-1",
+    companyId: "demo-company-1",
+    amount: { amountMinor: 10000, currency: "CAD", scale: 2 },
+    paymentDate: "2026-05-10",
+    method: "bank_transfer",
+    reference: "REF-001",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
 function clientFromLocalsOrEnv(
   fetchImpl: typeof fetch,
   locals: App.Locals
@@ -75,13 +90,21 @@ export const load: PageServerLoad = async ({ params, fetch, locals }) => {
   if (!session) {
     // Demo fallback: return demo if id matches, else 404
     if (params.id === "demo-inv-1") {
-      return { invoice: DEMO_FALLBACK, source: "demo" as const, locale: locals.locale };
+      return {
+        invoice: DEMO_FALLBACK,
+        payments: DEMO_PAYMENTS,
+        source: "demo" as const,
+        locale: locals.locale
+      };
     }
     error(404, "Invoice not found");
   }
   try {
-    const invoice = await session.client.getInvoice(params.id);
-    return { invoice, source: "api" as const, locale: locals.locale };
+    const [invoice, payments] = await Promise.all([
+      session.client.getInvoice(params.id),
+      session.client.listPayments({ invoiceId: params.id })
+    ]);
+    return { invoice, payments, source: "api" as const, locale: locals.locale };
   } catch (err) {
     const apiErr = err as { status?: number };
     if (apiErr.status === 404) {

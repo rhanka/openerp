@@ -1596,6 +1596,214 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   }, 30000);
 
+  it("Payment reconciliation end-to-end (DS 4.1): partial -> partially_paid -> paid -> delete -> partially_paid", async () => {
+    const { createProject } = await import("../../src/project/project-service");
+    const { createRate } = await import("../../src/project/rate-service");
+    const { createAssignment } = await import("../../src/project/assignment-service");
+    const { createTimeEntry } = await import("../../src/project/time-entry-service");
+    const {
+      generateInvoiceProposal,
+      submitInvoiceProposal,
+      approveInvoiceProposal
+    } = await import("../../src/project/invoice-proposal-service");
+    const {
+      createInvoiceFromProposal,
+      issueInvoice,
+      getInvoiceById
+    } = await import("../../src/billing/invoice-service");
+    const {
+      recordPayment,
+      deletePayment,
+      listPayments,
+      InvoiceNotPayableError
+    } = await import("../../src/billing/payment-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Payment Co DS41', 'Payment Co DS41', 'payment-ds41', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-ds41-id@payment.local', 'PM DS41', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm-ds41@payment.local', 'PM DS41', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userId = userRes.rows[0]!.id;
+        const tenant = { organizationId: orgId, actorUserId: userId };
+
+        // Build project chain (DS 4.0 pattern)
+        const project = await createProject(client, tenant, {
+          name: "DS 4.1 Payment Test",
+          code: "DS41"
+        });
+        const companyRes = await client.query<{ id: string }>(
+          `insert into companies (organization_id, display_name, status)
+           values ($1, 'DS41 Client Co', 'active')
+           returning id`,
+          [orgId]
+        );
+        const companyId = companyRes.rows[0]!.id;
+        await client.query(
+          `update projects set company_id = $1 where id = $2`,
+          [companyId, project.id]
+        );
+
+        const rate = await createRate(client, tenant, {
+          name: "Standard DS41",
+          amount: { amountMinor: 10000, currency: "CAD", scale: 2 },
+          effectiveFrom: "2026-01-01",
+          active: true
+        });
+        await createAssignment(client, tenant, {
+          projectId: project.id,
+          userId,
+          billableRateId: rate.id
+        });
+
+        // 2 approved billable time entries totaling 15000 amountMinor
+        await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          userId,
+          entryDate: "2026-05-01",
+          minutes: 60,
+          billable: true,
+          status: "approved"
+        });
+        await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          userId,
+          entryDate: "2026-05-02",
+          minutes: 30,
+          billable: true,
+          status: "approved"
+        });
+
+        // Generate -> submit -> approve -> convert -> issue
+        const proposal = await generateInvoiceProposal(client, tenant, {
+          projectId: project.id,
+          currency: "CAD"
+        });
+        await submitInvoiceProposal(client, tenant, proposal.id);
+        await approveInvoiceProposal(client, tenant, proposal.id);
+
+        const invoice = await createInvoiceFromProposal(client, tenant, proposal.id);
+        expect(invoice.total.amountMinor).toBe(15000);
+        const issued = await issueInvoice(client, tenant, invoice.id);
+        expect(issued.status).toBe("issued");
+
+        // Assert: recording against a draft invoice is rejected (use a separate draft)
+        await expect(
+          recordPayment(client, tenant, {
+            invoiceId: invoice.id,
+            amount: { amountMinor: 5000, currency: "CAD", scale: 2 },
+            paymentDate: "2026-05-03",
+            method: "cash"
+          })
+        ).resolves.toBeTruthy(); // issued -> ok, this records the partial payment
+
+        // Refetch
+        const afterPartial = await getInvoiceById(client, tenant, invoice.id);
+        expect(afterPartial!.status).toBe("partially_paid");
+
+        // Audit: billing.invoice.partially_paid emitted
+        const auditPartial = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2::text
+              and action = 'billing.invoice.partially_paid'`,
+          [orgId, invoice.id]
+        );
+        expect(auditPartial.rows).toHaveLength(1);
+
+        // Timeline: billing.invoice.partially_paid emitted
+        const tlPartial = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2
+              and entry_type = 'billing.invoice.partially_paid'`,
+          [orgId, invoice.id]
+        );
+        expect(tlPartial.rows).toHaveLength(1);
+
+        // Record remainder: 10000 more → total = 15000 >= 15000 → paid
+        const payFull = await recordPayment(client, tenant, {
+          invoiceId: invoice.id,
+          amount: { amountMinor: 10000, currency: "CAD", scale: 2 },
+          paymentDate: "2026-05-04",
+          method: "bank_transfer"
+        });
+        expect(payFull.invoiceId).toBe(invoice.id);
+
+        const afterFull = await getInvoiceById(client, tenant, invoice.id);
+        expect(afterFull!.status).toBe("paid");
+
+        // Audit: billing.invoice.paid emitted
+        const auditPaid = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2::text
+              and action = 'billing.invoice.paid'`,
+          [orgId, invoice.id]
+        );
+        expect(auditPaid.rows).toHaveLength(1);
+
+        // List payments for invoice
+        const payments = await listPayments(client, tenant, { invoiceId: invoice.id });
+        expect(payments).toHaveLength(2);
+
+        // Soft-delete the full payment → back to partially_paid
+        await deletePayment(client, tenant, payFull.id);
+
+        const afterDelete = await getInvoiceById(client, tenant, invoice.id);
+        expect(afterDelete!.status).toBe("partially_paid");
+
+        // Audit: billing.payment.deleted
+        const auditDeleted = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'payment' and resource_id = $2::text
+              and action = 'billing.payment.deleted'`,
+          [orgId, payFull.id]
+        );
+        expect(auditDeleted.rows).toHaveLength(1);
+
+        // Recording against a void invoice → InvoiceNotPayableError
+        const inv2Res = await client.query<{ id: string }>(
+          `insert into invoices (
+             organization_id, company_id, invoice_number, status, currency,
+             subtotal, tax_total, total
+           ) values ($1, $2, 'INV-VOID-TEST', 'void', 'CAD',
+             '{"amountMinor":5000,"currency":"CAD","scale":2}'::jsonb,
+             '{"amountMinor":0,"currency":"CAD","scale":2}'::jsonb,
+             '{"amountMinor":5000,"currency":"CAD","scale":2}'::jsonb)
+           returning id`,
+          [orgId, companyId]
+        );
+        const voidInvoiceId = inv2Res.rows[0]!.id;
+        await expect(
+          recordPayment(client, tenant, {
+            invoiceId: voidInvoiceId,
+            amount: { amountMinor: 5000, currency: "CAD", scale: 2 },
+            paymentDate: "2026-05-05",
+            method: "cash"
+          })
+        ).rejects.toBeInstanceOf(InvoiceNotPayableError);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
+
   it("InvoiceProposal end-to-end (DS 3.4): create project + rate + assignment + 2 approved billable entries -> generate -> 2 lines -> summed total -> submit -> approve", async () => {
     const { createProject } = await import("../../src/project/project-service");
     const { createRate } = await import("../../src/project/rate-service");

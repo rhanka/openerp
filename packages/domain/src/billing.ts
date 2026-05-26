@@ -70,12 +70,38 @@ export interface ConvertProposalInput {
   invoiceProposalId: string;
 }
 
+export type PaymentMethod = "bank_transfer" | "card" | "cheque" | "cash" | "other";
+
+export interface Payment {
+  id: string;
+  organizationId: string;
+  invoiceId: string;
+  companyId: string | null;
+  amount: BillingMoney;
+  paymentDate: string;
+  method: PaymentMethod;
+  reference: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePaymentInput {
+  invoiceId: string;
+  amount: BillingMoney;
+  paymentDate: string;
+  method: PaymentMethod;
+  reference?: string | null;
+}
+
 export const BILLING_DOMAIN_EVENTS = [
   "billing.invoice.created",
   "billing.invoice.issued",
   "billing.invoice.paid",
+  "billing.invoice.partially_paid",
   "billing.invoice.void",
-  "billing.invoice.deleted"
+  "billing.invoice.deleted",
+  "billing.payment.created",
+  "billing.payment.deleted"
 ] as const;
 
 export type BillingDomainEvent = (typeof BILLING_DOMAIN_EVENTS)[number];

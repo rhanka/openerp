@@ -58,3 +58,35 @@ test("billing invoices nav item is active when on invoices route", async ({ page
     page.getByRole("link", { name: "Invoices", exact: true })
   ).toHaveAttribute("aria-current", "page");
 });
+
+test("billing invoice detail renders Payments section in demo mode (DS 4.1)", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  await context.addCookies([
+    { name: "openerp_locale", value: "en", url: baseURL ?? "http://127.0.0.1:4173" }
+  ]);
+  await page.goto("/admin/billing/invoices/demo-inv-1");
+  await page.waitForLoadState("domcontentloaded");
+
+  // Payments section heading is visible
+  await expect(page.getByTestId("payments-section-title")).toBeVisible();
+
+  // Demo payment row visible (payments table)
+  const paymentsTable = page.getByTestId("payments-table");
+  await expect(paymentsTable).toBeVisible();
+  const paymentRows = paymentsTable.locator("tbody > tr");
+  await expect(paymentRows).toHaveCount(1);
+
+  // Balance due line visible
+  await expect(page.getByTestId("balance-due")).toBeVisible();
+});
+
+test("billing invoice detail renders Payments section in French (DS 4.1)", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  await context.addCookies([
+    { name: "openerp_locale", value: "fr", url: baseURL ?? "http://127.0.0.1:4173" }
+  ]);
+  await page.goto("/admin/billing/invoices/demo-inv-1");
+  await page.waitForLoadState("domcontentloaded");
+
+  await expect(page.getByTestId("payments-section-title")).toContainText("Paiements");
+});
