@@ -1,11 +1,18 @@
 import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
+  Account,
+  AccountType,
+  CreateAccountInput,
   Invoice,
   InvoiceLine,
   InvoiceStatus,
   InvoiceWithLines,
   CreateInvoiceInput,
   BillingMoney,
+  JournalEntry,
+  JournalEntryWithLines,
+  JournalEntryStatus,
+  CreateJournalEntryInput,
   Payment,
   PaymentMethod,
   CreatePaymentInput,
@@ -14,7 +21,8 @@ import type {
   CreateTaxCategoryInput,
   UpdateTaxCategoryInput,
   CreateTaxRateVersionInput,
-  UpdateTaxRateVersionInput
+  UpdateTaxRateVersionInput,
+  UpdateAccountInput
 } from "@sentropic/openerp-domain/billing";
 import type {
   Assignment,
@@ -719,12 +727,122 @@ export function createApiClient(options: ApiClientOptions) {
         method: "POST",
         body: asOfDate ? { asOfDate } : {}
       });
+    },
+
+    // ---------------------------------------------------------------------------
+    // Accounts (DS 4.3)
+    // ---------------------------------------------------------------------------
+
+    async listAccounts(query: { type?: AccountType; active?: boolean; limit?: number; offset?: number } = {}): Promise<{ items: Account[] }> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      return request<{ items: Account[] }>(`/billing/accounts${suffix}`);
+    },
+
+    async createAccount(input: CreateAccountInput): Promise<Account> {
+      return request<Account>(`/billing/accounts`, { method: "POST", body: input });
+    },
+
+    async getAccount(id: string): Promise<Account> {
+      return request<Account>(`/billing/accounts/${encodeURIComponent(id)}`);
+    },
+
+    async updateAccount(id: string, patch: UpdateAccountInput): Promise<Account> {
+      return request<Account>(`/billing/accounts/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteAccount(id: string): Promise<void> {
+      return requestNoContent(`/billing/accounts/${encodeURIComponent(id)}`);
+    },
+
+    // ---------------------------------------------------------------------------
+    // Journal Entries (DS 4.3)
+    // ---------------------------------------------------------------------------
+
+    async listJournalEntries(query: {
+      sourceType?: string;
+      sourceId?: string;
+      status?: JournalEntryStatus;
+      limit?: number;
+      offset?: number;
+    } = {}): Promise<{ items: JournalEntry[] }> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      return request<{ items: JournalEntry[] }>(`/billing/journal-entries${suffix}`);
+    },
+
+    async getJournalEntry(id: string): Promise<JournalEntryWithLines> {
+      return request<JournalEntryWithLines>(`/billing/journal-entries/${encodeURIComponent(id)}`);
+    },
+
+    async createJournalEntry(input: CreateJournalEntryInput): Promise<JournalEntryWithLines> {
+      return request<JournalEntryWithLines>(`/billing/journal-entries`, { method: "POST", body: input });
+    },
+
+    async postJournalEntry(id: string): Promise<JournalEntryWithLines> {
+      return request<JournalEntryWithLines>(`/billing/journal-entries/${encodeURIComponent(id)}/post`, { method: "POST" });
+    },
+
+    async voidJournalEntry(id: string): Promise<JournalEntryWithLines> {
+      return request<JournalEntryWithLines>(`/billing/journal-entries/${encodeURIComponent(id)}/void`, { method: "POST" });
+    },
+
+    async deleteJournalEntry(id: string): Promise<void> {
+      return requestNoContent(`/billing/journal-entries/${encodeURIComponent(id)}`);
+    },
+
+    async postInvoiceToJournal(invoiceId: string): Promise<JournalEntryWithLines> {
+      return request<JournalEntryWithLines>(
+        `/billing/invoices/${encodeURIComponent(invoiceId)}/post-to-journal`,
+        { method: "POST" }
+      );
+    },
+
+    async postPaymentToJournal(paymentId: string): Promise<JournalEntryWithLines> {
+      return request<JournalEntryWithLines>(
+        `/billing/payments/${encodeURIComponent(paymentId)}/post-to-journal`,
+        { method: "POST" }
+      );
     }
   };
 }
 
 // Re-export billing types so web pages can import from the client module
-export type { Invoice, InvoiceLine, InvoiceStatus, InvoiceWithLines, BillingMoney, Payment, PaymentMethod, CreatePaymentInput, TaxCategory, TaxRateVersion, CreateTaxCategoryInput, UpdateTaxCategoryInput, CreateTaxRateVersionInput, UpdateTaxRateVersionInput };
+export type {
+  Account,
+  AccountType,
+  CreateAccountInput,
+  UpdateAccountInput,
+  Invoice,
+  InvoiceLine,
+  InvoiceStatus,
+  InvoiceWithLines,
+  BillingMoney,
+  JournalEntry,
+  JournalEntryWithLines,
+  JournalEntryStatus,
+  CreateJournalEntryInput,
+  Payment,
+  PaymentMethod,
+  CreatePaymentInput,
+  TaxCategory,
+  TaxRateVersion,
+  CreateTaxCategoryInput,
+  UpdateTaxCategoryInput,
+  CreateTaxRateVersionInput,
+  UpdateTaxRateVersionInput
+};
 
 async function safeJson(response: Response): Promise<unknown | null> {
   try {

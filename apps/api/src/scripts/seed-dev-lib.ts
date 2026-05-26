@@ -8,6 +8,7 @@ export interface SeedResult {
   pipelineStageCount: number;
   companyCount: number;
   opportunityCount: number;
+  accountCount: number;
 }
 
 export const DEMO_ORG_SLUG = "northwind-services";
@@ -41,6 +42,9 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
     // below keeps referential integrity intact for the purge.
     await client.query("set local session_replication_role = replica");
     await client.query(`delete from audit_events where organization_id = $1`, [orgId]);
+    await client.query(`delete from journal_entry_lines where organization_id = $1`, [orgId]);
+    await client.query(`delete from journal_entries where organization_id = $1`, [orgId]);
+    await client.query(`delete from accounts where organization_id = $1`, [orgId]);
     await client.query(`delete from opportunities where organization_id = $1`, [orgId]);
     await client.query(`delete from pipeline_stages where organization_id = $1`, [orgId]);
     await client.query(`delete from contacts where organization_id = $1`, [orgId]);
@@ -211,6 +215,22 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
   );
   const opportunityCount = opportunityRes.rows.length;
 
+  // Accounting seed: default chart of accounts (DS 4.3).
+  // Standard double-entry account codes for Canadian SMB.
+  const accountRows = await client.query<{ id: string }>(
+    `insert into accounts (organization_id, code, name, type, active)
+     values
+       ($1, '1000', 'Cash / Bank', 'asset', true),
+       ($1, '1100', 'Accounts Receivable', 'asset', true),
+       ($1, '2300', 'Tax Payable', 'liability', true),
+       ($1, '2310', 'GST Payable', 'liability', true),
+       ($1, '2320', 'QST Payable', 'liability', true),
+       ($1, '4000', 'Service Revenue', 'revenue', true)
+     returning id`,
+    [organizationId]
+  );
+  const accountCount = accountRows.rows.length;
+
   return {
     organizationId,
     userIdentityId,
@@ -218,6 +238,7 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
     approvalRequestCount: 3,
     pipelineStageCount: stageRows.rows.length,
     companyCount: 1,
-    opportunityCount
+    opportunityCount,
+    accountCount
   };
 }

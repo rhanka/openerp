@@ -8,7 +8,7 @@
     Tag
   } from "@sentropic/design-system-svelte";
 
-  import type { InvoiceWithLines, Payment } from "@sentropic/openerp-domain/billing";
+  import type { InvoiceWithLines, JournalEntryWithLines, Payment } from "@sentropic/openerp-domain/billing";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -19,8 +19,10 @@
   const locale: LocaleCode = $derived(data.locale);
   const invoice: InvoiceWithLines = $derived(data.invoice);
   const payments: Payment[] = $derived(data.payments ?? []);
+  const journalEntry: JournalEntryWithLines | null = $derived(data.journalEntry ?? null);
 
   let computingTaxes = $state(false);
+  let postingToJournal = $state(false);
 
   function statusLabel(status: InvoiceWithLines["status"]): string {
     return t(locale, `billing.invoices.status.${status}`);
@@ -75,7 +77,35 @@
           {t(locale, "billing.invoices.field.proposalId")}: <code>{invoice.invoiceProposalId}</code>
         </p>
       {/if}
+      {#if journalEntry}
+        <p class="page__meta" data-testid="journal-entry-ref">
+          {t(locale, "billing.journal.posted.reference")}:
+          <code>{journalEntry.reference ?? journalEntry.id}</code>
+          <Tag tone="success">{t(locale, "billing.journal.status.posted")}</Tag>
+        </p>
+      {/if}
     </div>
+    {#if invoice.status === "issued" && !journalEntry}
+      <div class="page__actions">
+        <form
+          method="POST"
+          action="?/postToJournal"
+          use:enhance={() => {
+            postingToJournal = true;
+            return async ({ update }) => {
+              await update({ reset: false });
+              postingToJournal = false;
+            };
+          }}
+        >
+          <Button type="submit" variant="secondary" size="sm" disabled={postingToJournal} data-testid="post-to-journal-btn">
+            {postingToJournal
+              ? t(locale, "billing.journal.action.posting")
+              : t(locale, "billing.journal.action.postToJournal")}
+          </Button>
+        </form>
+      </div>
+    {/if}
   </header>
 
   {#if form && "ok" in form && form.ok}

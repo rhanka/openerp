@@ -22,6 +22,7 @@ import { mountInvoiceProposalRoutes } from "./handlers/project-invoice-proposals
 import { mountBillingInvoiceRoutes } from "./handlers/billing-invoices";
 import { mountBillingPaymentRoutes } from "./handlers/billing-payments";
 import { mountBillingTaxRoutes } from "./handlers/billing-taxes";
+import { mountBillingAccountingRoutes } from "./handlers/billing-accounting";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
@@ -110,6 +111,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountBillingInvoiceRoutes(app);
   mountBillingPaymentRoutes(app);
   mountBillingTaxRoutes(app);
+  mountBillingAccountingRoutes(app);
 
   return app;
 }

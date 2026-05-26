@@ -177,6 +177,85 @@ export interface CreatePaymentInput {
   reference?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Accounting entities (DS 4.3)
+// ---------------------------------------------------------------------------
+
+export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
+
+export interface Account {
+  id: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  type: AccountType;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAccountInput {
+  code: string;
+  name: string;
+  type: AccountType;
+  active?: boolean;
+}
+
+export interface UpdateAccountInput {
+  name?: string;
+  type?: AccountType;
+  active?: boolean;
+}
+
+export type JournalEntryStatus = "draft" | "posted" | "void";
+export type JournalEntrySourceType = "invoice" | "payment" | "manual";
+
+export interface JournalEntry {
+  id: string;
+  organizationId: string;
+  entryDate: string;
+  reference: string | null;
+  description: string | null;
+  sourceType: JournalEntrySourceType;
+  sourceId: string | null;
+  status: JournalEntryStatus;
+  postedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JournalEntryLine {
+  id: string;
+  organizationId: string;
+  journalEntryId: string;
+  accountId: string;
+  /** Exactly one of debit/credit is non-zero per line. */
+  debit: BillingMoney;
+  credit: BillingMoney;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface JournalEntryWithLines extends JournalEntry {
+  lines: JournalEntryLine[];
+}
+
+export interface CreateJournalEntryLineInput {
+  accountId: string;
+  debit: BillingMoney;
+  credit: BillingMoney;
+  description?: string | null;
+}
+
+export interface CreateJournalEntryInput {
+  entryDate: string;
+  reference?: string | null;
+  description?: string | null;
+  sourceType?: JournalEntrySourceType;
+  sourceId?: string | null;
+  lines: CreateJournalEntryLineInput[];
+}
+
 export const BILLING_DOMAIN_EVENTS = [
   "billing.invoice.created",
   "billing.invoice.issued",
@@ -192,7 +271,14 @@ export const BILLING_DOMAIN_EVENTS = [
   "billing.tax_category.deleted",
   "billing.tax_rate_version.created",
   "billing.tax_rate_version.updated",
-  "billing.tax_rate_version.deleted"
+  "billing.tax_rate_version.deleted",
+  "billing.account.created",
+  "billing.account.updated",
+  "billing.account.deleted",
+  "billing.journal_entry.created",
+  "billing.journal_entry.posted",
+  "billing.journal_entry.deleted",
+  "billing.journal_entry.voided"
 ] as const;
 
 export type BillingDomainEvent = (typeof BILLING_DOMAIN_EVENTS)[number];

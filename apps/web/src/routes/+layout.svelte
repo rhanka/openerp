@@ -30,6 +30,7 @@
     { label: t(locale, "nav.rates"), href: "/admin/project/rates" },
     { label: t(locale, "nav.invoices"), href: "/admin/billing/invoices" },
     { label: t(locale, "nav.taxes"), href: "/admin/billing/taxes" },
+    { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" },
     { label: t(locale, "nav.users"), href: "/admin/users" },
     { label: t(locale, "nav.roles"), href: "/admin/roles" },
     { label: t(locale, "nav.approvals"), href: "/admin/approvals" },

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildBillingRoutes } from "../../src/http/routes/billing";
 
-describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2)", () => {
-  it("registers invoice CRUD + lifecycle + from-proposal + payment + tax endpoints", () => {
+describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3)", () => {
+  it("registers invoice CRUD + lifecycle + from-proposal + payment + tax + accounting endpoints", () => {
     expect(buildBillingRoutes().map((r) => `${r.method} ${r.path}`)).toEqual([
       "GET /billing/invoices",
       "POST /billing/invoices",
@@ -12,10 +12,12 @@ describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2)", () => {
       "POST /billing/invoices/:id/pay",
       "POST /billing/invoices/:id/void",
       "POST /billing/invoices/:id/compute-taxes",
+      "POST /billing/invoices/:id/post-to-journal",
       "DELETE /billing/invoices/:id",
       "GET /billing/payments",
       "POST /billing/payments",
       "GET /billing/payments/:id",
+      "POST /billing/payments/:id/post-to-journal",
       "DELETE /billing/payments/:id",
       "GET /billing/tax-categories",
       "POST /billing/tax-categories",
@@ -26,7 +28,18 @@ describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2)", () => {
       "POST /billing/tax-rate-versions",
       "GET /billing/tax-rate-versions/:id",
       "PATCH /billing/tax-rate-versions/:id",
-      "DELETE /billing/tax-rate-versions/:id"
+      "DELETE /billing/tax-rate-versions/:id",
+      "GET /billing/accounts",
+      "POST /billing/accounts",
+      "GET /billing/accounts/:id",
+      "PATCH /billing/accounts/:id",
+      "DELETE /billing/accounts/:id",
+      "GET /billing/journal-entries",
+      "GET /billing/journal-entries/:id",
+      "POST /billing/journal-entries",
+      "POST /billing/journal-entries/:id/post",
+      "POST /billing/journal-entries/:id/void",
+      "DELETE /billing/journal-entries/:id"
     ]);
   });
 
@@ -71,5 +84,26 @@ describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2)", () => {
     expect(routes.find((r) => r.path === "/billing/invoices/:id" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/billing/payments" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/billing/payments/:id" && r.method === "GET")?.audited).toBe(false);
+  });
+
+  it("flags accounting CRUD mutating endpoints as audited (DS 4.3)", () => {
+    const routes = buildBillingRoutes();
+    expect(routes.find((r) => r.path === "/billing/accounts" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/accounts/:id" && r.method === "PATCH")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/accounts/:id" && r.method === "DELETE")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/journal-entries" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/journal-entries/:id/post" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/journal-entries/:id/void" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/journal-entries/:id" && r.method === "DELETE")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/invoices/:id/post-to-journal" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/payments/:id/post-to-journal" && r.method === "POST")?.audited).toBe(true);
+  });
+
+  it("flags accounting read endpoints as not audited (DS 4.3)", () => {
+    const routes = buildBillingRoutes();
+    expect(routes.find((r) => r.path === "/billing/accounts" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/billing/accounts/:id" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/billing/journal-entries" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/billing/journal-entries/:id" && r.method === "GET")?.audited).toBe(false);
   });
 });

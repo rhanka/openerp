@@ -57,7 +57,9 @@ export const ALLOWED_VERBS = new Set([
   "unassigned",
   "completed",
   "converted",
-  "disqualified"
+  "disqualified",
+  "posted",
+  "voided"
 ] as const);
 
 export class InvalidEntryTypeError extends Error {

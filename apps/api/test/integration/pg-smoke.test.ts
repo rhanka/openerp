@@ -2122,4 +2122,200 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   }, 20000);
+
+  it("Accounting end-to-end (DS 4.3): chart of accounts + balanced posted journal entries from invoice/payment", async () => {
+    const { createAccount, postInvoiceToJournal, postPaymentToJournal } = await import(
+      "../../src/billing/accounting-service"
+    );
+    const { createInvoice, issueInvoice } = await import("../../src/billing/invoice-service");
+    const { createTaxCategory, createTaxRateVersion, computeInvoiceTaxes } = await import(
+      "../../src/billing/tax-service"
+    );
+    const { recordPayment } = await import("../../src/billing/payment-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Acct Co DS43', 'Acct Co DS43', 'acct-co-ds43', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('acct-ds43-id@acct.local', 'Acct DS43', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'acct-ds43@acct.local', 'Acct DS43', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        // 1. Seed a company for the invoice.
+        const companyRes = await client.query<{ id: string }>(
+          `insert into companies (organization_id, display_name, legal_name, status, owner_user_id)
+           values ($1, 'Acct Client', 'Acct Client Inc.', 'active', $2)
+           returning id`,
+          [orgId, tenant.actorUserId]
+        );
+        const companyId = companyRes.rows[0]!.id;
+
+        // 2. Seed default chart of accounts (mirrors seed-dev-lib).
+        const ar = await createAccount(client, tenant, { code: "1100", name: "Accounts Receivable", type: "asset" });
+        const cash = await createAccount(client, tenant, { code: "1000", name: "Cash / Bank", type: "asset" });
+        await createAccount(client, tenant, { code: "2300", name: "Tax Payable", type: "liability" });
+        const gstPayable = await createAccount(client, tenant, { code: "2310", name: "GST Payable", type: "liability" });
+        const qstPayable = await createAccount(client, tenant, { code: "2320", name: "QST Payable", type: "liability" });
+        const revenue = await createAccount(client, tenant, { code: "4000", name: "Service Revenue", type: "revenue" });
+
+        expect(ar.code).toBe("1100");
+        expect(cash.code).toBe("1000");
+        expect(gstPayable.code).toBe("2310");
+        expect(qstPayable.code).toBe("2320");
+        expect(revenue.code).toBe("4000");
+
+        // 3. Build an issued invoice with GST + QST taxes (reuse DS 4.2 chain).
+        // Both GST and QST rates live under ONE combined category, matching the DS 4.2 pattern.
+        const combinedCategory = await createTaxCategory(client, tenant, {
+          name: "Standard CA-QC",
+          code: "CA-QC",
+          description: "Federal GST + Quebec QST"
+        });
+        await createTaxRateVersion(client, tenant, {
+          taxCategoryId: combinedCategory.id,
+          jurisdiction: "CA-GST",
+          label: "GST 5%",
+          rateBps: 500,
+          effectiveFrom: "2020-01-01"
+        });
+        await createTaxRateVersion(client, tenant, {
+          taxCategoryId: combinedCategory.id,
+          jurisdiction: "CA-QC-QST",
+          label: "QST 9.975%",
+          rateBps: 9975,
+          effectiveFrom: "2020-01-01"
+        });
+
+        // Create invoice: 1 line = 100 CAD (amountMinor 10000, scale 2).
+        const invoice = await createInvoice(client, tenant, {
+          companyId,
+          taxCategoryId: combinedCategory.id,
+          lines: [
+            {
+              description: "Consulting",
+              quantity: 1,
+              unitPrice: { amountMinor: 10000, currency: "CAD", scale: 2 },
+              amount: { amountMinor: 10000, currency: "CAD", scale: 2 }
+            }
+          ]
+        });
+
+        // Compute taxes: subtotal 10000 -> GST 500 + QST 998 -> total 11498.
+        const taxed = await computeInvoiceTaxes(client, tenant, invoice.id, "2026-05-25");
+        expect(taxed.total.amountMinor).toBe(11498);
+        expect(taxed.taxBreakdown).toHaveLength(2);
+
+        const issued = await issueInvoice(client, tenant, invoice.id);
+        expect(issued.status).toBe("issued");
+
+        // 4. Post invoice to journal — expect a balanced entry.
+        const je = await postInvoiceToJournal(client, tenant, invoice.id);
+        expect(je.status).toBe("posted");
+        expect(je.sourceType).toBe("invoice");
+        expect(je.sourceId).toBe(invoice.id);
+        expect(je.lines).toHaveLength(4); // 1 debit AR + 3 credits (Revenue, GST, QST)
+
+        const debitLines = je.lines.filter((l) => l.debit.amountMinor > 0);
+        const creditLines = je.lines.filter((l) => l.credit.amountMinor > 0);
+        expect(debitLines).toHaveLength(1);
+        expect(debitLines[0]!.debit.amountMinor).toBe(11498); // AR = total
+
+        expect(creditLines).toHaveLength(3);
+        const creditAmounts = creditLines.map((l) => l.credit.amountMinor).sort((a, b) => b - a);
+        expect(creditAmounts).toEqual([10000, 998, 500]); // Revenue, QST, GST
+
+        const sumDebits = debitLines.reduce((s, l) => s + l.debit.amountMinor, 0);
+        const sumCredits = creditLines.reduce((s, l) => s + l.credit.amountMinor, 0);
+        expect(sumDebits).toBe(11498);
+        expect(sumCredits).toBe(11498); // balanced
+
+        // Verify in DB.
+        const dbEntry = await client.query<{
+          status: string;
+          source_type: string;
+          source_id: string;
+        }>(
+          `select status, source_type, source_id from journal_entries where id = $1`,
+          [je.id]
+        );
+        expect(dbEntry.rows[0]!.status).toBe("posted");
+        expect(dbEntry.rows[0]!.source_type).toBe("invoice");
+
+        const dbLines = await client.query<{ debit: { amountMinor: number }; credit: { amountMinor: number } }>(
+          `select debit, credit from journal_entry_lines where journal_entry_id = $1 order by created_at asc`,
+          [je.id]
+        );
+        expect(dbLines.rows).toHaveLength(4);
+        const dbSumDebits = dbLines.rows.reduce((s, l) => s + l.debit.amountMinor, 0);
+        const dbSumCredits = dbLines.rows.reduce((s, l) => s + l.credit.amountMinor, 0);
+        expect(dbSumDebits).toBe(11498);
+        expect(dbSumCredits).toBe(11498);
+
+        // 5. Record a payment + post to journal.
+        const payment = await recordPayment(client, tenant, {
+          invoiceId: invoice.id,
+          amount: { amountMinor: 11498, currency: "CAD", scale: 2 },
+          paymentDate: "2026-05-25",
+          method: "bank_transfer",
+          reference: "TRF-DS43-001"
+        });
+        expect(payment.id).toBeTruthy();
+
+        const je2 = await postPaymentToJournal(client, tenant, payment.id);
+        expect(je2.status).toBe("posted");
+        expect(je2.sourceType).toBe("payment");
+        expect(je2.sourceId).toBe(payment.id);
+        expect(je2.lines).toHaveLength(2); // debit Cash + credit AR
+
+        const pDebitLines = je2.lines.filter((l) => l.debit.amountMinor > 0);
+        const pCreditLines = je2.lines.filter((l) => l.credit.amountMinor > 0);
+        expect(pDebitLines[0]!.debit.amountMinor).toBe(11498);
+        expect(pCreditLines[0]!.credit.amountMinor).toBe(11498);
+        const pSumDebits = pDebitLines.reduce((s, l) => s + l.debit.amountMinor, 0);
+        const pSumCredits = pCreditLines.reduce((s, l) => s + l.credit.amountMinor, 0);
+        expect(pSumDebits).toBe(pSumCredits); // balanced
+
+        // 6. Verify audit events for accounting.
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'journal_entry'
+            order by created_at asc`,
+          [orgId]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("billing.journal_entry.created");
+        expect(actions).toContain("billing.journal_entry.posted");
+
+        // 7. Verify timeline entries for journal_entry resource.
+        const tlRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'journal_entry'
+            order by occurred_at asc`,
+          [orgId]
+        );
+        const entryTypes = tlRows.rows.map((r) => r.entry_type);
+        expect(entryTypes).toContain("billing.journal_entry.posted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
 });

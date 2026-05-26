@@ -1,7 +1,7 @@
 import { env } from "$env/dynamic/private";
 import { error, fail, type Actions } from "@sveltejs/kit";
 
-import type { InvoiceWithLines, Payment } from "@sentropic/openerp-domain/billing";
+import type { InvoiceWithLines, JournalEntryWithLines, Payment } from "@sentropic/openerp-domain/billing";
 
 import { createApiClient } from "$lib/api/client";
 
@@ -95,6 +95,7 @@ export const load: PageServerLoad = async ({ params, fetch, locals }) => {
       return {
         invoice: DEMO_FALLBACK,
         payments: DEMO_PAYMENTS,
+        journalEntry: null,
         source: "demo" as const,
         locale: locals.locale
       };
@@ -106,7 +107,21 @@ export const load: PageServerLoad = async ({ params, fetch, locals }) => {
       session.client.getInvoice(params.id),
       session.client.listPayments({ invoiceId: params.id })
     ]);
-    return { invoice, payments, source: "api" as const, locale: locals.locale };
+    // Try to find an existing journal entry for this invoice
+    let journalEntry: JournalEntryWithLines | null = null;
+    try {
+      const jeResult = await session.client.listJournalEntries({
+        sourceType: "invoice",
+        sourceId: params.id,
+        status: "posted"
+      });
+      if (jeResult.items.length > 0) {
+        journalEntry = await session.client.getJournalEntry(jeResult.items[0]!.id);
+      }
+    } catch {
+      // Non-fatal: journal entry lookup is best-effort
+    }
+    return { invoice, payments, journalEntry, source: "api" as const, locale: locals.locale };
   } catch (err) {
     const apiErr = err as { status?: number };
     if (apiErr.status === 404) {
@@ -128,6 +143,22 @@ export const actions: Actions = {
     } catch (err) {
       const apiErr = err as { status?: number; code?: string };
       if (apiErr.status === 404) return fail(404, { code: "NOT_FOUND" });
+      return fail(502, { code: "API_ERROR", message: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  postToJournal: async ({ params, fetch, locals }) => {
+    const id = params.id;
+    if (!id) return fail(400, { code: "ID_REQUIRED" });
+    const session = clientFromLocalsOrEnv(fetch, locals);
+    if (!session) return fail(503, { code: "DEMO_MODE_NO_API" });
+    try {
+      const entry = await session.client.postInvoiceToJournal(id);
+      return { ok: true as const, id: entry.id, action: "postedToJournal" };
+    } catch (err) {
+      const apiErr = err as { status?: number; code?: string };
+      if (apiErr.status === 404) return fail(404, { code: "NOT_FOUND" });
+      if (apiErr.status === 422) return fail(422, { code: apiErr.code ?? "JOURNAL_POSTING_ERROR" });
       return fail(502, { code: "API_ERROR", message: err instanceof Error ? err.message : String(err) });
     }
   }
