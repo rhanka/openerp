@@ -1378,6 +1378,224 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   });
 
+  it("Invoice end-to-end (DS 4.0): approved InvoiceProposal -> convert to Invoice -> lines mapped + total equals proposal total + issue/pay lifecycle + void draft + soft-delete", async () => {
+    const { createProject } = await import("../../src/project/project-service");
+    const { createRate } = await import("../../src/project/rate-service");
+    const { createAssignment } = await import("../../src/project/assignment-service");
+    const { createTimeEntry } = await import("../../src/project/time-entry-service");
+    const {
+      generateInvoiceProposal,
+      submitInvoiceProposal,
+      approveInvoiceProposal
+    } = await import("../../src/project/invoice-proposal-service");
+    const {
+      createInvoice,
+      createInvoiceFromProposal,
+      issueInvoice,
+      markPaid,
+      voidInvoice,
+      deleteInvoice,
+      getInvoiceById,
+      InvoiceTransitionError
+    } = await import("../../src/billing/invoice-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Billing Co DS40', 'Billing Co DS40', 'billing-ds40', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-ds40-id@billing.local', 'PM DS40', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm-ds40@billing.local', 'PM DS40', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userId = userRes.rows[0]!.id;
+        const tenant = { organizationId: orgId, actorUserId: userId };
+
+        // Build the project chain (DS 3.4 pattern)
+        const project = await createProject(client, tenant, {
+          name: "DS 4.0 Billing Test",
+          code: "DS40"
+        });
+        const companyRes = await client.query<{ id: string }>(
+          `insert into companies (organization_id, display_name, status)
+           values ($1, 'DS40 Client Co', 'active')
+           returning id`,
+          [orgId]
+        );
+        const companyId = companyRes.rows[0]!.id;
+
+        // Link project to company
+        await client.query(
+          `update projects set company_id = $1 where id = $2`,
+          [companyId, project.id]
+        );
+
+        const rate = await createRate(client, tenant, {
+          name: "Standard hourly DS40",
+          amount: { amountMinor: 10000, currency: "CAD", scale: 2 },
+          effectiveFrom: "2026-01-01",
+          active: true
+        });
+        await createAssignment(client, tenant, {
+          projectId: project.id,
+          userId,
+          billableRateId: rate.id
+        });
+
+        // 2 approved billable time entries
+        await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          userId,
+          entryDate: "2026-05-01",
+          minutes: 60,
+          billable: true,
+          status: "approved"
+        });
+        await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          userId,
+          entryDate: "2026-05-02",
+          minutes: 30,
+          billable: true,
+          status: "approved"
+        });
+
+        // Generate -> submit -> approve proposal
+        const proposal = await generateInvoiceProposal(client, tenant, {
+          projectId: project.id,
+          currency: "CAD"
+        });
+        expect(proposal.lines).toHaveLength(2);
+        expect(proposal.total.amountMinor).toBe(15000);
+
+        const submitted = await submitInvoiceProposal(client, tenant, proposal.id);
+        expect(submitted.status).toBe("submitted");
+
+        const approved = await approveInvoiceProposal(client, tenant, proposal.id);
+        expect(approved.status).toBe("approved");
+
+        // Convert approved proposal -> invoice
+        const invoice = await createInvoiceFromProposal(client, tenant, proposal.id);
+        expect(invoice.status).toBe("draft");
+        expect(invoice.invoiceProposalId).toBe(proposal.id);
+        expect(invoice.total.amountMinor).toBe(15000);
+        expect(invoice.total.currency).toBe("CAD");
+        expect(invoice.invoiceNumber).toMatch(/^INV-\d{6}$/);
+        expect(invoice.lines).toHaveLength(2);
+        expect(invoice.lines.every((l) => l.sourceType === "invoice_proposal_line")).toBe(true);
+
+        // Assert lines mapped from proposal lines
+        const proposalLineIds = proposal.lines.map((l) => l.id).sort();
+        const invoiceLineSourceIds = invoice.lines.map((l) => l.sourceId).sort();
+        expect(invoiceLineSourceIds).toEqual(proposalLineIds);
+
+        // Verify through getInvoiceById
+        const fetched = await getInvoiceById(client, tenant, invoice.id);
+        expect(fetched).not.toBeNull();
+        expect(fetched!.lines).toHaveLength(2);
+
+        // Issue the invoice
+        const issued = await issueInvoice(client, tenant, invoice.id);
+        expect(issued.status).toBe("issued");
+        expect(issued.issuedAt).toBeTruthy();
+
+        // Audit: billing.invoice.created + billing.invoice.issued
+        const auditAfterIssue = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, invoice.id]
+        );
+        const auditActions = auditAfterIssue.rows.map((r) => r.action);
+        expect(auditActions).toContain("billing.invoice.created");
+        expect(auditActions).toContain("billing.invoice.issued");
+
+        // Timeline: billing.invoice.created + billing.invoice.issued
+        const tlAfterIssue = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, invoice.id]
+        );
+        const tlEntryTypes = tlAfterIssue.rows.map((r) => r.entry_type);
+        expect(tlEntryTypes).toContain("billing.invoice.created");
+        expect(tlEntryTypes).toContain("billing.invoice.issued");
+
+        // Pay the invoice
+        const paid = await markPaid(client, tenant, invoice.id);
+        expect(paid.status).toBe("paid");
+
+        const auditAfterPay = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2::text
+              and action = 'billing.invoice.paid'`,
+          [orgId, invoice.id]
+        );
+        expect(auditAfterPay.rows).toHaveLength(1);
+
+        // Illegal transition: issue a paid invoice
+        await expect(issueInvoice(client, tenant, invoice.id)).rejects.toBeInstanceOf(InvoiceTransitionError);
+
+        // Create a second invoice (manual), void it, then delete is blocked
+        const inv2 = await createInvoice(client, tenant, {
+          companyId,
+          lines: [
+            {
+              quantity: 1,
+              unitPrice: { amountMinor: 5000, currency: "CAD", scale: 2 },
+              amount: { amountMinor: 5000, currency: "CAD", scale: 2 }
+            }
+          ]
+        });
+        expect(inv2.invoiceNumber).not.toBe(invoice.invoiceNumber);
+
+        await voidInvoice(client, tenant, inv2.id);
+        const voided = await getInvoiceById(client, tenant, inv2.id);
+        expect(voided!.status).toBe("void");
+
+        // Soft-delete a third draft invoice
+        const inv3 = await createInvoice(client, tenant, {
+          companyId,
+          lines: [
+            {
+              quantity: 1,
+              unitPrice: { amountMinor: 3000, currency: "CAD", scale: 2 },
+              amount: { amountMinor: 3000, currency: "CAD", scale: 2 }
+            }
+          ]
+        });
+        await deleteInvoice(client, tenant, inv3.id);
+        const deletedLookup = await getInvoiceById(client, tenant, inv3.id);
+        expect(deletedLookup).toBeNull();
+
+        const auditDeleted = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2::text
+              and action = 'billing.invoice.deleted'`,
+          [orgId, inv3.id]
+        );
+        expect(auditDeleted.rows).toHaveLength(1);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
+
   it("InvoiceProposal end-to-end (DS 3.4): create project + rate + assignment + 2 approved billable entries -> generate -> 2 lines -> summed total -> submit -> approve", async () => {
     const { createProject } = await import("../../src/project/project-service");
     const { createRate } = await import("../../src/project/rate-service");

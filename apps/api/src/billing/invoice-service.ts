@@ -1,0 +1,403 @@
+import type {
+  BillingMoney,
+  CreateInvoiceInput,
+  Invoice,
+  InvoiceLine,
+  InvoiceStatus,
+  InvoiceWithLines
+} from "@sentropic/openerp-domain/billing";
+
+import type { Queryable, TenantContext } from "../db/client";
+import { assertTenantContext } from "../db/client";
+import { recordAuditEvent } from "../foundation/audit-emit";
+import { emitBillingTimelineEntry } from "./billing-timeline";
+import {
+  countInvoicesForOrg,
+  findInvoiceById,
+  insertInvoice,
+  insertInvoiceLine,
+  listInvoices as listInvoicesRepo,
+  listLinesForInvoice,
+  softDeleteInvoice,
+  updateInvoiceStatus
+} from "./invoices";
+import { findInvoiceProposalById, listLinesForProposal } from "../project/invoice-proposals";
+
+// Service for Invoice lifecycle. Handles:
+//   - createInvoice: manual creation with line computation
+//   - createInvoiceFromProposal: convert an approved InvoiceProposal
+//   - issue: draft → issued
+//   - markPaid: issued|partially_paid → paid
+//   - voidInvoice: draft|issued → void
+//   - deleteInvoice: soft-delete draft only
+// Illegal transitions return InvoiceTransitionError (maps to 409).
+
+export class InvoiceNotFoundError extends Error {
+  readonly code = "INVOICE_NOT_FOUND";
+  constructor(id: string) {
+    super(`Invoice ${id} not found`);
+  }
+}
+
+export class InvoiceTransitionError extends Error {
+  readonly code = "INVOICE_ILLEGAL_TRANSITION";
+  constructor(currentStatus: string, targetStatus: string) {
+    super(`Cannot transition Invoice from '${currentStatus}' to '${targetStatus}'`);
+  }
+}
+
+export class InvoiceProposalNotApprovedError extends Error {
+  readonly code = "INVOICE_PROPOSAL_NOT_APPROVED";
+  constructor(proposalId: string, status: string) {
+    super(`InvoiceProposal ${proposalId} must be 'approved' to convert (current: '${status}')`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Internal: generate a tenant-unique invoice number
+// Format: INV-000001 (padded to 6 digits, org-scoped)
+// ---------------------------------------------------------------------------
+
+async function generateInvoiceNumber(db: Queryable, context: TenantContext): Promise<string> {
+  // Count ALL invoices for this org including deleted (for uniqueness).
+  const count = await countInvoicesForOrg(db, context);
+  const seq = count + 1;
+  return `INV-${String(seq).padStart(6, "0")}`;
+}
+
+// ---------------------------------------------------------------------------
+// Manual create
+// ---------------------------------------------------------------------------
+
+export async function createInvoice(
+  db: Queryable,
+  context: TenantContext,
+  input: CreateInvoiceInput
+): Promise<InvoiceWithLines> {
+  assertTenantContext(context);
+
+  const currency = input.currency ?? "CAD";
+  const zero: BillingMoney = { amountMinor: 0, currency, scale: 2 };
+
+  // Compute subtotal from lines
+  let subtotalMinor = 0;
+  const scale = input.lines[0]?.unitPrice.scale ?? 2;
+  for (const l of input.lines) {
+    subtotalMinor += l.amount.amountMinor;
+  }
+
+  const subtotal: BillingMoney = { amountMinor: subtotalMinor, currency, scale };
+  const taxTotal: BillingMoney = zero; // taxes are a later slice
+  const total: BillingMoney = { amountMinor: subtotalMinor, currency, scale };
+
+  const invoiceNumber = await generateInvoiceNumber(db, context);
+
+  const invoice = await insertInvoice(db, context, {
+    companyId: input.companyId,
+    projectId: input.projectId ?? null,
+    invoiceProposalId: null,
+    invoiceNumber,
+    status: "draft",
+    currency,
+    subtotal,
+    taxTotal,
+    total,
+    issueDate: null,
+    dueDate: null
+  });
+
+  const persistedLines: InvoiceLine[] = [];
+  for (const l of input.lines) {
+    const line = await insertInvoiceLine(db, context, {
+      invoiceId: invoice.id,
+      sourceType: "manual",
+      sourceId: null,
+      description: l.description ?? null,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      amount: l.amount
+    });
+    persistedLines.push(line);
+  }
+
+  await emitInvoiceAudit(db, context, {
+    action: "billing.invoice.created",
+    invoiceId: invoice.id,
+    beforeSummary: null,
+    afterSummary: {
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      lineCount: persistedLines.length,
+      totalMinor: total.amountMinor,
+      currency
+    }
+  });
+  await emitBillingTimelineEntry(db, context, {
+    resourceType: "invoice",
+    resourceId: invoice.id,
+    entryType: "billing.invoice.created",
+    payloadSummary: {
+      invoiceNumber: invoice.invoiceNumber,
+      lineCount: persistedLines.length,
+      totalMinor: total.amountMinor,
+      currency
+    }
+  });
+
+  return { ...invoice, lines: persistedLines };
+}
+
+// ---------------------------------------------------------------------------
+// Convert from approved InvoiceProposal
+// ---------------------------------------------------------------------------
+
+export async function createInvoiceFromProposal(
+  db: Queryable,
+  context: TenantContext,
+  invoiceProposalId: string
+): Promise<InvoiceWithLines> {
+  assertTenantContext(context);
+
+  const proposal = await findInvoiceProposalById(db, context, invoiceProposalId);
+  if (!proposal) {
+    throw new InvoiceNotFoundError(invoiceProposalId);
+  }
+  if (proposal.status !== "approved") {
+    throw new InvoiceProposalNotApprovedError(invoiceProposalId, proposal.status);
+  }
+
+  const proposalLines = await listLinesForProposal(db, context, invoiceProposalId);
+
+  const currency = proposal.currency;
+  const subtotal = proposal.total;
+  const taxTotal: BillingMoney = { amountMinor: 0, currency, scale: proposal.total.scale };
+  const total = proposal.total;
+
+  const invoiceNumber = await generateInvoiceNumber(db, context);
+
+  const invoice = await insertInvoice(db, context, {
+    companyId: proposal.companyId ?? (() => { throw new Error("Proposal has no companyId"); })(),
+    projectId: proposal.projectId,
+    invoiceProposalId,
+    invoiceNumber,
+    status: "draft",
+    currency,
+    subtotal,
+    taxTotal,
+    total,
+    issueDate: null,
+    dueDate: null
+  });
+
+  const persistedLines: InvoiceLine[] = [];
+  for (const pl of proposalLines) {
+    const line = await insertInvoiceLine(db, context, {
+      invoiceId: invoice.id,
+      sourceType: "invoice_proposal_line",
+      sourceId: pl.id,
+      description: pl.description,
+      quantity: pl.quantityMinutes,
+      unitPrice: pl.unitRate,
+      amount: pl.amount
+    });
+    persistedLines.push(line);
+  }
+
+  await emitInvoiceAudit(db, context, {
+    action: "billing.invoice.created",
+    invoiceId: invoice.id,
+    beforeSummary: null,
+    afterSummary: {
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      invoiceProposalId,
+      lineCount: persistedLines.length,
+      totalMinor: total.amountMinor,
+      currency
+    }
+  });
+  await emitBillingTimelineEntry(db, context, {
+    resourceType: "invoice",
+    resourceId: invoice.id,
+    entryType: "billing.invoice.created",
+    payloadSummary: {
+      invoiceNumber: invoice.invoiceNumber,
+      invoiceProposalId,
+      lineCount: persistedLines.length,
+      totalMinor: total.amountMinor,
+      currency
+    }
+  });
+
+  return { ...invoice, lines: persistedLines };
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle transitions
+// ---------------------------------------------------------------------------
+
+export async function issueInvoice(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<Invoice> {
+  assertTenantContext(context);
+  const before = await findInvoiceById(db, context, id);
+  if (!before) throw new InvoiceNotFoundError(id);
+  if (before.status !== "draft") {
+    throw new InvoiceTransitionError(before.status, "issued");
+  }
+  const now = new Date();
+  const issuedAt = now.toISOString();
+  const issueDate = now.toISOString().slice(0, 10);
+  const updated = await updateInvoiceStatus(db, context, id, "issued", { issuedAt, issueDate });
+  if (!updated) throw new InvoiceNotFoundError(id);
+  await emitInvoiceAudit(db, context, {
+    action: "billing.invoice.issued",
+    invoiceId: id,
+    beforeSummary: { status: before.status },
+    afterSummary: { status: "issued", issuedAt }
+  });
+  await emitBillingTimelineEntry(db, context, {
+    resourceType: "invoice",
+    resourceId: id,
+    entryType: "billing.invoice.issued",
+    payloadSummary: { invoiceNumber: before.invoiceNumber }
+  });
+  return updated;
+}
+
+export async function markPaid(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<Invoice> {
+  assertTenantContext(context);
+  const before = await findInvoiceById(db, context, id);
+  if (!before) throw new InvoiceNotFoundError(id);
+  const allowedFrom: InvoiceStatus[] = ["issued", "partially_paid"];
+  if (!allowedFrom.includes(before.status)) {
+    throw new InvoiceTransitionError(before.status, "paid");
+  }
+  const updated = await updateInvoiceStatus(db, context, id, "paid");
+  if (!updated) throw new InvoiceNotFoundError(id);
+  await emitInvoiceAudit(db, context, {
+    action: "billing.invoice.paid",
+    invoiceId: id,
+    beforeSummary: { status: before.status },
+    afterSummary: { status: "paid" }
+  });
+  await emitBillingTimelineEntry(db, context, {
+    resourceType: "invoice",
+    resourceId: id,
+    entryType: "billing.invoice.paid",
+    payloadSummary: { invoiceNumber: before.invoiceNumber }
+  });
+  return updated;
+}
+
+export async function voidInvoice(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<Invoice> {
+  assertTenantContext(context);
+  const before = await findInvoiceById(db, context, id);
+  if (!before) throw new InvoiceNotFoundError(id);
+  const allowedFrom: InvoiceStatus[] = ["draft", "issued"];
+  if (!allowedFrom.includes(before.status)) {
+    throw new InvoiceTransitionError(before.status, "void");
+  }
+  const updated = await updateInvoiceStatus(db, context, id, "void");
+  if (!updated) throw new InvoiceNotFoundError(id);
+  await emitInvoiceAudit(db, context, {
+    action: "billing.invoice.void",
+    invoiceId: id,
+    beforeSummary: { status: before.status },
+    afterSummary: { status: "void" }
+  });
+  await emitBillingTimelineEntry(db, context, {
+    resourceType: "invoice",
+    resourceId: id,
+    entryType: "billing.invoice.void",
+    payloadSummary: { invoiceNumber: before.invoiceNumber }
+  });
+  return updated;
+}
+
+export async function deleteInvoice(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<void> {
+  assertTenantContext(context);
+  const before = await findInvoiceById(db, context, id);
+  if (!before) throw new InvoiceNotFoundError(id);
+  if (before.status !== "draft") {
+    throw new InvoiceTransitionError(before.status, "deleted");
+  }
+  const deleted = await softDeleteInvoice(db, context, id);
+  if (!deleted) throw new InvoiceNotFoundError(id);
+  await emitInvoiceAudit(db, context, {
+    action: "billing.invoice.deleted",
+    invoiceId: id,
+    beforeSummary: { status: before.status, invoiceNumber: before.invoiceNumber },
+    afterSummary: null
+  });
+  await emitBillingTimelineEntry(db, context, {
+    resourceType: "invoice",
+    resourceId: id,
+    entryType: "billing.invoice.deleted",
+    payloadSummary: { invoiceNumber: before.invoiceNumber }
+  });
+}
+
+export async function getInvoiceById(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<InvoiceWithLines | null> {
+  const invoice = await findInvoiceById(db, context, id);
+  if (!invoice) return null;
+  const lines = await listLinesForInvoice(db, context, id);
+  return { ...invoice, lines };
+}
+
+export async function listInvoices(
+  db: Queryable,
+  context: TenantContext,
+  options: {
+    limit?: number;
+    offset?: number;
+    companyId?: string;
+    projectId?: string;
+    status?: InvoiceStatus;
+  } = {}
+): Promise<Invoice[]> {
+  return listInvoicesRepo(db, context, options);
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+interface EmitInvoiceAuditInput {
+  action: string;
+  invoiceId: string;
+  beforeSummary: Record<string, unknown> | null;
+  afterSummary: Record<string, unknown> | null;
+}
+
+async function emitInvoiceAudit(
+  db: Queryable,
+  context: TenantContext,
+  input: EmitInvoiceAuditInput
+): Promise<void> {
+  await recordAuditEvent(db, context, {
+    action: input.action,
+    resourceType: "invoice",
+    resourceId: input.invoiceId,
+    beforeSummary: input.beforeSummary,
+    afterSummary: input.afterSummary
+  });
+}

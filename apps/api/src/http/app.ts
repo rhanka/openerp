@@ -19,6 +19,7 @@ import { mountTimeEntryRoutes } from "./handlers/project-time-entries";
 import { mountRateRoutes } from "./handlers/project-rates";
 import { mountAssignmentRoutes } from "./handlers/project-assignments";
 import { mountInvoiceProposalRoutes } from "./handlers/project-invoice-proposals";
+import { mountBillingInvoiceRoutes } from "./handlers/billing-invoices";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
@@ -104,6 +105,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountRateRoutes(app);
   mountAssignmentRoutes(app);
   mountInvoiceProposalRoutes(app);
+  mountBillingInvoiceRoutes(app);
 
   return app;
 }

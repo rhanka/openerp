@@ -27,6 +27,10 @@
     "./project": {
       "types": "./dist/project.d.ts",
       "default": "./dist/project.js"
+    },
+    "./billing": {
+      "types": "./dist/billing.d.ts",
+      "default": "./dist/billing.js"
     }
   },
   "files": [

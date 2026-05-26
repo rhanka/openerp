@@ -1,5 +1,13 @@
 import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
+  Invoice,
+  InvoiceLine,
+  InvoiceStatus,
+  InvoiceWithLines,
+  CreateInvoiceInput,
+  BillingMoney
+} from "@sentropic/openerp-domain/billing";
+import type {
   Assignment,
   CreateAssignmentInput,
   CreateInvoiceProposalInput,
@@ -551,9 +559,60 @@ export function createApiClient(options: ApiClientOptions) {
 
     async deleteInvoiceProposal(id: string): Promise<void> {
       return requestNoContent(`/project/invoice-proposals/${encodeURIComponent(id)}`);
+    },
+
+    async listInvoices(query: {
+      companyId?: string;
+      projectId?: string;
+      status?: InvoiceStatus;
+      limit?: number;
+      offset?: number;
+    } = {}): Promise<Invoice[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Invoice[] }>(`/billing/invoices${suffix}`);
+      return body.items;
+    },
+
+    async getInvoice(id: string): Promise<InvoiceWithLines> {
+      return request<InvoiceWithLines>(`/billing/invoices/${encodeURIComponent(id)}`);
+    },
+
+    async createInvoice(input: CreateInvoiceInput): Promise<InvoiceWithLines> {
+      return request<InvoiceWithLines>(`/billing/invoices`, { method: "POST", body: input });
+    },
+
+    async createInvoiceFromProposal(invoiceProposalId: string): Promise<InvoiceWithLines> {
+      return request<InvoiceWithLines>(`/billing/invoices/from-proposal`, {
+        method: "POST",
+        body: { invoiceProposalId }
+      });
+    },
+
+    async issueInvoice(id: string): Promise<Invoice> {
+      return request<Invoice>(`/billing/invoices/${encodeURIComponent(id)}/issue`, { method: "POST" });
+    },
+
+    async payInvoice(id: string): Promise<Invoice> {
+      return request<Invoice>(`/billing/invoices/${encodeURIComponent(id)}/pay`, { method: "POST" });
+    },
+
+    async voidInvoice(id: string): Promise<Invoice> {
+      return request<Invoice>(`/billing/invoices/${encodeURIComponent(id)}/void`, { method: "POST" });
+    },
+
+    async deleteInvoice(id: string): Promise<void> {
+      return requestNoContent(`/billing/invoices/${encodeURIComponent(id)}`);
     }
   };
 }
+
+// Re-export billing types so web pages can import from the client module
+export type { Invoice, InvoiceLine, InvoiceStatus, InvoiceWithLines, BillingMoney };
 
 async function safeJson(response: Response): Promise<unknown | null> {
   try {
