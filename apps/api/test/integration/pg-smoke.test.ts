@@ -2193,7 +2193,7 @@ describeOrSkip("pg-client + migrate (integration)", () => {
           taxCategoryId: combinedCategory.id,
           jurisdiction: "CA-GST",
           label: "GST 5%",
-          rateBps: 500,
+          rateBps: 5000,
           effectiveFrom: "2020-01-01"
         });
         await createTaxRateVersion(client, tenant, {
