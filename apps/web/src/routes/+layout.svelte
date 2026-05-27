@@ -21,22 +21,41 @@
   const locale: LocaleCode = $derived(data.locale);
   const currentPath = $derived(page.url?.pathname ?? "/");
 
-  const navItems: SideNavItem[] = $derived([
+  const preAuthRoutes = ["/login", "/register-passkey"];
+  const isPreAuth = $derived(preAuthRoutes.some((r) => currentPath === r || currentPath.startsWith(r + "/")));
+
+  function navGroup(items: Array<{ label: string; href: string }>): SideNavItem[] {
+    return items.map((item) => ({
+      ...item,
+      active: currentPath.startsWith(item.href)
+    }));
+  }
+
+  const crmItems = $derived(navGroup([
     { label: t(locale, "nav.leads"), href: "/admin/crm/leads" },
     { label: t(locale, "nav.crm"), href: "/admin/crm/companies" },
     { label: t(locale, "nav.contacts"), href: "/admin/crm/contacts" },
-    { label: t(locale, "nav.opportunities"), href: "/admin/crm/opportunities" },
+    { label: t(locale, "nav.opportunities"), href: "/admin/crm/opportunities" }
+  ]));
+
+  const projectItems = $derived(navGroup([
     { label: t(locale, "nav.projects"), href: "/admin/project/projects" },
-    { label: t(locale, "nav.rates"), href: "/admin/project/rates" },
+    { label: t(locale, "nav.rates"), href: "/admin/project/rates" }
+  ]));
+
+  const billingItems = $derived(navGroup([
     { label: t(locale, "nav.invoices"), href: "/admin/billing/invoices" },
     { label: t(locale, "nav.taxes"), href: "/admin/billing/taxes" },
-    { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" },
+    { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" }
+  ]));
+
+  const adminItems = $derived(navGroup([
     { label: t(locale, "nav.users"), href: "/admin/users" },
     { label: t(locale, "nav.roles"), href: "/admin/roles" },
     { label: t(locale, "nav.approvals"), href: "/admin/approvals" },
     { label: t(locale, "nav.audit"), href: "/admin/audit" },
     { label: t(locale, "nav.settings"), href: "/admin/settings" }
-  ].map((item) => ({ ...item, active: currentPath.startsWith(item.href) })));
+  ]));
 </script>
 
 <svelte:head>
@@ -44,7 +63,7 @@
 </svelte:head>
 
 <ThemeProvider theme={sentTechTheme}>
-  <div class="shell">
+  <div class="shell" class:shell--no-sidebar={isPreAuth}>
     <Header class="shell__header" label="Global application header">
       {#snippet logo()}
         <a class="shell__brand" href="/" aria-label="OpenERP home">
@@ -86,9 +105,42 @@
         </div>
       {/snippet}
     </Header>
-    <aside class="shell__sidebar" aria-label="Primary">
-      <SideNav class="shell__sidenav" items={navItems} label="Admin" />
-    </aside>
+    {#if !isPreAuth}
+      <aside class="shell__sidebar" aria-label="Primary">
+        <div class="shell__nav-group">
+          <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.crm")}</p>
+          <SideNav
+            class="shell__sidenav"
+            items={crmItems}
+            label={t(locale, "nav.section.crm")}
+          />
+        </div>
+        <div class="shell__nav-group">
+          <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.projects")}</p>
+          <SideNav
+            class="shell__sidenav"
+            items={projectItems}
+            label={t(locale, "nav.section.projects")}
+          />
+        </div>
+        <div class="shell__nav-group">
+          <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.billing")}</p>
+          <SideNav
+            class="shell__sidenav"
+            items={billingItems}
+            label={t(locale, "nav.section.billing")}
+          />
+        </div>
+        <div class="shell__nav-group">
+          <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.admin")}</p>
+          <SideNav
+            class="shell__sidenav"
+            items={adminItems}
+            label={t(locale, "nav.section.admin")}
+          />
+        </div>
+      </aside>
+    {/if}
     <main class="shell__main">
       {@render children?.()}
     </main>

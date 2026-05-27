@@ -82,3 +82,70 @@ Acceptance:
 5. Keyboard flow reaches brand, EN, FR, then admin navigation with visible focus styles.
 
 Go/No-Go: GO for D2 when the reviewer Playwright checks and web lint/build pass.
+
+---
+
+## UXDR-003 - SideNav module grouping (D-01 accepted)
+
+Status: ACCEPTED 2026-05-26. User arbitration: GO recommended option (option A — immediate static grouping).
+
+Ou: global admin shell, `apps/web/src/routes/+layout.svelte`, `apps/web/src/app.css`, all `/admin/*` routes.
+
+Decision: Group the flat 14-item SideNav into four non-clickable section headers — CRM (Leads, Companies, Contacts, Opportunities), Projets/Projects (Projects, Rates), Facturation/Billing (Invoices, Taxes, Accounting), Admin (Users, Roles, Approvals, Audit, Settings). Implemented as four separate `SideNav` component instances (one per group), each preceded by a `<p class="shell__nav-heading">` styled with `--st-*` tokens, because `@sentropic/design-system-svelte` SideNav exposes only a flat `items: SideNavItem[]` prop with no native grouping/section API. Section headers are localized via `nav.section.{crm,projects,billing,admin}` i18n keys (EN+FR). Active-state (`aria-current="page"`) preserved on each group's nav link. Section headers carry `aria-hidden="true"` as each `<SideNav>` has its own accessible `label` matching the section name.
+
+Scope: `+layout.svelte` sidebar structure, `app.css` nav-group/heading styles, `packages/i18n/src/foundation.{en,fr}.json` nav.section.* keys.
+
+Agents consulted:
+- Implemented-UI reviewer: `docs/reviews/2026-05-26-ux-review-implemented.md` — confirmed the flat 14-item sidebar as a scalability concern and IA smell; identified cognitive load issue.
+- State-of-art: `docs/reviews/2026-05-26-ux-review-state-of-art.md` — evidence from Stripe/Linear/Notion/HubSpot/Salesforce that B2B multi-module consoles group nav at 8–10 items; static non-clickable headers are the dominant pattern.
+- Contradiction/synthesis: `docs/reviews/2026-05-26-ux-review-synthesis.md` — D-01 elevated from nit (Agent A) to major IA decision; recommended option A under SideNav API verification; native group API confirmed absent.
+
+Rejected alternatives:
+- Flat nav (status quo): rejected; 14 items with zero grouping creates documented cross-module cognitive load and fails ERP market standard for 8+ item navs.
+- 2-level collapsible / accordion nav: rejected for current Demo Slice; collapsible state introduces complexity (open/closed persistence, keyboard interaction) not warranted at this scale; defer to a later workpackage if item count exceeds current scope.
+- Waiting for SideNav group API: rejected; the API was inspected (`SideNav.svelte.d.ts`) and confirmed flat-only; waiting would delay a low-effort, high-value IA improvement.
+
+Acceptance criteria:
+1. All four section headers (CRM, Projects/Projets, Billing/Facturation, Admin) are visible on any `/admin/*` route in both locales.
+2. Active-state (`aria-current="page"`) remains functional for all 14 nav items.
+3. Section headers are not interactive (no click target, no focus stop).
+4. Each section's nav has an accessible `aria-label` matching the section name.
+5. `npm run lint -w @sentropic/openerp-web` → 0 errors.
+6. `npm run check:i18n` → no missing keys.
+7. Playwright `ui-review.spec.ts` section-header assertions pass on all viewports.
+
+Go/No-Go: GO when acceptance criteria 1–7 verified by Playwright and lint gates.
+
+---
+
+## UXDR-004 - Pre-auth shell (D-02 accepted)
+
+Status: ACCEPTED 2026-05-26. User arbitration: GO recommended option (conditional sidebar — hide on pre-auth routes).
+
+Ou: global shell, `apps/web/src/routes/+layout.svelte`, `apps/web/src/app.css`, routes `/login` and `/register-passkey`.
+
+Decision: The admin sidebar (`<aside aria-label="Primary">`) is conditionally rendered only when the current route is NOT a pre-auth route. Pre-auth routes (`/login`, `/register-passkey`) render the global `Header` (with locale switcher, per UXDR-002) and `<main>` spanning full width; no `<SideNav>`, no module section headers, no admin navigation of any kind. Implemented via a reactive `isPreAuth` derived value in `+layout.svelte` that checks `page.url.pathname` against the pre-auth route list. When sidebar is absent, a `.shell--no-sidebar` class on the shell grid makes `<main>` span `grid-column: 1 / -1` for full-width layout.
+
+Scope: `+layout.svelte` conditional sidebar rendering, `app.css` `.shell--no-sidebar` grid override, routes `/login` and `/register-passkey`.
+
+Agents consulted:
+- Implemented-UI reviewer: `docs/reviews/2026-05-26-ux-review-implemented.md` — confirmed F-01 (mobile below-the-fold blocker) and F-04 (IA smell, admin nav exposed pre-auth); identified single `+layout.svelte` with no auth-route escape as the root cause.
+- State-of-art: `docs/reviews/2026-05-26-ux-review-state-of-art.md` — SaaS B2B market (Salesforce, HubSpot, Notion) uses a dedicated auth shell without admin nav; locale switcher retained pre-auth per bilingual Quebec standard.
+- Contradiction/synthesis: `docs/reviews/2026-05-26-ux-review-synthesis.md` — F-01 and F-04 unified as "pre-auth shell" issue; architectural diagnosis confirmed; recommended option A (dedicated layout) preferred over option B (CSS hide); implementation settled on conditional rendering (same file, no route reorganization) as functionally equivalent at current scale.
+
+Rejected alternatives:
+- Keep sidebar on pre-auth routes: rejected; confirmed blocker F-01 (mobile form pushed below fold) and major F-04 (admin IA exposed pre-auth). No acceptable mitigation short of removing the sidebar.
+- CSS-only hide (sidebar present in DOM, hidden via `display:none`): rejected; sidebar remains in tab order and accessible tree; not a real fix for the IA or accessibility concern.
+- Dedicated `(auth)/+layout.svelte` route group: functionally equivalent; deferred in favor of simpler in-place conditional rendering at current two-route pre-auth scope. Revisit if the pre-auth surface grows.
+
+Acceptance criteria:
+1. `/login` and `/register-passkey`: `getByLabel("Primary")` not attached to DOM.
+2. `/login` and `/register-passkey`: no `<nav>` element with any admin section label present.
+3. `/login` and `/register-passkey`: `getByTestId("locale-switcher")` visible (UXDR-002 retained).
+4. `/login` mobile (390x844): main content top edge is within the first viewport (form not below fold).
+5. Any `/admin/*` route: sidebar present and contains four section headers.
+6. Keyboard flow on `/login`: brand → EN → FR → Email field (no sidebar in tab order).
+7. `npm run lint -w @sentropic/openerp-web` → 0 errors.
+8. Playwright `ui-review.spec.ts` pre-auth assertions pass on all viewports and both locales.
+
+Go/No-Go: GO when acceptance criteria 1–8 verified by Playwright and lint gates.

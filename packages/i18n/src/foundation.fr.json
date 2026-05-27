@@ -434,6 +434,10 @@
   "billing.journal.action.posting": "Comptabilisation...",
   "billing.journal.posted.reference": "Ecriture comptable",
   "nav.accounting": "Comptabilite",
+  "nav.section.admin": "Admin",
+  "nav.section.billing": "Facturation",
+  "nav.section.crm": "CRM",
+  "nav.section.projects": "Projets",
   "update.between12And24": "Rattrapage guide requis",
   "update.over24": "Hors support standard",
   "update.under12": "Support standard"

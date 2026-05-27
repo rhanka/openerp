@@ -434,6 +434,10 @@
   "billing.journal.action.posting": "Posting...",
   "billing.journal.posted.reference": "Journal entry",
   "nav.accounting": "Accounting",
+  "nav.section.admin": "Admin",
+  "nav.section.billing": "Billing",
+  "nav.section.crm": "CRM",
+  "nav.section.projects": "Projects",
   "update.between12And24": "Guided catch-up required",
   "update.over24": "Outside standard support",
   "update.under12": "Supported"
