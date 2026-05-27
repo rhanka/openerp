@@ -492,6 +492,7 @@ describe("billing post-to-journal HTTP (DS 4.3)", () => {
     const taxLine: TaxBreakdownLine = {
       jurisdiction: "CA-GST",
       label: "GST 5%",
+      rateBps: 5000,
       amount: { amountMinor: 500, currency: "CAD", scale: 2 }
     };
     return {
@@ -512,8 +513,7 @@ describe("billing post-to-journal HTTP (DS 4.3)", () => {
       dueDate: null,
       issuedAt: "2026-05-25T00:00:00.000Z",
       createdAt: "2026-05-25T00:00:00.000Z",
-      updatedAt: "2026-05-25T00:00:00.000Z",
-      lines: []
+      updatedAt: "2026-05-25T00:00:00.000Z"
     };
   }
 
