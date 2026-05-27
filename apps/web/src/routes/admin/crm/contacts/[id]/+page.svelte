@@ -138,45 +138,45 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--sent-space-lg);
-    padding: var(--sent-space-lg);
+    gap: 1.5rem;
+    padding: 1.5rem;
   }
   .page__header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: var(--sent-space-md);
+    gap: 1rem;
   }
   .page__lede {
-    margin: var(--sent-space-xs) 0 0 0;
-    color: var(--sent-color-text-muted);
+    margin: 0.5rem 0 0 0;
+    color: var(--st-semantic-text-muted, #64748b);
   }
   .page__actions {
     display: flex;
     align-items: center;
-    gap: var(--sent-space-md);
+    gap: 1rem;
   }
   .page__back {
-    color: var(--sent-color-text-muted);
-    font-size: var(--sent-font-size-sm);
+    color: var(--st-semantic-text-muted, #64748b);
+    font-size: 0.875rem;
   }
   .page__meta {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--sent-space-md);
+    gap: 1rem;
   }
   .page__meta dt {
-    color: var(--sent-color-text-muted);
-    font-size: var(--sent-font-size-xs);
+    color: var(--st-semantic-text-muted, #64748b);
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
   .page__meta dd {
-    margin: var(--sent-space-2xs) 0 0 0;
+    margin: 0.25rem 0 0 0;
   }
   .page__section-title {
     margin: 0;
-    font-size: var(--sent-font-size-lg);
+    font-size: 1.125rem;
   }
   .page__timeline {
     list-style: none;
@@ -184,22 +184,22 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--sent-space-sm);
+    gap: 0.75rem;
   }
   .page__timeline-item {
     display: flex;
     align-items: flex-start;
-    gap: var(--sent-space-md);
-    padding: var(--sent-space-sm);
-    background: var(--sent-color-surface-default);
-    border: 1px solid var(--sent-color-border-default);
-    border-radius: var(--sent-radius-sm);
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--st-semantic-surface-default, #ffffff);
+    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-radius: var(--st-component-control-radius, 0.375rem);
   }
   .page__timeline-body {
-    color: var(--sent-color-text-muted);
-    font-size: var(--sent-font-size-sm);
+    color: var(--st-semantic-text-muted, #64748b);
+    font-size: 0.875rem;
     display: flex;
-    gap: var(--sent-space-xs);
+    gap: 0.5rem;
     flex-wrap: wrap;
   }
 </style>

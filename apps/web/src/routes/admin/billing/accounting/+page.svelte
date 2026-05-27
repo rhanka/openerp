@@ -210,57 +210,57 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-400);
-    padding: var(--space-400);
+    gap: 1rem;
+    padding: 1rem;
   }
 
   .page__header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--space-300);
+    gap: 0.75rem;
   }
 
   .page__lede {
-    color: var(--color-text-secondary);
-    margin-top: var(--space-100);
+    color: var(--st-semantic-text-secondary, #475569);
+    margin-top: 0.25rem;
   }
 
   .page__actions {
     display: flex;
-    gap: var(--space-200);
+    gap: 0.5rem;
     align-items: center;
     flex-shrink: 0;
   }
 
   .section-title {
-    margin-top: var(--space-200);
+    margin-top: 0.5rem;
     margin-bottom: 0;
   }
 
   .section-lede {
-    color: var(--color-text-secondary);
-    margin-top: var(--space-100);
+    color: var(--st-semantic-text-secondary, #475569);
+    margin-top: 0.25rem;
     margin-bottom: 0;
   }
 
   .data-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: var(--font-size-sm);
+    font-size: 0.875rem;
   }
 
   .data-table th {
     text-align: left;
-    padding: var(--space-200) var(--space-300);
-    border-bottom: 1px solid var(--color-border-subtle);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    font-weight: 500;
+    color: var(--st-semantic-text-secondary, #475569);
   }
 
   .data-table td {
-    padding: var(--space-200) var(--space-300);
-    border-bottom: 1px solid var(--color-border-subtle);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
     vertical-align: middle;
   }
 
@@ -269,7 +269,7 @@
   }
 
   .journal-row:hover td {
-    background: var(--color-surface-hover, var(--color-bg-subtle));
+    background: var(--st-semantic-surface-subtle, #f8fafc);
   }
 
   .entry-description {
@@ -280,27 +280,27 @@
   }
 
   .journal-lines-row td {
-    background: var(--color-bg-subtle);
-    padding: 0 var(--space-400) var(--space-300);
+    background: var(--st-semantic-surface-subtle, #f8fafc);
+    padding: 0 1rem 0.75rem;
   }
 
   .lines-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: var(--font-size-sm);
+    font-size: 0.875rem;
   }
 
   .lines-table th {
     text-align: left;
-    padding: var(--space-100) var(--space-200);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-    border-bottom: 1px solid var(--color-border-subtle);
+    padding: 0.25rem 0.5rem;
+    font-weight: 500;
+    color: var(--st-semantic-text-secondary, #475569);
+    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
   }
 
   .lines-table td {
-    padding: var(--space-100) var(--space-200);
-    border-bottom: 1px solid var(--color-border-subtle);
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
   }
 
   .amount {

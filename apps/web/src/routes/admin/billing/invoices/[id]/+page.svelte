@@ -261,33 +261,33 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--sent-space-lg);
-    padding: var(--sent-space-lg);
+    gap: 1.5rem;
+    padding: 1.5rem;
   }
 
   .page__header {
     display: flex;
     flex-direction: column;
-    gap: var(--sent-space-sm);
+    gap: 0.75rem;
   }
 
   .page__meta {
-    margin: var(--sent-space-2xs) 0;
-    color: var(--sent-color-text-muted);
-    font-size: var(--sent-font-size-sm);
+    margin: 0.25rem 0;
+    color: var(--st-semantic-text-muted, #64748b);
+    font-size: 0.875rem;
   }
 
   .page__lines {
     width: 100%;
     border-collapse: collapse;
-    font-size: var(--sent-font-size-sm);
+    font-size: 0.875rem;
   }
 
   .page__lines th,
   .page__lines td {
     text-align: left;
-    padding: var(--sent-space-xs) var(--sent-space-sm);
-    border-bottom: 1px solid var(--sent-color-border-subtle);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
   }
 
   .page__col-num {
@@ -295,15 +295,15 @@
   }
 
   .page__lines tfoot tr {
-    border-top: 2px solid var(--sent-color-border-subtle);
+    border-top: 2px solid var(--st-semantic-border-subtle, #e2e8f0);
   }
 
   .page__taxes-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: var(--sent-space-sm);
-    margin-bottom: var(--sent-space-md);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
   }
 
   .page__taxes-header h2 {
@@ -312,7 +312,7 @@
 
   .page__taxes-empty {
     margin: 0;
-    color: var(--sent-color-text-muted);
-    font-size: var(--sent-font-size-sm);
+    color: var(--st-semantic-text-muted, #64748b);
+    font-size: 0.875rem;
   }
 </style>
