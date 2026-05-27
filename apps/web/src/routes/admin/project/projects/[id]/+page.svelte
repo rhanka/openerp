@@ -2,7 +2,7 @@
   import { enhance } from "$app/forms";
   import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
 
-  import type { Assignment, InvoiceProposal, InvoiceProposalStatus, Project, ProjectStatus, ProjectTask, ProjectTaskStatus, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
+  import type { Assignment, InvoiceProposal, InvoiceProposalStatus, Project, ProjectStatus, ProjectTask, ProjectTaskStatus, Rate, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -26,6 +26,7 @@
   const timeEntries: TimeEntry[] = $derived(data.timeEntries ?? []);
   const assignments: Assignment[] = $derived(data.assignments ?? []);
   const proposals: InvoiceProposal[] = $derived(data.proposals ?? []);
+  const rates: Rate[] = $derived(data.rates ?? []);
   const billableTotal: number = $derived(
     timeEntries.filter((e) => e.billable).reduce((sum, e) => sum + e.minutes, 0)
   );
@@ -370,7 +371,8 @@
           <div class="page__task-form-fields">
             <label>
               <span>{t(locale, "project.assignments.field.userId")}</span>
-              <input type="text" name="userId" required placeholder="user-uuid" />
+              <input type="text" name="userId" required placeholder="user-uuid" aria-describedby="userId-helper" />
+              <small id="userId-helper" class="page__field-helper">{t(locale, "project.assignments.field.userIdHelper")}</small>
             </label>
             <label>
               <span>{t(locale, "project.assignments.field.roleLabel")}</span>
@@ -380,9 +382,14 @@
               <span>{t(locale, "project.assignments.field.allocationPercent")}</span>
               <input type="number" name="allocationPercent" min="0" max="100" step="1" placeholder="100" />
             </label>
-            <label>
-              <span>{t(locale, "project.assignments.field.billableRate")}</span>
-              <input type="text" name="billableRateId" placeholder="rate-uuid" />
+            <label class="page__task-form-select">
+              <span>{t(locale, "project.assignments.field.billableRateSelect")}</span>
+              <select name="billableRateId" data-testid="rate-select">
+                <option value="">— {t(locale, "project.assignments.field.billableRateSelect")} —</option>
+                {#each rates as rate (rate.id)}
+                  <option value={rate.id}>{rate.name}</option>
+                {/each}
+              </select>
             </label>
             <button type="submit" disabled={creatingAssignment}>
               {creatingAssignment ? t(locale, "project.assignments.action.creating") : t(locale, "project.assignments.action.create")}
@@ -710,6 +717,25 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.875rem;
+  }
+  .page__field-helper {
+    font-size: 0.75rem;
+    color: var(--st-semantic-text-muted, #64748b);
+    margin-top: 0.125rem;
+  }
+  .page__task-form-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+  }
+  .page__task-form-select select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-radius: var(--st-component-control-radius, 0.375rem);
+    font-size: 0.875rem;
+    background: var(--st-semantic-surface-default, #ffffff);
+    color: var(--st-semantic-text-primary, #0f172a);
   }
   .page__time-total {
     font-size: 0.875rem;

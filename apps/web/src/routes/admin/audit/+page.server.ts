@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
   const actorUserId = locals.session?.userIdentityId ?? env.OPENERP_DEV_USER_ID ?? "";
 
   if (!organizationId || !actorUserId) {
-    return { events: null as null, source: "demo" as const };
+    return { events: null as null, source: "demo" as const, locale: locals.locale };
   }
 
   const client = createApiClient({
@@ -29,9 +29,9 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
 
   try {
     const events = await client.listAuditEvents({ limit: 50 });
-    return { events, source: "api" as const };
+    return { events, source: "api" as const, locale: locals.locale };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { events: null as null, source: "error" as const, message };
+    return { events: null as null, source: "error" as const, message, locale: locals.locale };
   }
 };

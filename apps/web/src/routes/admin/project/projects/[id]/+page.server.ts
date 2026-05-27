@@ -1,6 +1,6 @@
 import { env } from "$env/dynamic/private";
 
-import type { Assignment, InvoiceProposal, InvoiceProposalWithLines, Project, ProjectTask, TimeEntry } from "@sentropic/openerp-domain/project";
+import type { Assignment, InvoiceProposal, InvoiceProposalWithLines, Project, ProjectTask, Rate, TimeEntry } from "@sentropic/openerp-domain/project";
 import type { TimelineEntry } from "@sentropic/openerp-domain";
 
 import { createApiClient } from "$lib/api/client";
@@ -69,6 +69,20 @@ const DEMO_PROPOSALS: InvoiceProposalWithLines[] = [
         createdAt: new Date(Date.now() - 3_600_000).toISOString()
       }
     ]
+  }
+];
+
+const DEMO_RATES: Rate[] = [
+  {
+    id: "demo-rate-1",
+    organizationId: "demo-org",
+    name: "Senior consultant",
+    amount: { amountMinor: 15000, currency: "CAD", scale: 2 },
+    effectiveFrom: "2026-01-01",
+    effectiveTo: null,
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ];
 
@@ -178,12 +192,13 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
   if (!session) {
     return {
       ...DEMO_FALLBACK,
+      rates: DEMO_RATES,
       source: "demo" as const,
       locale: locals.locale
     };
   }
   try {
-    const [project, timeline, tasks, timeEntries, assignments, proposals] = await Promise.all([
+    const [project, timeline, tasks, timeEntries, assignments, proposals, rates] = await Promise.all([
       session.client.getProject(params.id),
       session.client.listProjectTimeline({
         resourceId: params.id,
@@ -192,7 +207,8 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       session.client.listProjectTasks({ projectId: params.id, limit: 100 }),
       session.client.listTimeEntries({ projectId: params.id, limit: 200 }),
       session.client.listAssignments({ projectId: params.id, limit: 100 }),
-      session.client.listInvoiceProposals({ projectId: params.id, limit: 50 })
+      session.client.listInvoiceProposals({ projectId: params.id, limit: 50 }),
+      session.client.listRates({ activeOnly: true })
     ]);
     return {
       project,
@@ -201,6 +217,7 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       timeEntries,
       assignments,
       proposals,
+      rates,
       source: "api" as const,
       locale: locals.locale
     };
@@ -215,6 +232,7 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
       timeEntries: [] as TimeEntry[],
       assignments: [] as Assignment[],
       proposals: [] as InvoiceProposal[],
+      rates: [] as Rate[],
       source: notFound ? ("not_found" as const) : ("error" as const),
       locale: locals.locale,
       message

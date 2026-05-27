@@ -2,9 +2,13 @@
   import { Button, Card, DataTable, EmptyState, Tag } from "@sentropic/design-system-svelte";
   import type { DataTableColumn, DataTableRow } from "@sentropic/design-system-svelte";
 
+  import { t, type LocaleCode } from "$lib/i18n";
+
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
+
+  const locale: LocaleCode = $derived(data.locale);
 
   type AuditRow = DataTableRow & {
     id: string;
@@ -13,6 +17,16 @@
     action: string;
     resource: string;
   };
+
+  function humanizeAction(action: string): string {
+    // Known audit action keys have explicit i18n entries; fall back to title-case for unknown codes
+    const knownKeys: Record<string, string> = {
+      "settings.changed": t(locale, "audit.action.settings.changed"),
+      "roles.changed": t(locale, "audit.action.roles.changed"),
+      "update.preflight_requested": t(locale, "audit.action.update.preflight_requested")
+    };
+    return knownKeys[action] ?? action.replace(/\./g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
 
   const demoRows: AuditRow[] = [
     { id: "demo-1", time: "2026-05-09 10:45", actor: "owner@example.com", action: "settings.changed", resource: "Organization" },
@@ -26,56 +40,60 @@
           id: e.id,
           time: new Date(e.createdAt).toISOString().replace("T", " ").slice(0, 16),
           actor: e.actorUserId ?? e.actorType,
-          action: e.action,
+          action: humanizeAction(e.action),
           resource: `${e.resourceType}:${e.resourceId}`
         }))
-      : demoRows
+      : demoRows.map((r) => ({ ...r, action: humanizeAction(r.action) }))
   );
 
-  const columns: DataTableColumn[] = [
-    { key: "time", label: "Timestamp" },
-    { key: "actor", label: "Actor" },
-    { key: "action", label: "Action" },
-    { key: "resource", label: "Resource" }
-  ];
+  const columns: DataTableColumn[] = $derived([
+    { key: "time", label: t(locale, "audit.column.timestamp") },
+    { key: "actor", label: t(locale, "audit.column.actor") },
+    { key: "action", label: t(locale, "audit.column.action") },
+    { key: "resource", label: t(locale, "audit.column.resource") }
+  ]);
 
   const tone: "success" | "warning" | "neutral" = $derived(
     data.source === "api" ? "success" : data.source === "error" ? "warning" : "neutral"
   );
   const sourceLabel: string = $derived(
-    data.source === "api" ? "Live" : data.source === "error" ? "Backend error" : "Demo data"
+    data.source === "api"
+      ? t(locale, "approval.source.api")
+      : data.source === "error"
+        ? t(locale, "approval.source.error")
+        : t(locale, "approval.source.demo")
   );
 </script>
 
 <section class="page">
   <header class="page__header">
     <div>
-      <h1>Audit</h1>
-      <p class="page__lede">Append-only tenant log for sensitive changes, exports, and update actions.</p>
+      <h1>{t(locale, "audit.page.title")}</h1>
+      <p class="page__lede">{t(locale, "audit.page.lede")}</p>
     </div>
     <div class="page__actions">
       <span data-source={data.source} data-testid="data-source-badge">
         <Tag {tone}>{sourceLabel}</Tag>
       </span>
-      <Button variant="primary">Export</Button>
+      <Button variant="primary">{t(locale, "audit.action.export")}</Button>
     </div>
   </header>
 
   {#if data.source === "error"}
     <Card>
-      <p role="alert">Could not load audit events: {data.message ?? "unknown error"}</p>
+      <p role="alert">{t(locale, "audit.error.message")}: {data.message ?? ""}</p>
     </Card>
   {/if}
 
   {#if rows.length === 0}
-    <EmptyState title="No audit events recorded yet" message="The log will populate as users and agents act on this tenant." />
+    <EmptyState title={t(locale, "audit.empty.title")} message={t(locale, "audit.empty.message")} />
   {:else}
     <DataTable
       {columns}
       {rows}
-      caption="Audit log"
+      caption={t(locale, "audit.caption")}
       pageSize={25}
-      emptyLabel="No audit events recorded yet."
+      emptyLabel={t(locale, "audit.empty.title")}
     />
   {/if}
 </section>

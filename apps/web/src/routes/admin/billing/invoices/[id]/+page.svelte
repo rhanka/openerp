@@ -20,6 +20,16 @@
   const invoice: InvoiceWithLines = $derived(data.invoice);
   const payments: Payment[] = $derived(data.payments ?? []);
   const journalEntry: JournalEntryWithLines | null = $derived(data.journalEntry ?? null);
+  const sourceTone: "success" | "warning" | "neutral" = $derived(
+    (data.source as string) === "api" ? "success" : (data.source as string) === "error" ? "warning" : "neutral"
+  );
+  const sourceLabel: string = $derived(
+    (data.source as string) === "api"
+      ? t(locale, "approval.source.api")
+      : (data.source as string) === "error"
+        ? t(locale, "approval.source.error")
+        : t(locale, "approval.source.demo")
+  );
 
   let computingTaxes = $state(false);
   let postingToJournal = $state(false);
@@ -50,9 +60,6 @@
 <section class="page">
   <header class="page__header">
     <div>
-      <Button variant="ghost" size="sm" onclick={() => history.back()}>
-        {t(locale, "billing.invoices.detail.action.back")}
-      </Button>
       <h1>{invoice.invoiceNumber}</h1>
       <p class="page__meta">
         {t(locale, "billing.invoices.field.status")}:
@@ -85,8 +92,14 @@
         </p>
       {/if}
     </div>
-    {#if invoice.status === "issued" && !journalEntry}
-      <div class="page__actions">
+    <div class="page__actions">
+      <span data-source={data.source} data-testid="data-source-badge">
+        <Tag tone={sourceTone}>{sourceLabel}</Tag>
+      </span>
+      <a class="page__back" href="/admin/billing/invoices">
+        ← {t(locale, "billing.invoices.detail.action.back")}
+      </a>
+      {#if invoice.status === "issued" && !journalEntry}
         <form
           method="POST"
           action="?/postToJournal"
@@ -104,8 +117,8 @@
               : t(locale, "billing.journal.action.postToJournal")}
           </Button>
         </form>
-      </div>
-    {/if}
+      {/if}
+    </div>
   </header>
 
   {#if form && "ok" in form && form.ok}
@@ -268,8 +281,27 @@
 
   .page__header {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .page__actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+
+  .page__back {
+    color: var(--st-semantic-text-muted, #64748b);
+    font-size: 0.875rem;
+    text-decoration: none;
+  }
+
+  .page__back:hover,
+  .page__back:focus {
+    text-decoration: underline;
   }
 
   .page__meta {

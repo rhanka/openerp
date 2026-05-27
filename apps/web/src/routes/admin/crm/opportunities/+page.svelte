@@ -10,6 +10,7 @@
   } from "@sentropic/design-system-svelte";
 
   import type {
+    Company,
     Opportunity,
     OpportunityStatus,
     PipelineStage
@@ -34,6 +35,8 @@
   );
 
   let creating = $state(false);
+
+  const companies: Company[] = $derived(data.companies ?? []);
 
   const stagesById: Record<string, PipelineStage> = $derived(
     Object.fromEntries(data.stages.map((s) => [s.id, s]))
@@ -119,11 +122,15 @@
           required
           minlength={2}
         />
-        <Input
-          label={t(locale, "crm.opportunities.field.companyId")}
-          name="companyId"
-          required
-        />
+        <label class="page__select">
+          <span>{t(locale, "crm.opportunities.field.company")}</span>
+          <select name="companyId" required data-testid="company-select">
+            <option value="" disabled selected>{t(locale, "crm.opportunities.field.company")}...</option>
+            {#each companies as company (company.id)}
+              <option value={company.id}>{company.displayName}</option>
+            {/each}
+          </select>
+        </label>
         <label class="page__select">
           <span>{t(locale, "crm.opportunities.field.stage")}</span>
           <select name="stageId" required>
@@ -195,7 +202,8 @@
                   <input
                     type="text"
                     name="lossReason"
-                    placeholder="Loss reason"
+                    placeholder={t(locale, "crm.opportunities.field.lossReasonPlaceholder")}
+                    aria-label={t(locale, "crm.opportunities.field.lossReason")}
                     required
                     minlength={2}
                   />

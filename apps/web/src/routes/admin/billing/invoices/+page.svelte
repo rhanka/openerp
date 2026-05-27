@@ -99,6 +99,7 @@
         <Input
           label={t(locale, "billing.invoices.fromProposal.proposalId.label")}
           name="invoiceProposalId"
+          placeholder={t(locale, "billing.invoices.fromProposal.proposalId.placeholder")}
           required
         />
       </fieldset>

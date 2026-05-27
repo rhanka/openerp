@@ -1,11 +1,32 @@
 import { env } from "$env/dynamic/private";
 import { fail, type Actions } from "@sveltejs/kit";
 
-import type { Opportunity, PipelineStage } from "@sentropic/openerp-domain/crm";
+import type { Company, Opportunity, PipelineStage } from "@sentropic/openerp-domain/crm";
 
 import { createApiClient } from "$lib/api/client";
 
 import type { PageServerLoad } from "./$types";
+
+const DEMO_COMPANIES: Company[] = [
+  {
+    id: "demo-co-1",
+    organizationId: "demo-org",
+    displayName: "Acme Northwind",
+    legalName: "Acme Northwind Inc.",
+    status: "active",
+    ownerUserId: null,
+    teamId: null,
+    website: "https://example.com",
+    phone: null,
+    email: null,
+    language: "en",
+    taxRegion: "CA-QC",
+    billingAddress: null,
+    shippingAddress: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
 
 const DEMO_STAGES: PipelineStage[] = [
   {
@@ -92,20 +113,23 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
     return {
       opportunities: DEMO_OPPORTUNITIES,
       stages: DEMO_STAGES,
+      companies: DEMO_COMPANIES,
       source: "demo" as const,
       locale: locals.locale
     };
   }
   try {
-    const [opportunities, stages] = await Promise.all([
+    const [opportunities, stages, companies] = await Promise.all([
       session.client.listOpportunities(),
-      session.client.listPipelineStages({ activeOnly: true })
+      session.client.listPipelineStages({ activeOnly: true }),
+      session.client.listCompanies({ status: "active" })
     ]);
-    return { opportunities, stages, source: "api" as const, locale: locals.locale };
+    return { opportunities, stages, companies, source: "api" as const, locale: locals.locale };
   } catch (err) {
     return {
       opportunities: [] as Opportunity[],
       stages: [] as PipelineStage[],
+      companies: [] as Company[],
       source: "error" as const,
       locale: locals.locale,
       message: err instanceof Error ? err.message : String(err)
