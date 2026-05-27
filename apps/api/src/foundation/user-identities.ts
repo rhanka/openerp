@@ -1,5 +1,6 @@
 import type { ActorSource, LocaleCode, MfaState, UserIdentity, UserStatus } from "@sentropic/openerp-domain";
-import type { Queryable } from "../db/client";
+import type { Queryable, TenantContext } from "../db/client";
+import { assertTenantContext } from "../db/client";
 
 // Repository for UserIdentity (PG-02). UserIdentity is GLOBAL — not tenant-scoped.
 // Tenant scoping happens via OrganizationMember (see organization-members.ts).
@@ -89,6 +90,37 @@ export async function setUserIdentityStatus(
     [id, status]
   );
   return result.rows[0] ?? null;
+}
+
+export interface TenantUserSummary {
+  id: string;
+  email: string;
+  displayName: string;
+  status: UserStatus;
+}
+
+/** Lists active (non-deactivated) users for the current tenant (RLS-scoped via users table). */
+export async function listUsers(
+  db: Queryable,
+  context: TenantContext,
+  options: { limit?: number; offset?: number } = {}
+): Promise<TenantUserSummary[]> {
+  assertTenantContext(context);
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+  const offset = Math.max(options.offset ?? 0, 0);
+  const result = await db.query<TenantUserSummary>(
+    `select id,
+            email,
+            display_name as "displayName",
+            status
+       from users
+      where organization_id = $1
+        and status <> 'deactivated'
+      order by display_name asc
+      limit $2 offset $3`,
+    [context.organizationId, limit, offset]
+  );
+  return result.rows;
 }
 
 export async function recordUserIdentityLogin(

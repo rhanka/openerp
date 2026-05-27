@@ -90,3 +90,18 @@ test("billing invoice detail renders Payments section in French (DS 4.1)", async
 
   await expect(page.getByTestId("payments-section-title")).toContainText("Paiements");
 });
+
+test("from-proposal control is a select in demo mode (DS consolidation)", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  await context.addCookies([
+    { name: "openerp_locale", value: "en", url: baseURL ?? "http://127.0.0.1:4173" }
+  ]);
+  await page.goto("/admin/billing/invoices");
+  await page.waitForLoadState("domcontentloaded");
+
+  const proposalSelect = page.getByTestId("proposal-select");
+  await expect(proposalSelect).toBeVisible();
+  // In demo mode the select should have the demo approved proposal option
+  const options = proposalSelect.locator("option");
+  await expect(options).toHaveCount(2); // placeholder + 1 demo proposal
+});

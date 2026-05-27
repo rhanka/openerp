@@ -346,7 +346,7 @@
   }
 
   .page__back {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
     text-decoration: none;
   }
@@ -358,7 +358,7 @@
 
   .page__meta {
     margin: 0.25rem 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
 
@@ -372,7 +372,7 @@
   .page__lines td {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-bottom: 1px solid var(--st-semantic-border-subtle);
   }
 
   .page__col-num {
@@ -380,7 +380,7 @@
   }
 
   .page__lines tfoot tr {
-    border-top: 2px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-top: 2px solid var(--st-semantic-border-subtle);
   }
 
   .page__taxes-header {
@@ -397,7 +397,7 @@
 
   .page__taxes-empty {
     margin: 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
 </style>

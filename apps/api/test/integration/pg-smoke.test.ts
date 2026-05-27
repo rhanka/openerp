@@ -2318,4 +2318,49 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   }, 30000);
+
+  it("listUsers returns the seeded demo user for the tenant (users endpoint smoke)", async () => {
+    const { listUsers } = await import("../../src/foundation/user-identities");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('Users Smoke', 'Users Smoke', 'users-smoke', 'active', 'en', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `insert into users (organization_id, email, display_name, preferred_locale, status)
+             values ($1, 'demo-user@users-smoke.local', 'Demo User', 'en', 'active')
+           returning id`,
+          [orgId]
+        );
+        const userId = userRes.rows[0]!.id;
+        const tenant = { organizationId: orgId, actorUserId: userId };
+
+        const users = await listUsers(client, tenant);
+        expect(users.length).toBe(1);
+        expect(users[0]!.email).toBe("demo-user@users-smoke.local");
+        expect(users[0]!.displayName).toBe("Demo User");
+        expect(users[0]!.status).toBe("active");
+
+        // Deactivated users are excluded.
+        await client.query(
+          `insert into users (organization_id, email, display_name, preferred_locale, status)
+             values ($1, 'inactive@users-smoke.local', 'Inactive User', 'en', 'deactivated')`,
+          [orgId]
+        );
+        const usersFiltered = await listUsers(client, tenant);
+        expect(usersFiltered.length).toBe(1);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  });
 });

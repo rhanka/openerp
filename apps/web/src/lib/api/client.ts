@@ -814,8 +814,26 @@ export function createApiClient(options: ApiClientOptions) {
         `/billing/payments/${encodeURIComponent(paymentId)}/post-to-journal`,
         { method: "POST" }
       );
+    },
+
+    async listUsers(query: { limit?: number; offset?: number } = {}): Promise<TenantUserSummary[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: TenantUserSummary[] }>(`/users${suffix}`);
+      return body.items;
     }
   };
+}
+
+export interface TenantUserSummary {
+  id: string;
+  email: string;
+  displayName: string;
+  status: string;
 }
 
 // Re-export billing types so web pages can import from the client module

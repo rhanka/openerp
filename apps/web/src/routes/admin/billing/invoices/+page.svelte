@@ -5,11 +5,11 @@
     Button,
     Card,
     EmptyState,
-    Input,
     Tag
   } from "@sentropic/design-system-svelte";
 
   import type { Invoice } from "@sentropic/openerp-domain/billing";
+  import type { InvoiceProposal } from "@sentropic/openerp-domain/project";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -29,7 +29,14 @@
         : t(locale, "approval.source.demo")
   );
 
+  const approvedProposals: InvoiceProposal[] = $derived((data as { approvedProposals?: InvoiceProposal[] }).approvedProposals ?? []);
   let converting = $state(false);
+
+  function formatProposalLabel(p: InvoiceProposal): string {
+    const amount = (p.total.amountMinor / Math.pow(10, p.total.scale)).toFixed(p.total.scale);
+    const proj = p.projectId ? `${p.projectId.slice(0, 8)}` : "—";
+    return `${proj} — ${amount} ${p.total.currency}`;
+  }
 
   function statusLabel(status: Invoice["status"]): string {
     return t(locale, `billing.invoices.status.${status}`);
@@ -96,12 +103,15 @@
     >
       <fieldset class="page__fieldset">
         <legend>{t(locale, "billing.invoices.fromProposal.legend")}</legend>
-        <Input
-          label={t(locale, "billing.invoices.fromProposal.proposalId.label")}
-          name="invoiceProposalId"
-          placeholder={t(locale, "billing.invoices.fromProposal.proposalId.placeholder")}
-          required
-        />
+        <label class="page__proposal-select-label">
+          <span>{t(locale, "billing.invoices.fromProposal.proposalSelect.label")}</span>
+          <select name="invoiceProposalId" required data-testid="proposal-select" class="page__proposal-select">
+            <option value="">{t(locale, "billing.invoices.fromProposal.proposalSelect.placeholder")}</option>
+            {#each approvedProposals as proposal (proposal.id)}
+              <option value={proposal.id}>{formatProposalLabel(proposal)}</option>
+            {/each}
+          </select>
+        </label>
       </fieldset>
       <div class="page__form-actions">
         <Button type="submit" variant="primary" disabled={converting}>
@@ -197,7 +207,7 @@
 
   .page__lede {
     margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
 
   .page__form {
@@ -238,7 +248,7 @@
 
   .page__item-sub {
     margin: 0.25rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
 
@@ -257,5 +267,22 @@
   .page__item-link:hover,
   .page__item-link:focus {
     text-decoration: underline;
+  }
+
+  .page__proposal-select-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+  }
+
+  .page__proposal-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    background: var(--st-semantic-surface-default);
+    color: var(--st-semantic-text-primary);
+    min-width: 220px;
   }
 </style>

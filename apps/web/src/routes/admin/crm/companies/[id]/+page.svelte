@@ -219,7 +219,7 @@
   }
   .page__lede {
     margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
   .page__actions {
     display: flex;
@@ -227,7 +227,7 @@
     gap: 1rem;
   }
   .page__back {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
   .page__meta {
@@ -236,7 +236,7 @@
     gap: 1rem;
   }
   .page__meta dt {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -261,12 +261,12 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 0.75rem;
-    background: var(--st-semantic-surface-default, #ffffff);
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    background: var(--st-semantic-surface-default);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
   }
   .page__timeline-body {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
     display: flex;
     gap: 0.5rem;
@@ -285,9 +285,9 @@
     align-items: center;
     gap: 1rem;
     padding: 0.75rem;
-    background: var(--st-semantic-surface-default, #ffffff);
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    background: var(--st-semantic-surface-default);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
   }
   .page__item-link {
     flex: 1;
@@ -304,10 +304,10 @@
   .page__item-name {
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--st-semantic-text-primary, #0f172a);
+    color: var(--st-semantic-text-primary);
   }
   .page__item-meta {
     font-size: 0.75rem;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
 </style>

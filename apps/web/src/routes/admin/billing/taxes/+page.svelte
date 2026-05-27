@@ -292,7 +292,7 @@
 
   .page__lede {
     margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
 
   .page__actions {
@@ -359,15 +359,15 @@
 
   .page__item-code {
     font-size: 0.875rem;
-    color: var(--st-semantic-text-muted, #64748b);
-    background: var(--st-semantic-surface-subtle, #f8fafc);
+    color: var(--st-semantic-text-muted);
+    background: var(--st-semantic-surface-subtle);
     padding: 0 0.25rem;
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    border-radius: var(--st-component-control-radius);
   }
 
   .page__item-sub {
     margin: 0.25rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
 
@@ -381,14 +381,14 @@
     margin: 0;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .page__rates-empty {
     margin: 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
 
@@ -407,7 +407,7 @@
   .page__rates-table td {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-bottom: 1px solid var(--st-semantic-border-subtle);
   }
 
   .page__col-num {
@@ -418,7 +418,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    border-top: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-top: 1px solid var(--st-semantic-border-subtle);
     padding-top: 1rem;
     margin-top: 0.75rem;
   }

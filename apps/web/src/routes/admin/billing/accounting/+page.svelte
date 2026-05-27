@@ -232,7 +232,7 @@
   }
 
   .page__lede {
-    color: var(--st-semantic-text-secondary, #475569);
+    color: var(--st-semantic-text-secondary);
     margin-top: 0.25rem;
   }
 
@@ -249,7 +249,7 @@
   }
 
   .section-lede {
-    color: var(--st-semantic-text-secondary, #475569);
+    color: var(--st-semantic-text-secondary);
     margin-top: 0.25rem;
     margin-bottom: 0;
   }
@@ -263,14 +263,14 @@
   .data-table th {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-bottom: 1px solid var(--st-semantic-border-subtle);
     font-weight: 500;
-    color: var(--st-semantic-text-secondary, #475569);
+    color: var(--st-semantic-text-secondary);
   }
 
   .data-table td {
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-bottom: 1px solid var(--st-semantic-border-subtle);
     vertical-align: middle;
   }
 
@@ -279,7 +279,7 @@
   }
 
   .journal-row:hover td {
-    background: var(--st-semantic-surface-subtle, #f8fafc);
+    background: var(--st-semantic-surface-subtle);
   }
 
   .entry-description {
@@ -290,7 +290,7 @@
   }
 
   .journal-lines-row td {
-    background: var(--st-semantic-surface-subtle, #f8fafc);
+    background: var(--st-semantic-surface-subtle);
     padding: 0 1rem 0.75rem;
   }
 
@@ -304,13 +304,13 @@
     text-align: left;
     padding: 0.25rem 0.5rem;
     font-weight: 500;
-    color: var(--st-semantic-text-secondary, #475569);
-    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    color: var(--st-semantic-text-secondary);
+    border-bottom: 1px solid var(--st-semantic-border-subtle);
   }
 
   .lines-table td {
     padding: 0.25rem 0.5rem;
-    border-bottom: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-bottom: 1px solid var(--st-semantic-border-subtle);
   }
 
   .amount {

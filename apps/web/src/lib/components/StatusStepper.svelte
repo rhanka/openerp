@@ -110,12 +110,12 @@
     display: block;
     width: 2rem;
     height: 2px;
-    background: var(--st-semantic-border-subtle, #e2e8f0);
+    background: var(--st-semantic-border-subtle);
     flex-shrink: 0;
   }
 
   .stepper__step--done .stepper__connector {
-    background: var(--st-semantic-feedback-success, #16a34a);
+    background: var(--st-semantic-feedback-success);
   }
 
   .stepper__label {
@@ -123,29 +123,29 @@
     font-weight: 500;
     white-space: nowrap;
     margin-left: 0.375rem;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
 
   /* done step: connector + icon + label in success color */
   .stepper__step--done .stepper__icon {
-    color: var(--st-semantic-feedback-success, #16a34a);
+    color: var(--st-semantic-feedback-success);
   }
   .stepper__step--done .stepper__label {
-    color: var(--st-semantic-feedback-success, #16a34a);
+    color: var(--st-semantic-feedback-success);
   }
 
   /* current step: primary color, slightly larger label */
   .stepper__step--current .stepper__icon {
-    color: var(--st-semantic-action-primary, oklch(50% 0.134 242.749));
+    color: var(--st-semantic-action-primary);
   }
   .stepper__step--current .stepper__label {
-    color: var(--st-semantic-text-primary, #0f172a);
+    color: var(--st-semantic-text-primary);
     font-weight: 700;
   }
 
   /* upcoming step: muted */
   .stepper__step--upcoming .stepper__icon {
-    color: var(--st-semantic-border-subtle, #e2e8f0);
+    color: var(--st-semantic-border-subtle);
   }
 
   /* Terminal badge */
@@ -167,13 +167,13 @@
 
   .stepper__terminal--success {
     background: var(--st-semantic-feedback-successSubtle, #dcfce7);
-    color: var(--st-semantic-feedback-success, #16a34a);
-    border-color: var(--st-semantic-feedback-success, #16a34a);
+    color: var(--st-semantic-feedback-success);
+    border-color: var(--st-semantic-feedback-success);
   }
 
   .stepper__terminal--neutral {
-    background: var(--st-semantic-surface-subtle, #f8fafc);
-    color: var(--st-semantic-text-muted, #64748b);
-    border-color: var(--st-semantic-border-subtle, #e2e8f0);
+    background: var(--st-semantic-surface-subtle);
+    color: var(--st-semantic-text-muted);
+    border-color: var(--st-semantic-border-subtle);
   }
 </style>

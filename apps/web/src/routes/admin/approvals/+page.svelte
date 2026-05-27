@@ -120,7 +120,7 @@
     margin: 0 0 0.5rem;
   }
   .approvals-reason {
-    color: var(--st-semantic-text-secondary, #475569);
+    color: var(--st-semantic-text-secondary);
     margin: 0.25rem 0 0.75rem;
   }
   .approvals-meta {
@@ -130,7 +130,7 @@
     margin-bottom: 1rem;
   }
   .approvals-meta__time {
-    color: var(--st-semantic-text-secondary, #475569);
+    color: var(--st-semantic-text-secondary);
     font-size: 0.875rem;
   }
   .approvals-form {

@@ -76,6 +76,21 @@ test("project detail renders Time section with demo time entries (DS 3.2)", asyn
   await expect(entryItems.first()).toHaveAttribute("data-entry-status", "approved");
 });
 
+test("project detail assignee field is a select in demo mode (DS consolidation)", async ({ page, context, baseURL }) => {
+  await context.clearCookies();
+  await context.addCookies([
+    { name: "openerp_locale", value: "en", url: baseURL ?? "http://127.0.0.1:4173" }
+  ]);
+  await page.goto("/admin/project/projects/demo-pr-1");
+  await page.waitForLoadState("domcontentloaded");
+
+  const assigneeSelect = page.getByTestId("assignee-select");
+  await expect(assigneeSelect).toBeVisible();
+  // In demo mode the select should contain the demo user option
+  const options = assigneeSelect.locator("option");
+  await expect(options).toHaveCount(2); // placeholder + 1 demo user
+});
+
 test("project detail renders Invoicing section with demo proposal (DS 3.4)", async ({ page, context, baseURL }) => {
   await context.clearCookies();
   await context.addCookies([

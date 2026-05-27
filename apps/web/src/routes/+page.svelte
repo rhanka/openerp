@@ -64,7 +64,7 @@
     gap: 1rem;
   }
   .dashboard-metric__label {
-    color: var(--st-semantic-text-secondary, #475569);
+    color: var(--st-semantic-text-secondary);
     display: block;
     font-size: 0.78rem;
     letter-spacing: 0.04em;

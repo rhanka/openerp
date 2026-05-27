@@ -2,10 +2,28 @@ import { env } from "$env/dynamic/private";
 import { fail, type Actions } from "@sveltejs/kit";
 
 import type { Invoice } from "@sentropic/openerp-domain/billing";
+import type { InvoiceProposal } from "@sentropic/openerp-domain/project";
 
 import { createApiClient } from "$lib/api/client";
 
 import type { PageServerLoad } from "./$types";
+
+const DEMO_PROPOSALS: InvoiceProposal[] = [
+  {
+    id: "demo-prop-1",
+    organizationId: "demo-org",
+    projectId: "demo-pr-1",
+    companyId: null,
+    status: "approved",
+    periodStart: "2026-05-01",
+    periodEnd: "2026-05-31",
+    total: { amountMinor: 15000, currency: "CAD", scale: 2 },
+    currency: "CAD",
+    submittedAt: new Date(Date.now() - 3_600_000).toISOString(),
+    createdAt: new Date(Date.now() - 7_200_000).toISOString(),
+    updatedAt: new Date(Date.now() - 3_600_000).toISOString()
+  }
+];
 
 const DEMO_FALLBACK: Invoice[] = [
   {
@@ -51,14 +69,18 @@ function clientFromLocalsOrEnv(
 export const load: PageServerLoad = async ({ fetch, locals }) => {
   const session = clientFromLocalsOrEnv(fetch, locals);
   if (!session) {
-    return { invoices: DEMO_FALLBACK, source: "demo" as const, locale: locals.locale };
+    return { invoices: DEMO_FALLBACK, approvedProposals: DEMO_PROPOSALS, source: "demo" as const, locale: locals.locale };
   }
   try {
-    const invoices = await session.client.listInvoices();
-    return { invoices, source: "api" as const, locale: locals.locale };
+    const [invoices, approvedProposals] = await Promise.all([
+      session.client.listInvoices(),
+      session.client.listInvoiceProposals({ status: "approved", limit: 100 })
+    ]);
+    return { invoices, approvedProposals, source: "api" as const, locale: locals.locale };
   } catch (err) {
     return {
       invoices: [] as Invoice[],
+      approvedProposals: [] as InvoiceProposal[],
       source: "error" as const,
       locale: locals.locale,
       message: err instanceof Error ? err.message : String(err)

@@ -146,7 +146,7 @@
   }
   .page__lede {
     margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
   .page__form {
@@ -171,16 +171,16 @@
   }
   .page__form-fields input {
     padding: 0.5rem 0.75rem;
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
     font-size: 0.875rem;
   }
   .page__form-fields button {
     padding: 0.5rem 1rem;
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    border-radius: var(--st-component-control-radius);
     border: none;
-    background: var(--st-semantic-action-primary, oklch(50% 0.134 242.749));
-    color: var(--st-semantic-action-primaryText, #ffffff);
+    background: var(--st-semantic-action-primary);
+    color: var(--st-semantic-action-primaryText);
     font-size: 0.875rem;
     cursor: pointer;
   }
@@ -197,9 +197,9 @@
     align-items: center;
     gap: 1rem;
     padding: 0.75rem 1rem;
-    background: var(--st-semantic-surface-default, #ffffff);
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    background: var(--st-semantic-surface-default);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
   }
   .page__item-body {
     flex: 1;
@@ -213,7 +213,7 @@
   }
   .page__item-meta {
     font-size: 0.75rem;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
   .page__item-actions {
     display: flex;
@@ -221,13 +221,13 @@
   }
   .page__action-btn {
     padding: 0.25rem 0.75rem;
-    border-radius: var(--st-component-control-radius, 0.375rem);
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-radius: var(--st-component-control-radius);
+    border: 1px solid var(--st-semantic-border-subtle);
     font-size: 0.75rem;
     cursor: pointer;
     background: transparent;
   }
   .page__action-btn--delete {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
 </style>

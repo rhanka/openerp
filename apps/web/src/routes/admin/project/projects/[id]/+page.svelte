@@ -3,6 +3,7 @@
   import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
 
   import type { Assignment, InvoiceProposal, InvoiceProposalStatus, Project, ProjectStatus, ProjectTask, ProjectTaskStatus, Rate, TimeEntry, TimeEntryStatus } from "@sentropic/openerp-domain/project";
+  import type { TenantUserSummary } from "$lib/api/client";
 
   import { t, type LocaleCode } from "$lib/i18n";
 
@@ -27,6 +28,7 @@
   const assignments: Assignment[] = $derived(data.assignments ?? []);
   const proposals: InvoiceProposal[] = $derived(data.proposals ?? []);
   const rates: Rate[] = $derived(data.rates ?? []);
+  const users: TenantUserSummary[] = $derived((data as { users?: TenantUserSummary[] }).users ?? []);
   const billableTotal: number = $derived(
     timeEntries.filter((e) => e.billable).reduce((sum, e) => sum + e.minutes, 0)
   );
@@ -369,10 +371,14 @@
         <fieldset>
           <legend class="page__task-form-legend">{t(locale, "project.assignments.form.legend")}</legend>
           <div class="page__task-form-fields">
-            <label>
-              <span>{t(locale, "project.assignments.field.userId")}</span>
-              <input type="text" name="userId" required placeholder="user-uuid" aria-describedby="userId-helper" />
-              <small id="userId-helper" class="page__field-helper">{t(locale, "project.assignments.field.userIdHelper")}</small>
+            <label class="page__task-form-select">
+              <span>{t(locale, "project.assignments.field.userSelect")}</span>
+              <select name="userId" required data-testid="assignee-select">
+                <option value="">{t(locale, "project.assignments.field.userSelectPlaceholder")}</option>
+                {#each users as u (u.id)}
+                  <option value={u.id}>{u.displayName} ({u.email})</option>
+                {/each}
+              </select>
             </label>
             <label>
               <span>{t(locale, "project.assignments.field.roleLabel")}</span>
@@ -574,7 +580,7 @@
   }
   .page__lede {
     margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
   .page__actions {
     display: flex;
@@ -582,7 +588,7 @@
     gap: 1rem;
   }
   .page__back {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
   .page__meta {
@@ -591,7 +597,7 @@
     gap: 1rem;
   }
   .page__meta dt {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -616,12 +622,12 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 0.75rem;
-    background: var(--st-semantic-surface-default, #ffffff);
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    background: var(--st-semantic-surface-default);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
   }
   .page__timeline-body {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
     display: flex;
     gap: 0.5rem;
@@ -649,16 +655,16 @@
   }
   .page__task-form-fields input {
     padding: 0.5rem 0.75rem;
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
     font-size: 0.875rem;
   }
   .page__task-form-fields button {
     padding: 0.5rem 1rem;
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    border-radius: var(--st-component-control-radius);
     border: none;
-    background: var(--st-semantic-action-primary, oklch(50% 0.134 242.749));
-    color: var(--st-semantic-action-primaryText, #ffffff);
+    background: var(--st-semantic-action-primary);
+    color: var(--st-semantic-action-primaryText);
     font-size: 0.875rem;
     cursor: pointer;
   }
@@ -675,9 +681,9 @@
     align-items: center;
     gap: 1rem;
     padding: 0.75rem;
-    background: var(--st-semantic-surface-default, #ffffff);
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    background: var(--st-semantic-surface-default);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
   }
   .page__task-body {
     flex: 1;
@@ -690,7 +696,7 @@
   }
   .page__task-due {
     font-size: 0.75rem;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
   .page__task-actions {
     display: flex;
@@ -698,18 +704,18 @@
   }
   .page__task-btn {
     padding: 0.25rem 0.75rem;
-    border-radius: var(--st-component-control-radius, 0.375rem);
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
+    border-radius: var(--st-component-control-radius);
+    border: 1px solid var(--st-semantic-border-subtle);
     font-size: 0.75rem;
     cursor: pointer;
     background: transparent;
   }
   .page__task-btn--done {
-    color: var(--st-semantic-feedback-success, #16a34a);
-    border-color: var(--st-semantic-feedback-success, #16a34a);
+    color: var(--st-semantic-feedback-success);
+    border-color: var(--st-semantic-feedback-success);
   }
   .page__task-btn--delete {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
   .page__checkbox-label {
     display: flex;
@@ -717,11 +723,6 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.875rem;
-  }
-  .page__field-helper {
-    font-size: 0.75rem;
-    color: var(--st-semantic-text-muted, #64748b);
-    margin-top: 0.125rem;
   }
   .page__task-form-select {
     display: flex;
@@ -731,15 +732,15 @@
   }
   .page__task-form-select select {
     padding: 0.5rem 0.75rem;
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
     font-size: 0.875rem;
-    background: var(--st-semantic-surface-default, #ffffff);
-    color: var(--st-semantic-text-primary, #0f172a);
+    background: var(--st-semantic-surface-default);
+    color: var(--st-semantic-text-primary);
   }
   .page__time-total {
     font-size: 0.875rem;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     margin: 0.5rem 0 0 0;
   }
 </style>

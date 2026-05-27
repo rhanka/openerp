@@ -247,7 +247,7 @@
   }
   .page__lede {
     margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
   .page__form {
     display: flex;
@@ -270,10 +270,10 @@
   }
   .page__select select {
     padding: 0.75rem;
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
-    background: var(--st-semantic-surface-default, #ffffff);
-    color: var(--st-semantic-text-primary, #0f172a);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
+    background: var(--st-semantic-surface-default);
+    color: var(--st-semantic-text-primary);
   }
   .page__form-actions {
     display: flex;
@@ -295,7 +295,7 @@
   }
   .page__item-sub {
     margin: 0.25rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
   .page__item-link {
@@ -319,8 +319,8 @@
   }
   .page__lose-form input {
     padding: 0.25rem 0.75rem;
-    border: 1px solid var(--st-semantic-border-subtle, #e2e8f0);
-    border-radius: var(--st-component-control-radius, 0.375rem);
+    border: 1px solid var(--st-semantic-border-subtle);
+    border-radius: var(--st-component-control-radius);
     font-size: 0.875rem;
   }
 </style>

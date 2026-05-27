@@ -218,7 +218,7 @@
 
   .page__lede {
     margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
   }
 
   .page__form {
@@ -259,7 +259,7 @@
 
   .page__item-sub {
     margin: 0.25rem 0 0 0;
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.875rem;
   }
 
@@ -271,7 +271,7 @@
   }
 
   .page__item-grid dt {
-    color: var(--st-semantic-text-muted, #64748b);
+    color: var(--st-semantic-text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
