@@ -5,6 +5,7 @@
   import type { TimelineEntry } from "@sentropic/openerp-domain";
 
   import { t, type LocaleCode } from "$lib/i18n";
+  import StatusStepper, { type StepperStep } from "$lib/components/StatusStepper.svelte";
 
   import type { PageData } from "./$types";
 
@@ -50,6 +51,42 @@
     if (verb === "created" || verb === "stage_changed") return "info";
     return "neutral";
   }
+  /** Build stepper steps from sorted pipeline stages. */
+  const pipelineStepperSteps: StepperStep[] = $derived.by(() => {
+    if (!opp) return [];
+    const sorted = [...data.stages].sort((a, b) => a.orderIndex - b.orderIndex);
+    // Only show non-terminal stages in the sequence
+    const activeStages = sorted.filter((s) => !s.isWon && !s.isLost);
+    let foundCurrent = false;
+    return activeStages.map((stage) => {
+      let state: StepperStep["state"];
+      if (stage.id === opp.stageId && opp.status === "open") {
+        state = "current";
+        foundCurrent = true;
+      } else if (foundCurrent) {
+        state = "upcoming";
+      } else if (stage.id === opp.stageId && opp.status !== "open") {
+        // won/lost: treat the last reached stage as done
+        state = "done";
+        foundCurrent = true;
+      } else {
+        state = "done";
+      }
+      return { key: stage.id, label: stage.name, state };
+    });
+  });
+
+  const pipelineTerminalLabel: string | null = $derived.by(() => {
+    if (!opp) return null;
+    if (opp.status === "won") return t(locale, "crm.opportunities.status.won");
+    if (opp.status === "lost") return t(locale, "crm.opportunities.status.lost");
+    return null;
+  });
+
+  const pipelineTerminalTone: "success" | "warning" | "neutral" = $derived(
+    opp?.status === "won" ? "success" : opp?.status === "lost" ? "warning" : "neutral"
+  );
+
   function formatAmount(o: Opportunity): string | null {
     if (!o.expectedValue) return null;
     const minor = o.expectedValue.amountMinor;
@@ -120,6 +157,15 @@
         </div>
       </div>
     </Card>
+
+    {#if pipelineStepperSteps.length > 0}
+      <StatusStepper
+        steps={pipelineStepperSteps}
+        terminalLabel={pipelineTerminalLabel}
+        terminalTone={pipelineTerminalTone}
+        testId="opportunity-pipeline-stepper"
+      />
+    {/if}
 
     <h2 class="page__section-title">
       {t(locale, "crm.opportunities.detail.timeline.title")}

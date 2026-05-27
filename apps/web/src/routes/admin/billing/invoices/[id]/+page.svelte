@@ -11,6 +11,7 @@
   import type { InvoiceWithLines, JournalEntryWithLines, Payment } from "@sentropic/openerp-domain/billing";
 
   import { t, type LocaleCode } from "$lib/i18n";
+  import StatusStepper, { type StepperStep } from "$lib/components/StatusStepper.svelte";
 
   import type { PageData, ActionData } from "./$types";
 
@@ -54,6 +55,50 @@
   );
   const balanceDue = $derived(
     Math.max(0, invoice.total.amountMinor - totalPaid)
+  );
+
+  // Invoice lifecycle stepper: Draft → Issued → [Partially paid →] Paid
+  // void / written_off are terminal off-path states shown as a badge.
+  const invoiceStepperSteps: StepperStep[] = $derived.by(() => {
+    const status = invoice.status;
+    const isTerminal = status === "void" || status === "written_off";
+
+    // Base sequence depends on whether partially_paid is relevant
+    const hasPartial = status === "partially_paid";
+    const keys: Array<"draft" | "issued" | "partially_paid" | "paid"> = hasPartial
+      ? ["draft", "issued", "partially_paid", "paid"]
+      : ["draft", "issued", "paid"];
+
+    return keys.map((key) => {
+      let stepState: StepperStep["state"];
+      if (isTerminal) {
+        // treat all steps as done (the terminal badge covers the end state)
+        stepState = "done";
+      } else if (key === status) {
+        stepState = "current";
+      } else {
+        const order: Record<string, number> = {
+          draft: 0,
+          issued: 1,
+          partially_paid: 2,
+          paid: hasPartial ? 3 : 2
+        };
+        stepState = order[key] < order[status] ? "done" : "upcoming";
+      }
+      return {
+        key,
+        label: t(locale, `billing.invoices.step.${key}`),
+        state: stepState
+      };
+    });
+  });
+
+  const invoiceTerminalLabel: string | null = $derived(
+    invoice.status === "void"
+      ? t(locale, "billing.invoices.status.void")
+      : invoice.status === "written_off"
+        ? t(locale, "billing.invoices.status.written_off")
+        : null
   );
 </script>
 
@@ -132,6 +177,13 @@
       {form.code}
     </Alert>
   {/if}
+
+  <StatusStepper
+    steps={invoiceStepperSteps}
+    terminalLabel={invoiceTerminalLabel}
+    terminalTone="warning"
+    testId="invoice-lifecycle-stepper"
+  />
 
   <!-- Tax breakdown card -->
   <Card>

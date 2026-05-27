@@ -149,3 +149,68 @@ Acceptance criteria:
 8. Playwright `ui-review.spec.ts` pre-auth assertions pass on all viewports and both locales.
 
 Go/No-Go: GO when acceptance criteria 1–8 verified by Playwright and lint gates.
+
+---
+
+## UXDR-005 - Status steppers on Opportunity + Invoice detail pages
+
+Status: ACCEPTED 2026-05-26. User arbitration: GO recommended option (horizontal stepper alongside existing Tag).
+
+Ou: `apps/web/src/routes/admin/crm/opportunities/[id]/+page.svelte`, `apps/web/src/routes/admin/billing/invoices/[id]/+page.svelte`, `apps/web/src/lib/components/StatusStepper.svelte`.
+
+Decision: Render a reusable horizontal `StatusStepper` on both detail pages, alongside (not replacing) the existing status `Tag`. On Opportunity detail: stages sorted by `orderIndex`, current stage receives `aria-current="step"`, prior stages are `done`, upcoming stages are `upcoming`; terminal states (`won`, `lost`) are shown as a distinct off-path badge appended to the stepper. On Invoice detail: lifecycle sequence Draft → Issued → Paid (with `partially_paid` inserted between Issued and Paid when the invoice has that status); `void` and `written_off` are terminal off-path states shown as a warning badge, not as steps. The single `StatusStepper` component accepts `steps:{key,label,state}[]` and an optional `terminalLabel`/`terminalTone`; styled with `--st-*` tokens; accessible via `aria-current="step"` on the current step.
+
+Scope: `lib/components/StatusStepper.svelte` (new reusable component), CRM opportunity detail page, billing invoice detail page, `packages/i18n` `billing.invoices.step.*` keys (EN+FR).
+
+Agents consulted:
+- Implemented-UI reviewer: `docs/reviews/2026-05-26-ux-review-implemented.md` — identified absence of lifecycle context on detail pages; status Tag alone insufficient for orientation.
+- State-of-art: `docs/reviews/2026-05-26-ux-review-state-of-art.md` — B2B ERP (Salesforce, HubSpot, Stripe) uses horizontal steppers for lifecycle position; stepper + tag is the dominant combined pattern.
+- Contradiction/synthesis: `docs/reviews/2026-05-26-ux-review-synthesis.md` — D-03 elevated to material decision; recommended stepper + existing Tag over badge-only; terminal off-path as distinct badge confirmed by evidence.
+
+Rejected alternatives:
+- Badge-only (no stepper): rejected; Tag communicates current state but does not convey lifecycle position or remaining steps; context lost especially for multi-step won/lost outcomes.
+- Replace Tag with stepper: rejected; Tag is compact and used in list views; replacing breaks established scan pattern; combining is additive and does not increase noise.
+- Collapsible or vertical stepper: rejected at current Demo Slice scale; single row of 2–4 steps is fully legible horizontally; collapsible adds state management overhead for no gain.
+
+Acceptance criteria:
+1. Opportunity detail `/admin/crm/opportunities/demo-op-1`: `data-testid="opportunity-pipeline-stepper"` visible, one `[aria-current="step"]` on the current stage step, prior stages `data-step-state="done"`.
+2. Invoice detail `/admin/billing/invoices/demo-inv-1`: `data-testid="invoice-lifecycle-stepper"` visible, one `[aria-current="step"]` on the current status step.
+3. Terminal states (won, lost, void, written_off): `data-testid="stepper-terminal"` visible with appropriate tone.
+4. Step labels use `crm.opportunities.status.*` (pipeline stage name) and `billing.invoices.step.*` keys — EN/FR aligned.
+5. `npm run lint -w @sentropic/openerp-web` → 0 errors; `npm run check:i18n` → valid.
+6. Playwright `uxdr-005-006.spec.ts` assertions pass for EN and FR locales.
+
+Go/No-Go: GO when acceptance criteria 1–6 verified by Playwright and lint gates.
+
+---
+
+## UXDR-006 - Company detail child sections (Opportunities + Contacts)
+
+Status: ACCEPTED 2026-05-26. User arbitration: GO recommended option (read-only linked sections under the activity timeline).
+
+Ou: `apps/web/src/routes/admin/crm/companies/[id]/+page.svelte`, `apps/web/src/routes/admin/crm/companies/[id]/+page.server.ts`, `packages/i18n` `crm.companies.detail.opportunities.*` and `crm.companies.detail.contacts.*` keys (EN+FR).
+
+Decision: Extend the Company detail `+page.server.ts` to load `listOpportunities({companyId})` and `listContacts({companyId})` in the same `Promise.all` as the existing company + timeline fetch. Add demo fallbacks (1 Opportunity, 1 Contact for `demo-co-1`). Render two new read-only sections on the page above the activity timeline: "Opportunities" (name + status Tag + amount, linked to `/admin/crm/opportunities/{id}`) and "Contacts" (name + email + status Tag, linked to `/admin/crm/contacts/{id}`). Show `EmptyState` when none. Section pattern mirrors the project detail (tasks/time/team) section model.
+
+Scope: `companies/[id]/+page.server.ts` (Promise.all extension, demo fallback), `companies/[id]/+page.svelte` (two new sections + CSS), `packages/i18n` new keys (EN+FR).
+
+Agents consulted:
+- Implemented-UI reviewer: `docs/reviews/2026-05-26-ux-review-implemented.md` — confirmed Company detail shows only audit timeline, giving no 360 account view; listed as D-04 with impact "major".
+- State-of-art: `docs/reviews/2026-05-26-ux-review-state-of-art.md` — CRM platforms (Salesforce, HubSpot) consistently expose related Contacts and Opportunities on the Account record; this is the baseline expectation for account-centric workflows.
+- Contradiction/synthesis: `docs/reviews/2026-05-26-ux-review-synthesis.md` — D-04 confirmed major; recommended read-only linked lists (no inline create) as the correct first step; inline create deferred to a later workpackage.
+
+Rejected alternatives:
+- Timeline-only (status quo): rejected; Company page with only an audit timeline is incomplete for a CRM workflow; operators cannot see associated opportunities or contacts without leaving the record.
+- Inline create forms: rejected for this slice; adds form-management complexity (server actions, validation) not warranted at this Demo Slice; read-only linked lists satisfy the 360-view requirement and are sufficient for navigation.
+- Separate sub-route/tab: rejected; the project detail pattern (same page, stacked sections) is already established and approved; introducing tabs or sub-routes would require a navigation IA decision outside this scope.
+
+Acceptance criteria:
+1. `/admin/crm/companies/demo-co-1`: `data-testid="opportunities-section-title"` visible and contains the localized section heading.
+2. `/admin/crm/companies/demo-co-1`: `data-testid="company-opportunities-list"` visible with at least 1 item linking to `/admin/crm/opportunities/`.
+3. `/admin/crm/companies/demo-co-1`: `data-testid="contacts-section-title"` visible and contains the localized section heading.
+4. `/admin/crm/companies/demo-co-1`: `data-testid="company-contacts-list"` visible with at least 1 item linking to `/admin/crm/contacts/`.
+5. Section headings localized in EN and FR; `check:i18n` → valid.
+6. `npm run lint -w @sentropic/openerp-web` → 0 errors.
+7. Playwright `uxdr-005-006.spec.ts` company detail assertions pass for EN and FR locales.
+
+Go/No-Go: GO when acceptance criteria 1–7 verified by Playwright and lint gates.

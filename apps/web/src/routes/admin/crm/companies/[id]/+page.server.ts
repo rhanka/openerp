@@ -1,6 +1,6 @@
 import { env } from "$env/dynamic/private";
 
-import type { Company } from "@sentropic/openerp-domain/crm";
+import type { Company, Contact, Opportunity } from "@sentropic/openerp-domain/crm";
 import type { TimelineEntry } from "@sentropic/openerp-domain";
 
 import { createApiClient } from "$lib/api/client";
@@ -25,7 +25,7 @@ function clientFromLocalsOrEnv(
   };
 }
 
-const DEMO_FALLBACK: { company: Company; timeline: TimelineEntry[] } = {
+const DEMO_FALLBACK: { company: Company; timeline: TimelineEntry[]; opportunities: Opportunity[]; contacts: Contact[] } = {
   company: {
     id: "demo-co-1",
     organizationId: "demo-org",
@@ -65,6 +65,45 @@ const DEMO_FALLBACK: { company: Company; timeline: TimelineEntry[] } = {
       payloadSummary: { website: "https://example.com" },
       occurredAt: new Date(Date.now() - 3_600_000).toISOString()
     }
+  ],
+  opportunities: [
+    {
+      id: "demo-op-1",
+      organizationId: "demo-org",
+      companyId: "demo-co-1",
+      primaryContactId: null,
+      name: "Annual licence renewal",
+      stageId: "demo-ps-2",
+      status: "open",
+      ownerUserId: null,
+      teamId: null,
+      expectedValue: { amountMinor: 12_000_00, currency: "CAD", scale: 2 },
+      currency: "CAD",
+      expectedCloseDate: null,
+      probabilityBand: "medium",
+      serviceSummary: null,
+      lossReason: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+  contacts: [
+    {
+      id: "demo-ct-1",
+      organizationId: "demo-org",
+      companyId: "demo-co-1",
+      firstName: "Alice",
+      lastName: "Tremblay",
+      displayName: "Alice Tremblay",
+      email: "alice@acmenorthwind.example",
+      phone: null,
+      status: "active",
+      ownerUserId: null,
+      language: "en",
+      title: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
   ]
 };
 
@@ -78,17 +117,21 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
     };
   }
   try {
-    const [company, timeline] = await Promise.all([
+    const [company, timeline, opportunities, contacts] = await Promise.all([
       session.client.getCompany(params.id),
       session.client.listCrmTimeline({
         resourceType: "company",
         resourceId: params.id,
         limit: 50
-      })
+      }),
+      session.client.listOpportunities({ companyId: params.id }),
+      session.client.listContacts({ companyId: params.id })
     ]);
     return {
       company,
       timeline,
+      opportunities,
+      contacts,
       source: "api" as const,
       locale: locals.locale
     };
@@ -99,6 +142,8 @@ export const load: PageServerLoad = async ({ fetch, locals, params }) => {
     return {
       company: null as Company | null,
       timeline: [] as TimelineEntry[],
+      opportunities: [] as Opportunity[],
+      contacts: [] as Contact[],
       source: notFound ? ("not_found" as const) : ("error" as const),
       locale: locals.locale,
       message
