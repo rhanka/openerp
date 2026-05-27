@@ -174,6 +174,7 @@
 
 <style>
   .page {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -211,7 +212,7 @@
     padding: 0;
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
     gap: 1rem;
   }
   .page__item-header {

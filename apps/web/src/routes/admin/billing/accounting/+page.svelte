@@ -86,30 +86,32 @@
         message={t(locale, "billing.accounts.empty.message")}
       />
     {:else}
-      <table class="data-table" data-testid="accounts-table">
-        <thead>
-          <tr>
-            <th>{t(locale, "billing.accounts.field.code")}</th>
-            <th>{t(locale, "billing.accounts.field.name")}</th>
-            <th>{t(locale, "billing.accounts.field.type")}</th>
-            <th>{t(locale, "billing.accounts.field.active")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each accounts as account (account.id)}
-            <tr data-testid="account-row" data-account-code={account.code}>
-              <td><code>{account.code}</code></td>
-              <td>{account.name}</td>
-              <td>
-                <Tag tone={accountTypeTone(account.type)}>
-                  {t(locale, `billing.accounts.type.${account.type}`)}
-                </Tag>
-              </td>
-              <td>{account.active ? "✓" : "—"}</td>
+      <div class="table-wrap">
+        <table class="data-table" data-testid="accounts-table">
+          <thead>
+            <tr>
+              <th>{t(locale, "billing.accounts.field.code")}</th>
+              <th>{t(locale, "billing.accounts.field.name")}</th>
+              <th>{t(locale, "billing.accounts.field.type")}</th>
+              <th>{t(locale, "billing.accounts.field.active")}</th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {#each accounts as account (account.id)}
+              <tr data-testid="account-row" data-account-code={account.code}>
+                <td><code>{account.code}</code></td>
+                <td>{account.name}</td>
+                <td>
+                  <Tag tone={accountTypeTone(account.type)}>
+                    {t(locale, `billing.accounts.type.${account.type}`)}
+                  </Tag>
+                </td>
+                <td>{account.active ? "✓" : "—"}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
     {/if}
   </Card>
 
@@ -123,19 +125,20 @@
         message={t(locale, "billing.journal.empty.message")}
       />
     {:else}
-      <table class="data-table" data-testid="journal-entries-table">
-        <thead>
-          <tr>
-            <th>{t(locale, "billing.journal.field.entryDate")}</th>
-            <th>{t(locale, "billing.journal.field.reference")}</th>
-            <th>{t(locale, "billing.journal.field.description")}</th>
-            <th>{t(locale, "billing.journal.field.sourceType")}</th>
-            <th>{t(locale, "billing.journal.field.status")}</th>
-            <th>{t(locale, "billing.journal.field.debit")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each journalEntries as entry (entry.id)}
+      <div class="table-wrap">
+        <table class="data-table" data-testid="journal-entries-table">
+          <thead>
+            <tr>
+              <th>{t(locale, "billing.journal.field.entryDate")}</th>
+              <th>{t(locale, "billing.journal.field.reference")}</th>
+              <th>{t(locale, "billing.journal.field.description")}</th>
+              <th>{t(locale, "billing.journal.field.sourceType")}</th>
+              <th>{t(locale, "billing.journal.field.status")}</th>
+              <th>{t(locale, "billing.journal.field.debit")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each journalEntries as entry (entry.id)}
             <tr
               data-testid="journal-entry-row"
               data-entry-id={entry.id}
@@ -201,17 +204,24 @@
             {/if}
           {/each}
         </tbody>
-      </table>
+        </table>
+      </div>
     {/if}
   </Card>
 </section>
 
 <style>
   .page {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
   }
 
   .page__header {

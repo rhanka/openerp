@@ -160,6 +160,7 @@
               {#if rates.length === 0}
                 <p class="page__rates-empty">{t(locale, "billing.taxRates.empty.message")}</p>
               {:else}
+                <div class="table-wrap">
                 <table class="page__rates-table" data-testid="rates-table-{category.id}">
                   <thead>
                     <tr>
@@ -194,6 +195,7 @@
                     {/each}
                   </tbody>
                 </table>
+                </div>
               {/if}
 
               <!-- Add rate version form -->
@@ -274,6 +276,7 @@
 
 <style>
   .page {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -387,6 +390,11 @@
     margin: 0;
     color: var(--st-semantic-text-muted, #64748b);
     font-size: 0.875rem;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
   }
 
   .page__rates-table {

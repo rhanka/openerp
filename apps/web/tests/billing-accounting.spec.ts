@@ -73,7 +73,7 @@ test.describe("Billing: Accounting page (demo mode, DS 4.3)", () => {
     await context.clearCookies();
     await context.addCookies([{ name: "openerp_locale", value: "en", url: baseURL ?? "http://127.0.0.1:4173" }]);
     await page.goto("/admin/billing/accounting");
-    await page.waitForLoadState("domcontentloaded");
+    await page.waitForLoadState("networkidle");
     const row = page.getByTestId("journal-entry-row").first();
     await row.click();
     // lines sub-table should now be visible
