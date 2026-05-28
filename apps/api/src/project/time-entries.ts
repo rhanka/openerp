@@ -22,6 +22,7 @@ const ENTRY_RETURN_COLUMNS = `
   description,
   billable,
   status,
+  approval_request_id as "approvalRequestId",
   created_at as "createdAt",
   updated_at as "updatedAt"
 `;
@@ -143,6 +144,23 @@ export async function updateTimeEntry(
       where id = $1 and organization_id = $2
       returning ${ENTRY_RETURN_COLUMNS}`,
     values
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function linkApprovalRequestToTimeEntry(
+  db: Queryable,
+  context: TenantContext,
+  id: string,
+  approvalRequestId: string
+): Promise<TimeEntry | null> {
+  assertTenantContext(context);
+  const result = await db.query<TimeEntry>(
+    `update time_entries
+        set approval_request_id = $3, updated_at = now()
+      where id = $1 and organization_id = $2
+      returning ${ENTRY_RETURN_COLUMNS}`,
+    [id, context.organizationId, approvalRequestId]
   );
   return result.rows[0] ?? null;
 }

@@ -45,6 +45,7 @@ function makeFakeDb() {
           description,
           billable,
           status: status as TimeEntry["status"],
+          approvalRequestId: null,
           createdAt: "2026-05-25T08:00:00.000Z",
           updatedAt: "2026-05-25T08:00:00.000Z"
         };
@@ -91,6 +92,17 @@ function makeFakeDb() {
         return { rows: [{ id: entries[idx]!.id } as unknown as T] };
       }
 
+      // linkApprovalRequestToTimeEntry
+      if (t.includes("update time_entries") && t.includes("approval_request_id = $3")) {
+        const [id, organizationId, approvalRequestId] = values as [string, string, string];
+        const idx = entries.findIndex(
+          (e) => e.id === id && e.organizationId === organizationId
+        );
+        if (idx === -1) return { rows: [] };
+        entries[idx] = { ...entries[idx]!, approvalRequestId, updatedAt: "2026-05-28T10:00:00.000Z" };
+        return { rows: [entries[idx]! as unknown as T] };
+      }
+
       if (t.includes("update time_entries")) {
         const [id, organizationId] = values as [string, string];
         const idx = entries.findIndex(
@@ -107,6 +119,73 @@ function makeFakeDb() {
         }
         entries[idx] = { ...entries[idx]!, ...patch, updatedAt: "2026-05-25T08:05:00.000Z" };
         return { rows: [entries[idx]! as unknown as T] };
+      }
+
+      // ApprovalRequest operations (DS 3.5 submit/approve/reject routes)
+      if (t.includes("insert into approval_requests")) {
+        const approvalRow = {
+          id: `approval_${Date.now()}`,
+          organizationId: (values[0] as string),
+          requesterUserIdentityId: (values[1] as string),
+          approverUserIdentityId: (values[2] as string | null),
+          approverRoleId: (values[3] as string | null),
+          subjectType: (values[4] as string),
+          subjectId: (values[5] as string),
+          reason: (values[6] as string),
+          urgency: (values[7] as string),
+          status: "pending",
+          decisionReason: null,
+          decidedAt: null,
+          expiresAt: (values[8] as string | null),
+          createdAt: new Date().toISOString()
+        };
+        return { rows: [approvalRow as unknown as T] };
+      }
+
+      if (t.includes("from approval_requests") && t.includes("where id = $1")) {
+        // Return a pending approval for any lookup
+        const approvalRow = {
+          id: (values[0] as string),
+          organizationId: (values[1] as string),
+          requesterUserIdentityId: "req",
+          approverUserIdentityId: "approver",
+          approverRoleId: null,
+          subjectType: "time_entry",
+          subjectId: "te_1",
+          reason: "test",
+          urgency: "normal",
+          status: "pending",
+          decisionReason: null,
+          decidedAt: null,
+          expiresAt: null,
+          createdAt: new Date().toISOString()
+        };
+        return { rows: [approvalRow as unknown as T] };
+      }
+
+      if (t.includes("update approval_requests")) {
+        const approvalRow = {
+          id: (values[0] as string),
+          organizationId: (values[1] as string),
+          status: (values[2] as string),
+          decisionReason: (values[3] as string),
+          decidedAt: (values[4] as string),
+          requesterUserIdentityId: "req",
+          approverUserIdentityId: (values[5] as string),
+          approverRoleId: null,
+          subjectType: "time_entry",
+          subjectId: "te_1",
+          reason: "test",
+          urgency: "normal",
+          expiresAt: null,
+          createdAt: new Date().toISOString()
+        };
+        return { rows: [approvalRow as unknown as T] };
+      }
+
+      // h2a journal chain lookup (returns empty prev chain)
+      if (t.includes("approval_request_id = $2") && t.includes("after_summary ? 'journalEntry'")) {
+        return { rows: [] };
       }
 
       if (t.includes("insert into audit_events") || t.includes("insert into timeline_entries")) {

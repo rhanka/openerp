@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 
+import type { ApprovalRequest } from "@sentropic/openerp-domain";
 import type { TimeEntry } from "@sentropic/openerp-domain/project";
 
 import type { Queryable } from "../../src/db/client";
 import {
   TimeEntryNotFoundError,
+  approveTimeEntry,
   createTimeEntry,
   deleteTimeEntry,
   listTimeEntries,
+  rejectTimeEntry,
+  submitTimeEntry,
   updateTimeEntry
 } from "../../src/project/time-entry-service";
 
@@ -23,12 +27,86 @@ interface AuditRow {
 
 function makeFakeDb() {
   const entries: TimeEntry[] = [];
+  const approvals: ApprovalRequest[] = [];
   const audits: AuditRow[] = [];
 
   const db: Queryable = {
     async query<T = unknown>(text: string, values: unknown[] = []): Promise<{ rows: T[] }> {
       const t = text;
 
+      // -----------------------------------------------------------------------
+      // ApprovalRequest inserts (createApprovalRequest → insertApprovalRequest)
+      // -----------------------------------------------------------------------
+      if (t.includes("insert into approval_requests")) {
+        const [
+          organizationId,
+          requesterUserIdentityId,
+          approverUserIdentityId,
+          approverRoleId,
+          subjectType,
+          subjectId,
+          reason,
+          urgency,
+          // status is hardcoded 'pending' in the SQL, expiresAt is the 9th param
+          expiresAt
+        ] = values as [string, string, string | null, string | null, string, string, string, string, string | null];
+        const row: ApprovalRequest = {
+          id: `approval_${approvals.length + 1}`,
+          organizationId,
+          requesterUserIdentityId,
+          approverUserIdentityId,
+          approverRoleId,
+          subjectType,
+          subjectId,
+          reason,
+          urgency: urgency as ApprovalRequest["urgency"],
+          status: "pending",
+          decisionReason: null,
+          decidedAt: null,
+          expiresAt: expiresAt ?? null,
+          createdAt: "2026-05-28T10:00:00.000Z"
+        };
+        approvals.push(row);
+        return { rows: [row as unknown as T] };
+      }
+
+      // -----------------------------------------------------------------------
+      // ApprovalRequest update (decideApprovalRequest → recordApprovalDecision)
+      // -----------------------------------------------------------------------
+      if (t.includes("update approval_requests") && t.includes("status = $3")) {
+        const [approvalId, organizationId, decision, decisionReason, decidedAt, approverUserId] =
+          values as [string, string, string, string, string, string];
+        const idx = approvals.findIndex(
+          (a) => a.id === approvalId && a.organizationId === organizationId && a.status === "pending"
+        );
+        if (idx === -1) return { rows: [] };
+        approvals[idx] = {
+          ...approvals[idx]!,
+          status: decision as ApprovalRequest["status"],
+          decisionReason,
+          decidedAt,
+          approverUserIdentityId: approvals[idx]!.approverUserIdentityId ?? approverUserId
+        };
+        return { rows: [approvals[idx]! as unknown as T] };
+      }
+
+      // findApprovalRequestById
+      if (t.includes("from approval_requests") && t.includes("where id = $1")) {
+        const [approvalId, organizationId] = values as [string, string];
+        const found = approvals.find(
+          (a) => a.id === approvalId && a.organizationId === organizationId
+        );
+        return { rows: found ? [found as unknown as T] : [] };
+      }
+
+      // findPreviousJournalEntry (h2a chain lookup — return no prev for simplicity)
+      if (t.includes("approval_request_id = $2") && t.includes("after_summary ? 'journalEntry'")) {
+        return { rows: [] };
+      }
+
+      // -----------------------------------------------------------------------
+      // TimeEntry operations
+      // -----------------------------------------------------------------------
       if (t.includes("insert into time_entries")) {
         const [
           organizationId,
@@ -62,6 +140,7 @@ function makeFakeDb() {
           description,
           billable,
           status: status as TimeEntry["status"],
+          approvalRequestId: null,
           createdAt: "2026-05-25T08:00:00.000Z",
           updatedAt: "2026-05-25T08:00:00.000Z"
         };
@@ -108,6 +187,17 @@ function makeFakeDb() {
         return { rows: [{ id: entries[idx]!.id } as unknown as T] };
       }
 
+      // linkApprovalRequestToTimeEntry
+      if (t.includes("update time_entries") && t.includes("approval_request_id = $3")) {
+        const [id, organizationId, approvalRequestId] = values as [string, string, string];
+        const idx = entries.findIndex(
+          (e) => e.id === id && e.organizationId === organizationId
+        );
+        if (idx === -1) return { rows: [] };
+        entries[idx] = { ...entries[idx]!, approvalRequestId, updatedAt: "2026-05-28T10:00:00.000Z" };
+        return { rows: [entries[idx]! as unknown as T] };
+      }
+
       if (t.includes("update time_entries")) {
         const [id, organizationId] = values as [string, string];
         const idx = entries.findIndex(
@@ -130,6 +220,9 @@ function makeFakeDb() {
         return { rows: [entries[idx]! as unknown as T] };
       }
 
+      // -----------------------------------------------------------------------
+      // Audit / Timeline
+      // -----------------------------------------------------------------------
       if (t.includes("insert into audit_events")) {
         const [
           organizationId,
@@ -162,7 +255,7 @@ function makeFakeDb() {
     }
   };
 
-  return { db, entries, audits };
+  return { db, entries, approvals, audits };
 }
 
 const context = { organizationId: "org_1", actorUserId: "user_actor" };
@@ -286,5 +379,123 @@ describe("TimeEntryService (DS 3.2)", () => {
     await expect(deleteTimeEntry(db, context, "te_nope")).rejects.toBeInstanceOf(
       TimeEntryNotFoundError
     );
+  });
+});
+
+describe("TimeEntryService DS 3.5 — ApprovalRequest integration", () => {
+  it("submitTimeEntry creates an ApprovalRequest and links it; emits project.time_entry.submitted", async () => {
+    const { db, entries, approvals, audits } = makeFakeDb();
+    const created = await createTimeEntry(db, context, {
+      projectId: "proj_1",
+      userId: "user_1",
+      entryDate: "2026-05-28",
+      minutes: 60
+    });
+    expect(created.status).toBe("draft");
+
+    const submitted = await submitTimeEntry(db, context, created.id, {
+      approverUserIdentityId: "approver_user_identity_1"
+    });
+
+    expect(submitted.status).toBe("submitted");
+    expect(submitted.approvalRequestId).toBeTruthy();
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0]!.subjectType).toBe("time_entry");
+    expect(approvals[0]!.subjectId).toBe(created.id);
+    expect(approvals[0]!.status).toBe("pending");
+    expect(entries.find((e) => e.id === created.id)?.approvalRequestId).toBeTruthy();
+
+    const submittedAudit = audits.find((a) => a.action === "project.time_entry.submitted");
+    expect(submittedAudit).toBeDefined();
+    expect(submittedAudit!.resourceId).toBe(created.id);
+  });
+
+  it("submitTimeEntry defaults approver to actorUserId when no approver provided", async () => {
+    const { db, approvals } = makeFakeDb();
+    const created = await createTimeEntry(db, context, {
+      projectId: "proj_1",
+      userId: "user_1",
+      entryDate: "2026-05-28",
+      minutes: 60
+    });
+    await submitTimeEntry(db, context, created.id);
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0]!.approverUserIdentityId).toBe(context.actorUserId);
+  });
+
+  it("approveTimeEntry decides the linked ApprovalRequest and flips entry to approved", async () => {
+    const { db, approvals, audits } = makeFakeDb();
+    const created = await createTimeEntry(db, context, {
+      projectId: "proj_1",
+      userId: "user_1",
+      entryDate: "2026-05-28",
+      minutes: 60
+    });
+    await submitTimeEntry(db, context, created.id, {
+      approverUserIdentityId: "approver_identity_1"
+    });
+
+    const approved = await approveTimeEntry(db, context, created.id, {
+      decisionReason: "Looks good"
+    });
+
+    expect(approved.status).toBe("approved");
+    expect(approvals[0]!.status).toBe("approved");
+    expect(approvals[0]!.decisionReason).toBe("Looks good");
+
+    const approvedAudit = audits.find((a) => a.action === "project.time_entry.approved");
+    expect(approvedAudit).toBeDefined();
+    expect(approvedAudit!.resourceId).toBe(created.id);
+
+    // Foundation approval audit event must also be present
+    const approvalDecidedAudit = audits.find((a) => a.action === "approval_request.decided");
+    expect(approvalDecidedAudit).toBeDefined();
+  });
+
+  it("rejectTimeEntry decides the linked ApprovalRequest and flips entry to rejected", async () => {
+    const { db, approvals, audits } = makeFakeDb();
+    const created = await createTimeEntry(db, context, {
+      projectId: "proj_1",
+      userId: "user_1",
+      entryDate: "2026-05-28",
+      minutes: 60
+    });
+    await submitTimeEntry(db, context, created.id, {
+      approverUserIdentityId: "approver_identity_1"
+    });
+
+    const rejected = await rejectTimeEntry(db, context, created.id, {
+      decisionReason: "Missing description"
+    });
+
+    expect(rejected.status).toBe("rejected");
+    expect(approvals[0]!.status).toBe("rejected");
+
+    const rejectedAudit = audits.find((a) => a.action === "project.time_entry.rejected");
+    expect(rejectedAudit).toBeDefined();
+
+    const approvalDecidedAudit = audits.find((a) => a.action === "approval_request.decided");
+    expect(approvalDecidedAudit).toBeDefined();
+  });
+
+  it("approveTimeEntry falls back to direct flip when no linked approval (legacy entry)", async () => {
+    const { db, approvals, audits } = makeFakeDb();
+    // Seed entry directly at 'submitted' without an approval
+    const created = await createTimeEntry(db, context, {
+      projectId: "proj_1",
+      userId: "user_1",
+      entryDate: "2026-05-28",
+      minutes: 60,
+      status: "submitted"
+    });
+    expect(created.approvalRequestId).toBeNull();
+
+    const approved = await approveTimeEntry(db, context, created.id);
+    expect(approved.status).toBe("approved");
+    // No ApprovalRequest created in this path
+    expect(approvals).toHaveLength(0);
+    // But the project audit is still emitted
+    const approvedAudit = audits.find((a) => a.action === "project.time_entry.approved");
+    expect(approvedAudit).toBeDefined();
   });
 });

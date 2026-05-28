@@ -51,6 +51,7 @@ export const PROJECT_DOMAIN_EVENTS = [
   "project.time_entry.updated",
   "project.time_entry.submitted",
   "project.time_entry.approved",
+  "project.time_entry.rejected",
   "project.time_entry.deleted",
   "project.rate.created",
   "project.rate.updated",
@@ -125,6 +126,7 @@ export interface TimeEntry {
   description: string | null;
   billable: boolean;
   status: TimeEntryStatus;
+  approvalRequestId: string | null;
   createdAt: string;
   updatedAt: string;
 }

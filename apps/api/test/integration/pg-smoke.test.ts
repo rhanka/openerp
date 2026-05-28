@@ -2319,6 +2319,168 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   }, 30000);
 
+  it("TimeApproval end-to-end (DS 3.5): submit creates ApprovalRequest + h2a chain; approve flips entry", async () => {
+    const { createProject } = await import("../../src/project/project-service");
+    const { createProjectTask } = await import("../../src/project/project-task-service");
+    const { createTimeEntry, submitTimeEntry, approveTimeEntry } = await import(
+      "../../src/project/time-entry-service"
+    );
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('TimeApproval Co DS35', 'TimeApproval Co DS35', 'timeapproval-ds35',
+             'active', 'fr', 'CAD', 'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+
+        // Actor user (submitter) — uses CTE pattern to keep user_identity + users in sync
+        const actorRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('pm-ds35-id@timeapproval.local', 'PM DS35', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'pm-ds35@timeapproval.local', 'PM DS35', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const actorId = actorRes.rows[0]!.id;
+
+        // Approver user_identity (standalone — no users row needed for approval path)
+        const approverRes = await client.query<{ id: string }>(
+          `insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('manager-ds35-id@timeapproval.local', 'Manager DS35', 'fr', 'passkey', 'active', 'human')
+           returning id`,
+          []
+        );
+        const approverIdentityId = approverRes.rows[0]!.id;
+
+        const tenant = { organizationId: orgId, actorUserId: actorId };
+
+        const project = await createProject(client, tenant, {
+          name: "DS 3.5 TimeApproval Project",
+          code: "DS35"
+        });
+
+        const task = await createProjectTask(client, tenant, {
+          projectId: project.id,
+          title: "Implement TimeApproval"
+        });
+
+        const entry = await createTimeEntry(client, tenant, {
+          projectId: project.id,
+          projectTaskId: task.id,
+          userId: actorId,
+          entryDate: "2026-05-28",
+          minutes: 120,
+          description: "DS 3.5 implementation",
+          billable: true
+        });
+        expect(entry.status).toBe("draft");
+        expect(entry.approvalRequestId).toBeNull();
+
+        // Submit — should create an ApprovalRequest and link it
+        const submitted = await submitTimeEntry(client, tenant, entry.id, {
+          approverUserIdentityId: approverIdentityId
+        });
+        expect(submitted.status).toBe("submitted");
+        expect(submitted.approvalRequestId).toBeTruthy();
+
+        // Assert approval_requests row exists with correct subject
+        const approvalRows = await client.query<{
+          id: string;
+          subject_type: string;
+          subject_id: string;
+          status: string;
+          approver_user_identity_id: string;
+        }>(
+          `select id, subject_type, subject_id, status, approver_user_identity_id
+             from approval_requests
+            where organization_id = $1 and id = $2`,
+          [orgId, submitted.approvalRequestId]
+        );
+        expect(approvalRows.rows).toHaveLength(1);
+        expect(approvalRows.rows[0]!.subject_type).toBe("time_entry");
+        expect(approvalRows.rows[0]!.subject_id).toBe(entry.id);
+        expect(approvalRows.rows[0]!.status).toBe("pending");
+        expect(approvalRows.rows[0]!.approver_user_identity_id).toBe(approverIdentityId);
+
+        // Assert time_entries.approval_request_id is set
+        const teRow = await client.query<{ approval_request_id: string; status: string }>(
+          `select approval_request_id, status from time_entries where id = $1`,
+          [entry.id]
+        );
+        expect(teRow.rows[0]!.approval_request_id).toBe(submitted.approvalRequestId);
+        expect(teRow.rows[0]!.status).toBe("submitted");
+
+        // Approve — should decide the ApprovalRequest and flip the entry
+        const approved = await approveTimeEntry(client, tenant, entry.id, {
+          decisionReason: "Verified correct"
+        });
+        expect(approved.status).toBe("approved");
+
+        // Assert approval_requests row is now approved
+        const approvalAfter = await client.query<{ status: string; decision_reason: string }>(
+          `select status, decision_reason from approval_requests where id = $1`,
+          [submitted.approvalRequestId]
+        );
+        expect(approvalAfter.rows[0]!.status).toBe("approved");
+        expect(approvalAfter.rows[0]!.decision_reason).toBe("Verified correct");
+
+        // Assert time entry is approved
+        const teAfter = await client.query<{ status: string }>(
+          `select status from time_entries where id = $1`,
+          [entry.id]
+        );
+        expect(teAfter.rows[0]!.status).toBe("approved");
+
+        // Assert h2a journal chain for the approval verifies
+        const chain = await readApprovalJournalChain(
+          client,
+          tenant,
+          submitted.approvalRequestId!
+        );
+        expect(chain.length).toBeGreaterThanOrEqual(2);
+        expect(chain[0]!.type).toBe("propose");
+        expect(chain[chain.length - 1]!.type).toBe("accept");
+        expect(verifyJournalChain(chain).ok).toBe(true);
+
+        // Assert project.time_entry.submitted + project.time_entry.approved in audit
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'time_entry' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, entry.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("project.time_entry.created");
+        expect(actions).toContain("project.time_entry.submitted");
+        expect(actions).toContain("project.time_entry.approved");
+
+        // Assert foundation approval_request audit events
+        const approvalAuditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and approval_request_id = $2
+            order by created_at asc`,
+          [orgId, submitted.approvalRequestId]
+        );
+        const approvalActions = approvalAuditRows.rows.map((r) => r.action);
+        expect(approvalActions).toContain("approval_request.created");
+        expect(approvalActions).toContain("approval_request.decided");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
+
   it("listUsers returns the seeded demo user for the tenant (users endpoint smoke)", async () => {
     const { listUsers } = await import("../../src/foundation/user-identities");
 

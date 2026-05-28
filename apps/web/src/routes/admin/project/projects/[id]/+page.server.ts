@@ -169,6 +169,7 @@ const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: Proje
       description: "Set up project scaffolding",
       billable: true,
       status: "approved",
+      approvalRequestId: null,
       createdAt: new Date(Date.now() - 86_400_000 * 3).toISOString(),
       updatedAt: new Date(Date.now() - 86_400_000 * 2).toISOString()
     },
@@ -183,6 +184,7 @@ const DEMO_FALLBACK: { project: Project; timeline: TimelineEntry[]; tasks: Proje
       description: "API endpoint implementation",
       billable: true,
       status: "submitted",
+      approvalRequestId: null,
       createdAt: new Date(Date.now() - 86_400_000).toISOString(),
       updatedAt: new Date(Date.now() - 3_600_000).toISOString()
     }

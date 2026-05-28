@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildProjectRoutes } from "../../src/http/routes/project";
 
-describe("project route registry (DS 3.0 + DS 3.1 + DS 3.2 + DS 3.3 + DS 3.4)", () => {
+describe("project route registry (DS 3.0 + DS 3.1 + DS 3.2 + DS 3.3 + DS 3.4 + DS 3.5)", () => {
   it("registers project CRUD + timeline + task + time-entry + rate + assignment + invoice-proposal endpoints", () => {
     expect(buildProjectRoutes().map((r) => `${r.method} ${r.path}`)).toEqual([
       "GET /project/projects",
@@ -20,6 +20,9 @@ describe("project route registry (DS 3.0 + DS 3.1 + DS 3.2 + DS 3.3 + DS 3.4)", 
       "GET /project/time-entries/:id",
       "PATCH /project/time-entries/:id",
       "DELETE /project/time-entries/:id",
+      "POST /project/time-entries/:id/submit",
+      "POST /project/time-entries/:id/approve",
+      "POST /project/time-entries/:id/reject",
       "GET /project/rates",
       "POST /project/rates",
       "GET /project/rates/:id",
@@ -53,12 +56,15 @@ describe("project route registry (DS 3.0 + DS 3.1 + DS 3.2 + DS 3.3 + DS 3.4)", 
     expect(routes.find((r) => r.path === "/project/tasks/:id" && r.method === "DELETE")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/project/tasks" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/project/tasks/:id" && r.method === "GET")?.audited).toBe(false);
-    // Time-entry routes (DS 3.2)
+    // Time-entry routes (DS 3.2 + DS 3.5)
     expect(routes.find((r) => r.path === "/project/time-entries" && r.method === "POST")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/project/time-entries/:id" && r.method === "PATCH")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/project/time-entries/:id" && r.method === "DELETE")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/project/time-entries" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/project/time-entries/:id" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/project/time-entries/:id/submit" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/project/time-entries/:id/approve" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/project/time-entries/:id/reject" && r.method === "POST")?.audited).toBe(true);
     // Rate routes (DS 3.3)
     expect(routes.find((r) => r.path === "/project/rates" && r.method === "POST")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/project/rates/:id" && r.method === "PATCH")?.audited).toBe(true);

@@ -5,10 +5,13 @@ import type { TimeEntryStatus } from "@sentropic/openerp-domain/project";
 import type { AppBindings } from "../app";
 import {
   TimeEntryNotFoundError,
+  approveTimeEntry,
   createTimeEntry,
   deleteTimeEntry,
   getTimeEntryById,
   listTimeEntries,
+  rejectTimeEntry,
+  submitTimeEntry,
   updateTimeEntry
 } from "../../project/time-entry-service";
 
@@ -108,6 +111,71 @@ export function mountTimeEntryRoutes(app: Hono<AppBindings>): void {
     try {
       const updated = await updateTimeEntry(db, tenant, id, body);
       return c.json(updated);
+    } catch (err) {
+      if (err instanceof TimeEntryNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
+      throw err;
+    }
+  });
+
+  // DS 3.5: submit, approve, reject via Foundation ApprovalRequest
+  app.post("/project/time-entries/:id/submit", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    let body: { approverUserIdentityId?: string | null; approverRoleId?: string | null } = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      // empty body is fine for submit
+    }
+    try {
+      const submitOpts: { approverUserIdentityId?: string | null; approverRoleId?: string | null } = {};
+      if (body.approverUserIdentityId !== undefined) submitOpts.approverUserIdentityId = body.approverUserIdentityId;
+      if (body.approverRoleId !== undefined) submitOpts.approverRoleId = body.approverRoleId;
+      const result = await submitTimeEntry(db, tenant, id, submitOpts);
+      return c.json(result);
+    } catch (err) {
+      if (err instanceof TimeEntryNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
+      throw err;
+    }
+  });
+
+  app.post("/project/time-entries/:id/approve", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    let body: { decisionReason?: string } = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      // empty body is fine
+    }
+    try {
+      const approveOpts: { decisionReason?: string } = {};
+      if (body.decisionReason !== undefined) approveOpts.decisionReason = body.decisionReason;
+      const result = await approveTimeEntry(db, tenant, id, approveOpts);
+      return c.json(result);
+    } catch (err) {
+      if (err instanceof TimeEntryNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
+      throw err;
+    }
+  });
+
+  app.post("/project/time-entries/:id/reject", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    let body: { decisionReason?: string } = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      // empty body is fine
+    }
+    try {
+      const rejectOpts: { decisionReason?: string } = {};
+      if (body.decisionReason !== undefined) rejectOpts.decisionReason = body.decisionReason;
+      const result = await rejectTimeEntry(db, tenant, id, rejectOpts);
+      return c.json(result);
     } catch (err) {
       if (err instanceof TimeEntryNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
       throw err;
