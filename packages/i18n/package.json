@@ -1,6 +1,6 @@
 {
   "name": "@sentropic/openerp-i18n",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenERP bilingual FR-CA/EN-CA catalog helpers for the foundation UI strings",
   "license": "MIT",
   "repository": {
