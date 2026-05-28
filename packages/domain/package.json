@@ -1,6 +1,6 @@
 {
   "name": "@sentropic/openerp-domain",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenERP domain canon entities and abstraction contracts (shared types for the @sentropic/openerp-* workspace)",
   "license": "MIT",
   "repository": {
