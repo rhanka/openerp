@@ -10,6 +10,7 @@ import {
 } from "../../src/foundation/approval-service";
 import { readApprovalJournalChain } from "../../src/foundation/h2a-bridge";
 import { verifyJournalEntrySignatures } from "../../src/foundation/audit-signing";
+import { createEphemeralDb, type EphemeralDb } from "./helpers/ephemeral-db";
 
 // Smoke test against a real Postgres. Skipped automatically when
 // OPENERP_INTEGRATION_DATABASE_URL is not set (CI without docker compose).
@@ -23,30 +24,32 @@ const describeOrSkip = url ? describe : describe.skip;
 
 describeOrSkip("pg-client + migrate (integration)", () => {
   let pool: PgPoolHandle;
+  let ephemeral: EphemeralDb;
 
   beforeAll(async () => {
-    pool = createPgPool({ connectionString: url! });
-    // Hard reset: drop public schema and recreate. Migrations rebuild from 0001.
-    await pool.query("drop schema if exists public cascade");
-    await pool.query("create schema public");
-  });
+    // Each integration file gets its own ephemeral database so concurrent or
+    // sequential sibling files cannot contaminate this suite's schema state.
+    ephemeral = await createEphemeralDb("pgsmoke");
+    pool = createPgPool({ connectionString: ephemeral.connectionString });
+    // Fresh database: run migrations from scratch.
+    await runMigrations(pool, {
+      directory: new URL("../../src/db/migrations", import.meta.url).pathname
+    });
+  }, 30000);
 
   afterAll(async () => {
     if (pool) await pool.end();
+    if (ephemeral) await ephemeral.drop();
   });
 
   it("applies every migration once, then skips on re-run", async () => {
-    const firstRun = await runMigrations(pool, {
+    // beforeAll already ran migrations on the fresh ephemeral database.
+    // A re-run must skip every migration that was already applied.
+    const reRun = await runMigrations(pool, {
       directory: new URL("../../src/db/migrations", import.meta.url).pathname
     });
-    expect(firstRun.applied.length).toBeGreaterThan(0);
-    expect(firstRun.skipped.length).toBe(0);
-
-    const secondRun = await runMigrations(pool, {
-      directory: new URL("../../src/db/migrations", import.meta.url).pathname
-    });
-    expect(secondRun.applied.length).toBe(0);
-    expect(secondRun.skipped.length).toBe(firstRun.applied.length);
+    expect(reRun.applied.length).toBe(0);
+    expect(reRun.skipped.length).toBeGreaterThan(0);
   }, 15000);
 
   it("creates the canon tables", async () => {

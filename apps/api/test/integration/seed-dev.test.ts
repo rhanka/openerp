@@ -3,24 +3,28 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { runMigrations } from "../../src/db/migrate";
 import { createPgPool, type PgPoolHandle } from "../../src/db/pg-client";
 import { DEMO_ORG_SLUG, runSeedDev } from "../../src/scripts/seed-dev-lib";
+import { createEphemeralDb, type EphemeralDb } from "./helpers/ephemeral-db";
 
 const url = process.env.OPENERP_INTEGRATION_DATABASE_URL;
 const describeOrSkip = url ? describe : describe.skip;
 
 describeOrSkip("seed-dev integration", () => {
   let pool: PgPoolHandle;
+  let ephemeral: EphemeralDb;
 
   beforeAll(async () => {
-    pool = createPgPool({ connectionString: url! });
-    await pool.query("drop schema if exists public cascade");
-    await pool.query("create schema public");
+    // Each integration file gets its own ephemeral database so concurrent or
+    // sequential sibling files cannot contaminate this suite's schema state.
+    ephemeral = await createEphemeralDb("seeddev");
+    pool = createPgPool({ connectionString: ephemeral.connectionString });
     await runMigrations(pool, {
       directory: new URL("../../src/db/migrations", import.meta.url).pathname
     });
-  });
+  }, 30000);
 
   afterAll(async () => {
     if (pool) await pool.end();
+    if (ephemeral) await ephemeral.drop();
   });
 
   it("re-seeds the demo tenant after idempotency records have been written", async () => {
