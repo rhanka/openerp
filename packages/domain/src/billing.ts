@@ -256,6 +256,47 @@ export interface CreateJournalEntryInput {
   lines: CreateJournalEntryLineInput[];
 }
 
+// ---------------------------------------------------------------------------
+// RecurringBillingSchedule entities (DS 4.4)
+// ---------------------------------------------------------------------------
+
+export type RecurringBillingCadence = "weekly" | "monthly" | "quarterly" | "annual";
+
+export interface RecurringBillingSchedule {
+  id: string;
+  organizationId: string;
+  companyId: string;
+  description: string | null;
+  cadence: RecurringBillingCadence;
+  amount: BillingMoney;
+  currency: string;
+  nextRunAt: string;
+  active: boolean;
+  lastInvoiceId: string | null;
+  lastRunAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRecurringBillingScheduleInput {
+  companyId: string;
+  description?: string | null;
+  cadence: RecurringBillingCadence;
+  amount: BillingMoney;
+  currency?: string;
+  nextRunAt: string;
+  active?: boolean;
+}
+
+export interface UpdateRecurringBillingScheduleInput {
+  description?: string | null;
+  cadence?: RecurringBillingCadence;
+  amount?: BillingMoney;
+  currency?: string;
+  nextRunAt?: string;
+  active?: boolean;
+}
+
 export const BILLING_DOMAIN_EVENTS = [
   "billing.invoice.created",
   "billing.invoice.issued",
@@ -278,7 +319,11 @@ export const BILLING_DOMAIN_EVENTS = [
   "billing.journal_entry.created",
   "billing.journal_entry.posted",
   "billing.journal_entry.deleted",
-  "billing.journal_entry.voided"
+  "billing.journal_entry.voided",
+  "billing.recurring_schedule.created",
+  "billing.recurring_schedule.updated",
+  "billing.recurring_schedule.deleted",
+  "billing.recurring_schedule.scheduled"
 ] as const;
 
 export type BillingDomainEvent = (typeof BILLING_DOMAIN_EVENTS)[number];

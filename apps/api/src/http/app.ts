@@ -24,6 +24,7 @@ import { mountBillingInvoiceRoutes } from "./handlers/billing-invoices";
 import { mountBillingPaymentRoutes } from "./handlers/billing-payments";
 import { mountBillingTaxRoutes } from "./handlers/billing-taxes";
 import { mountBillingAccountingRoutes } from "./handlers/billing-accounting";
+import { mountBillingRecurringScheduleRoutes } from "./handlers/billing-recurring-schedules";
 import { mountUsersRoutes } from "./handlers/users";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 
@@ -116,6 +117,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountBillingPaymentRoutes(app);
   mountBillingTaxRoutes(app);
   mountBillingAccountingRoutes(app);
+  mountBillingRecurringScheduleRoutes(app);
 
   return app;
 }

@@ -8,7 +8,7 @@ import { insertTimelineEntry } from "../foundation/timeline-entries";
 // `<module>.<entity>.<verb>` grammar.
 
 export interface EmitBillingTimelineInput {
-  resourceType: "invoice" | "payment" | "tax_category" | "tax_rate_version" | "tax_computation" | "account" | "journal_entry";
+  resourceType: "invoice" | "payment" | "tax_category" | "tax_rate_version" | "tax_computation" | "account" | "journal_entry" | "recurring_schedule";
   resourceId: string;
   entryType: string;
   payloadSummary: PayloadSummary;

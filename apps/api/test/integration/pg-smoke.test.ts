@@ -2663,4 +2663,153 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   });
+
+  it("RecurringBilling end-to-end (DS 4.4): due schedule fires one invoice + advances; future schedule untouched", async () => {
+    const {
+      createRecurringBillingSchedule,
+      runDueRecurringBilling
+    } = await import("../../src/billing/recurring-schedule-service");
+    const { getInvoiceById } = await import("../../src/billing/invoice-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        // Seed org + user identity via CTE pattern.
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('RecBill Co DS44', 'RecBill Co DS44', 'recbill-ds44', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('billing-ds44-id@recbill.local', 'Billing DS44', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'billing-ds44@recbill.local', 'Billing DS44', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        // Create a company.
+        const companyRes = await client.query<{ id: string }>(
+          `insert into companies (organization_id, display_name, status)
+           values ($1, 'DS44 Client Co', 'active')
+           returning id`,
+          [orgId]
+        );
+        const companyId = companyRes.rows[0]!.id;
+
+        const scheduleAmount = { amountMinor: 250000, currency: "CAD", scale: 2 };
+
+        // Schedule 1: next_run_at in the past → due.
+        const dueSchedule = await createRecurringBillingSchedule(client, tenant, {
+          companyId,
+          description: "Monthly retainer DS44",
+          cadence: "monthly",
+          amount: scheduleAmount,
+          nextRunAt: "2026-04-01"
+        });
+        expect(dueSchedule.id).toBeTruthy();
+        expect(dueSchedule.nextRunAt).toBe("2026-04-01");
+
+        // Schedule 2: next_run_at in the future → must NOT fire.
+        const futureSchedule = await createRecurringBillingSchedule(client, tenant, {
+          companyId,
+          description: "Future quarterly DS44",
+          cadence: "quarterly",
+          amount: { amountMinor: 100000, currency: "CAD", scale: 2 },
+          nextRunAt: "2026-09-01"
+        });
+        expect(futureSchedule.id).toBeTruthy();
+
+        // Run with asOfDate = today (2026-05-28 >= 2026-04-01 → fires).
+        const runResult = await runDueRecurringBilling(client, tenant, "2026-05-28");
+        expect(runResult.generated).toBe(1);
+        expect(runResult.invoiceIds).toHaveLength(1);
+
+        const invoiceId = runResult.invoiceIds[0]!;
+
+        // Assert exactly 1 invoice generated with a single line whose amount == schedule amount.
+        const invoice = await getInvoiceById(client, tenant, invoiceId);
+        expect(invoice).not.toBeNull();
+        expect(invoice!.status).toBe("draft");
+        expect(invoice!.companyId).toBe(companyId);
+        expect(invoice!.total.amountMinor).toBe(scheduleAmount.amountMinor);
+        expect(invoice!.total.currency).toBe("CAD");
+        expect(invoice!.lines).toHaveLength(1);
+        expect(invoice!.lines[0]!.sourceType).toBe("recurring_schedule");
+        expect(invoice!.lines[0]!.sourceId).toBe(dueSchedule.id);
+        expect(invoice!.lines[0]!.amount.amountMinor).toBe(scheduleAmount.amountMinor);
+
+        // Assert schedule.last_invoice_id set, next_run_at advanced ~1 month.
+        const scheduleAfter = await client.query<{
+          last_invoice_id: string;
+          last_run_at: string;
+          next_run_at: string;
+        }>(
+          `select last_invoice_id, last_run_at, next_run_at::text as next_run_at
+             from recurring_billing_schedules
+            where id = $1`,
+          [dueSchedule.id]
+        );
+        expect(scheduleAfter.rows).toHaveLength(1);
+        expect(scheduleAfter.rows[0]!.last_invoice_id).toBe(invoiceId);
+        expect(scheduleAfter.rows[0]!.last_run_at).toBeTruthy();
+        // next_run_at advanced from 2026-04-01 by 1 month → 2026-05-01
+        expect(scheduleAfter.rows[0]!.next_run_at).toBe("2026-05-01");
+
+        // Assert future schedule completely untouched.
+        const futureAfter = await client.query<{
+          last_invoice_id: string | null;
+          next_run_at: string;
+        }>(
+          `select last_invoice_id, next_run_at::text as next_run_at
+             from recurring_billing_schedules
+            where id = $1`,
+          [futureSchedule.id]
+        );
+        expect(futureAfter.rows[0]!.last_invoice_id).toBeNull();
+        expect(futureAfter.rows[0]!.next_run_at).toBe("2026-09-01");
+
+        // Assert audit rows: billing.recurring_schedule.created (x2) + .scheduled (x1) + billing.invoice.created (x1).
+        const auditSchedule = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'recurring_schedule' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, dueSchedule.id]
+        );
+        const scheduleActions = auditSchedule.rows.map((r) => r.action);
+        expect(scheduleActions).toContain("billing.recurring_schedule.created");
+        expect(scheduleActions).toContain("billing.recurring_schedule.scheduled");
+
+        const auditInvoice = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2::text`,
+          [orgId, invoiceId]
+        );
+        expect(auditInvoice.rows.map((r) => r.action)).toContain("billing.invoice.created");
+
+        // Assert timeline entries.
+        const tlSchedule = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'recurring_schedule' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, dueSchedule.id]
+        );
+        const tlTypes = tlSchedule.rows.map((r) => r.entry_type);
+        expect(tlTypes).toContain("billing.recurring_schedule.created");
+        expect(tlTypes).toContain("billing.recurring_schedule.scheduled");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
 });

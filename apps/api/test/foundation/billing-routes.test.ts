@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildBillingRoutes } from "../../src/http/routes/billing";
 
-describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3 + DS 2.7)", () => {
-  it("registers invoice CRUD + lifecycle + from-proposal + from-quote-handoff + payment + tax + accounting endpoints", () => {
+describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3 + DS 2.7 + DS 4.4)", () => {
+  it("registers invoice CRUD + lifecycle + from-proposal + from-quote-handoff + payment + tax + accounting + recurring-schedules endpoints", () => {
     expect(buildBillingRoutes().map((r) => `${r.method} ${r.path}`)).toEqual([
       "GET /billing/invoices",
       "POST /billing/invoices",
@@ -40,7 +40,13 @@ describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3 + DS 2.7)", 
       "POST /billing/journal-entries",
       "POST /billing/journal-entries/:id/post",
       "POST /billing/journal-entries/:id/void",
-      "DELETE /billing/journal-entries/:id"
+      "DELETE /billing/journal-entries/:id",
+      "GET /billing/recurring-schedules",
+      "POST /billing/recurring-schedules",
+      "GET /billing/recurring-schedules/:id",
+      "PATCH /billing/recurring-schedules/:id",
+      "DELETE /billing/recurring-schedules/:id",
+      "POST /billing/recurring-schedules/run"
     ]);
   });
 

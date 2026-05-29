@@ -1,7 +1,8 @@
 import type { RouteContract } from "./foundation";
 
 // Billing route registry (DS 4.0 — Invoice + InvoiceLine; DS 4.1 — Payment; DS 4.2 — Tax engine;
-// DS 4.3 — Account + JournalEntry double-entry; DS 2.7 — from-quote-handoff CRM→Billing).
+// DS 4.3 — Account + JournalEntry double-entry; DS 2.7 — from-quote-handoff CRM→Billing;
+// DS 4.4 — RecurringBillingSchedule).
 export function buildBillingRoutes(): RouteContract[] {
   return [
     { method: "GET", path: "/billing/invoices", audited: false },
@@ -40,6 +41,12 @@ export function buildBillingRoutes(): RouteContract[] {
     { method: "POST", path: "/billing/journal-entries", audited: true },
     { method: "POST", path: "/billing/journal-entries/:id/post", audited: true },
     { method: "POST", path: "/billing/journal-entries/:id/void", audited: true },
-    { method: "DELETE", path: "/billing/journal-entries/:id", audited: true }
+    { method: "DELETE", path: "/billing/journal-entries/:id", audited: true },
+    { method: "GET", path: "/billing/recurring-schedules", audited: false },
+    { method: "POST", path: "/billing/recurring-schedules", audited: true },
+    { method: "GET", path: "/billing/recurring-schedules/:id", audited: false },
+    { method: "PATCH", path: "/billing/recurring-schedules/:id", audited: true },
+    { method: "DELETE", path: "/billing/recurring-schedules/:id", audited: true },
+    { method: "POST", path: "/billing/recurring-schedules/run", audited: true }
   ];
 }
