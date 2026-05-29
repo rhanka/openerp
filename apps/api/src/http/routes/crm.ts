@@ -1,7 +1,7 @@
 import type { RouteContract } from "./foundation";
 
-// CRM route registry (Demo Slice 2 + 2.1 + 2.3 + 2.5 — Company + Contact +
-// PipelineStage + Opportunity + Leads + soft-delete).
+// CRM route registry (Demo Slice 2 + 2.1 + 2.3 + 2.5 + 2.7 — Company + Contact +
+// PipelineStage + Opportunity + Leads + soft-delete + QuoteHandoff).
 export function buildCrmRoutes(): RouteContract[] {
   return [
     { method: "GET", path: "/crm/companies", audited: false },
@@ -29,6 +29,10 @@ export function buildCrmRoutes(): RouteContract[] {
     { method: "PATCH", path: "/crm/leads/:id", audited: true },
     { method: "DELETE", path: "/crm/leads/:id", audited: true },
     { method: "POST", path: "/crm/leads/:id/convert", audited: true },
-    { method: "GET", path: "/crm/timeline", audited: false }
+    { method: "GET", path: "/crm/timeline", audited: false },
+    { method: "GET", path: "/crm/quote-handoffs", audited: false },
+    { method: "GET", path: "/crm/quote-handoffs/:id", audited: false },
+    { method: "POST", path: "/crm/quote-handoffs/:id/accept", audited: true },
+    { method: "POST", path: "/crm/quote-handoffs/:id/reject", audited: true }
   ];
 }

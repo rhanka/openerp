@@ -20,6 +20,7 @@ import {
   softDeleteOpportunity,
   updateOpportunity as updateOpportunityRepo
 } from "./opportunities";
+import { createQuoteHandoff } from "./quote-handoff-service";
 
 export class OpportunityNotFoundError extends Error {
   readonly code = "OPPORTUNITY_NOT_FOUND";
@@ -116,6 +117,14 @@ export async function updateOpportunity(
       status: "won",
       stageId: updated.stageId,
       expectedValue: updated.expectedValue
+    });
+    // Auto-raise a QuoteHandoff when an opportunity is marked won (DS 2.7).
+    // Idempotency: we always create one on won. The service caller is responsible
+    // for not calling updateOpportunity("won") twice on the same opportunity.
+    await createQuoteHandoff(db, context, {
+      opportunityId: updated.id,
+      targetType: "invoice",
+      requestedByUserId: context.actorUserId
     });
   }
   if (statusChanged && updated.status === "lost") {

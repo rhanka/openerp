@@ -258,6 +258,30 @@ export interface ConvertLeadResult {
   opportunity: Opportunity;
 }
 
+// QuoteHandoff — CRM owns the handoff event, Billing owns the document.
+// Article 4.2 / D-CRM-09.
+export type QuoteHandoffTargetType = "invoice" | "project" | "subscription";
+export type QuoteHandoffStatus = "pending" | "accepted" | "rejected" | "cancelled";
+
+export interface QuoteHandoff {
+  id: string;
+  organizationId: string;
+  opportunityId: string;
+  targetType: QuoteHandoffTargetType;
+  status: QuoteHandoffStatus;
+  requestedByUserId: string | null;
+  acceptedAt: string | null;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateQuoteHandoffInput {
+  opportunityId: string;
+  targetType: QuoteHandoffTargetType;
+  requestedByUserId?: string | null;
+}
+
 export const CRM_DOMAIN_EVENTS = [
   "crm.company.created",
   "crm.company.updated",
@@ -276,7 +300,10 @@ export const CRM_DOMAIN_EVENTS = [
   "crm.lead.created",
   "crm.lead.updated",
   "crm.lead.converted",
-  "crm.lead.deleted"
+  "crm.lead.deleted",
+  "crm.quote_handoff.requested",
+  "crm.quote_handoff.accepted",
+  "crm.quote_handoff.rejected"
 ] as const;
 
 export type CrmDomainEvent = (typeof CRM_DOMAIN_EVENTS)[number];

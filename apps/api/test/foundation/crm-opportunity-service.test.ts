@@ -23,6 +23,7 @@ interface AuditRow {
 function makeFakeDb() {
   const opportunities: Opportunity[] = [];
   const audits: AuditRow[] = [];
+  const quoteHandoffs: Array<{ id: string; organizationId: string; opportunityId: string; targetType: string; status: string; requestedByUserId: string | null; acceptedAt: null; deletedAt: null; createdAt: string; updatedAt: string }> = [];
 
   const db: Queryable = {
     async query<T = unknown>(text: string, values: unknown[] = []): Promise<{ rows: T[] }> {
@@ -166,11 +167,30 @@ function makeFakeDb() {
         return { rows: [] };
       }
 
+      if (t.includes("insert into quote_handoffs")) {
+        const [orgId, opportunityId, targetType, requestedByUserId] =
+          values as [string, string, string, string | null];
+        const row = {
+          id: `qh_${quoteHandoffs.length + 1}`,
+          organizationId: orgId,
+          opportunityId,
+          targetType,
+          status: "pending",
+          requestedByUserId: requestedByUserId ?? null,
+          acceptedAt: null,
+          deletedAt: null,
+          createdAt: "2026-05-28T10:00:00.000Z",
+          updatedAt: "2026-05-28T10:00:00.000Z"
+        };
+        quoteHandoffs.push(row);
+        return { rows: [row as unknown as T] };
+      }
+
       return { rows: [] };
     }
   };
 
-  return { db, opportunities, audits };
+  return { db, opportunities, audits, quoteHandoffs };
 }
 
 const context = { organizationId: "org_1", actorUserId: "user_actor" };
@@ -211,6 +231,21 @@ describe("OpportunityService (CRM Demo Slice 2.5)", () => {
     });
     await updateOpportunity(db, context, created.id, { status: "won" });
     expect(audits.some((a) => a.action === "crm.opportunity.won")).toBe(true);
+  });
+
+  it("auto-raises a QuoteHandoff (crm.quote_handoff.requested) when opportunity transitions to won (DS 2.7)", async () => {
+    const { db, audits, quoteHandoffs } = makeFakeDb();
+    const created = await createOpportunity(db, context, {
+      companyId: "co_1",
+      name: "Won deal",
+      stageId: "ps_1"
+    });
+    await updateOpportunity(db, context, created.id, { status: "won" });
+    expect(audits.some((a) => a.action === "crm.quote_handoff.requested")).toBe(true);
+    expect(quoteHandoffs).toHaveLength(1);
+    expect(quoteHandoffs[0]!.opportunityId).toBe(created.id);
+    expect(quoteHandoffs[0]!.targetType).toBe("invoice");
+    expect(quoteHandoffs[0]!.status).toBe("pending");
   });
 
   it("rejects closing as lost without loss_reason (business rule, spec line 145)", async () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCrmRoutes } from "../../src/http/routes/crm";
 
 describe("crm route registry", () => {
-  it("registers company + contact + pipeline + opportunity + leads + soft-delete endpoints (DS 2.3)", () => {
+  it("registers company + contact + pipeline + opportunity + leads + soft-delete + quote-handoffs endpoints (DS 2.3 + DS 2.7)", () => {
     expect(buildCrmRoutes().map((r) => `${r.method} ${r.path}`)).toEqual([
       "GET /crm/companies",
       "POST /crm/companies",
@@ -29,7 +29,11 @@ describe("crm route registry", () => {
       "PATCH /crm/leads/:id",
       "DELETE /crm/leads/:id",
       "POST /crm/leads/:id/convert",
-      "GET /crm/timeline"
+      "GET /crm/timeline",
+      "GET /crm/quote-handoffs",
+      "GET /crm/quote-handoffs/:id",
+      "POST /crm/quote-handoffs/:id/accept",
+      "POST /crm/quote-handoffs/:id/reject"
     ]);
   });
 

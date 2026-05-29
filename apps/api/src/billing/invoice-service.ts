@@ -22,6 +22,9 @@ import {
   updateInvoiceStatus
 } from "./invoices";
 import { findInvoiceProposalById, listLinesForProposal } from "../project/invoice-proposals";
+import { findQuoteHandoffById, updateQuoteHandoffStatus } from "../crm/quote-handoffs";
+import { findOpportunityById } from "../crm/opportunities";
+import { emitCrmTimelineEntry } from "../crm/crm-timeline";
 
 // Service for Invoice lifecycle. Handles:
 //   - createInvoice: manual creation with line computation
@@ -50,6 +53,20 @@ export class InvoiceProposalNotApprovedError extends Error {
   readonly code = "INVOICE_PROPOSAL_NOT_APPROVED";
   constructor(proposalId: string, status: string) {
     super(`InvoiceProposal ${proposalId} must be 'approved' to convert (current: '${status}')`);
+  }
+}
+
+export class QuoteHandoffNotFoundError extends Error {
+  readonly code = "QUOTE_HANDOFF_NOT_FOUND";
+  constructor(id: string) {
+    super(`QuoteHandoff ${id} not found`);
+  }
+}
+
+export class QuoteHandoffInvalidStatusError extends Error {
+  readonly code = "QUOTE_HANDOFF_INVALID_STATUS";
+  constructor(id: string, status: string) {
+    super(`QuoteHandoff ${id} has status '${status}'; must be 'pending' or 'accepted' to generate invoice`);
   }
 }
 
@@ -231,6 +248,112 @@ export async function createInvoiceFromProposal(
   });
 
   return { ...invoice, lines: persistedLines };
+}
+
+// ---------------------------------------------------------------------------
+// Convert from accepted/pending QuoteHandoff (DS 2.7 CRM→Billing bridge)
+// ---------------------------------------------------------------------------
+
+export async function createInvoiceFromQuoteHandoff(
+  db: Queryable,
+  context: TenantContext,
+  quoteHandoffId: string
+): Promise<InvoiceWithLines> {
+  assertTenantContext(context);
+
+  const handoff = await findQuoteHandoffById(db, context, quoteHandoffId);
+  if (!handoff) throw new QuoteHandoffNotFoundError(quoteHandoffId);
+  if (handoff.status !== "pending" && handoff.status !== "accepted") {
+    throw new QuoteHandoffInvalidStatusError(quoteHandoffId, handoff.status);
+  }
+
+  const opportunity = await findOpportunityById(db, context, handoff.opportunityId);
+  if (!opportunity) {
+    throw new QuoteHandoffNotFoundError(`opportunity ${handoff.opportunityId}`);
+  }
+
+  const currency = opportunity.expectedValue?.currency ?? opportunity.currency ?? "CAD";
+  const scale = opportunity.expectedValue?.scale ?? 2;
+  const amountMinor = opportunity.expectedValue?.amountMinor ?? 0;
+
+  const money: BillingMoney = { amountMinor, currency, scale };
+  const zero: BillingMoney = { amountMinor: 0, currency, scale };
+
+  const invoiceNumber = await generateInvoiceNumber(db, context);
+
+  const invoice = await insertInvoice(db, context, {
+    companyId: opportunity.companyId,
+    projectId: null,
+    invoiceProposalId: null,
+    invoiceNumber,
+    status: "draft",
+    currency,
+    subtotal: money,
+    taxTotal: zero,
+    total: money,
+    taxCategoryId: null,
+    issueDate: null,
+    dueDate: null
+  });
+
+  const line = await insertInvoiceLine(db, context, {
+    invoiceId: invoice.id,
+    sourceType: "quote_handoff",
+    sourceId: quoteHandoffId,
+    description: opportunity.name,
+    quantity: 1,
+    unitPrice: money,
+    amount: money
+  });
+
+  // Mark the QuoteHandoff accepted (idempotent if already accepted).
+  if (handoff.status === "pending") {
+    const acceptedAt = new Date().toISOString();
+    await updateQuoteHandoffStatus(db, context, quoteHandoffId, "accepted", { acceptedAt });
+    // Emit CRM-side audit + timeline for the acceptance triggered from billing.
+    await recordAuditEvent(db, context, {
+      action: "crm.quote_handoff.accepted",
+      resourceType: "quote_handoff",
+      resourceId: quoteHandoffId,
+      beforeSummary: { status: "pending" },
+      afterSummary: { status: "accepted", acceptedAt, triggeredBy: "billing_invoice_creation" }
+    });
+    await emitCrmTimelineEntry(db, context, {
+      resourceType: "opportunity",
+      resourceId: handoff.opportunityId,
+      entryType: "crm.quote_handoff.accepted",
+      payloadSummary: { quoteHandoffId, acceptedAt, triggeredBy: "billing_invoice_creation" }
+    });
+  }
+
+  await emitInvoiceAudit(db, context, {
+    action: "billing.invoice.created",
+    invoiceId: invoice.id,
+    beforeSummary: null,
+    afterSummary: {
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      quoteHandoffId,
+      opportunityId: opportunity.id,
+      lineCount: 1,
+      totalMinor: money.amountMinor,
+      currency
+    }
+  });
+  await emitBillingTimelineEntry(db, context, {
+    resourceType: "invoice",
+    resourceId: invoice.id,
+    entryType: "billing.invoice.created",
+    payloadSummary: {
+      invoiceNumber: invoice.invoiceNumber,
+      quoteHandoffId,
+      lineCount: 1,
+      totalMinor: money.amountMinor,
+      currency
+    }
+  });
+
+  return { ...invoice, lines: [line] };
 }
 
 // ---------------------------------------------------------------------------

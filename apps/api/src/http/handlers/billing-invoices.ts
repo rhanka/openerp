@@ -6,8 +6,11 @@ import {
   InvoiceNotFoundError,
   InvoiceTransitionError,
   InvoiceProposalNotApprovedError,
+  QuoteHandoffNotFoundError,
+  QuoteHandoffInvalidStatusError,
   createInvoice,
   createInvoiceFromProposal,
+  createInvoiceFromQuoteHandoff,
   deleteInvoice,
   getInvoiceById,
   issueInvoice,
@@ -30,6 +33,10 @@ interface CreateInvoiceBody {
 
 interface FromProposalBody {
   invoiceProposalId: string;
+}
+
+interface FromQuoteHandoffBody {
+  quoteHandoffId: string;
 }
 
 function parseIntOrUndefined(value: string | undefined): number | undefined {
@@ -115,6 +122,30 @@ export function mountBillingInvoiceRoutes(app: Hono<AppBindings>): void {
       if (err instanceof InvoiceNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
       if (err instanceof InvoiceProposalNotApprovedError) {
         return c.json({ code: "PROPOSAL_NOT_APPROVED", message: err.message }, 409);
+      }
+      throw err;
+    }
+  });
+
+  app.post("/billing/invoices/from-quote-handoff", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    let body: FromQuoteHandoffBody;
+    try {
+      body = await c.req.json<FromQuoteHandoffBody>();
+    } catch {
+      return c.json({ code: "INVALID_JSON" }, 400);
+    }
+    if (!body?.quoteHandoffId || typeof body.quoteHandoffId !== "string" || body.quoteHandoffId.trim() === "") {
+      return c.json({ code: "INVALID_INPUT", errors: { quoteHandoffId: "REQUIRED" } }, 400);
+    }
+    try {
+      const result = await createInvoiceFromQuoteHandoff(db, tenant, body.quoteHandoffId);
+      return c.json(result, 201);
+    } catch (err) {
+      if (err instanceof QuoteHandoffNotFoundError) return c.json({ code: "NOT_FOUND" }, 404);
+      if (err instanceof QuoteHandoffInvalidStatusError) {
+        return c.json({ code: "HANDOFF_INVALID_STATUS", message: err.message }, 409);
       }
       throw err;
     }

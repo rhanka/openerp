@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildBillingRoutes } from "../../src/http/routes/billing";
 
-describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3)", () => {
-  it("registers invoice CRUD + lifecycle + from-proposal + payment + tax + accounting endpoints", () => {
+describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3 + DS 2.7)", () => {
+  it("registers invoice CRUD + lifecycle + from-proposal + from-quote-handoff + payment + tax + accounting endpoints", () => {
     expect(buildBillingRoutes().map((r) => `${r.method} ${r.path}`)).toEqual([
       "GET /billing/invoices",
       "POST /billing/invoices",
       "POST /billing/invoices/from-proposal",
+      "POST /billing/invoices/from-quote-handoff",
       "GET /billing/invoices/:id",
       "POST /billing/invoices/:id/issue",
       "POST /billing/invoices/:id/pay",
@@ -47,6 +48,7 @@ describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3)", () => {
     const routes = buildBillingRoutes();
     expect(routes.find((r) => r.path === "/billing/invoices" && r.method === "POST")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/billing/invoices/from-proposal" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/billing/invoices/from-quote-handoff" && r.method === "POST")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/billing/invoices/:id/issue" && r.method === "POST")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/billing/invoices/:id/pay" && r.method === "POST")?.audited).toBe(true);
     expect(routes.find((r) => r.path === "/billing/invoices/:id/void" && r.method === "POST")?.audited).toBe(true);

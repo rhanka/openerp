@@ -10,6 +10,7 @@ import { mountCrmCompanyRoutes } from "./handlers/crm-companies";
 import { mountCrmContactRoutes } from "./handlers/crm-contacts";
 import { mountCrmLeadRoutes } from "./handlers/crm-leads";
 import { mountCrmOpportunityRoutes } from "./handlers/crm-opportunities";
+import { mountCrmQuoteHandoffRoutes } from "./handlers/crm-quote-handoffs";
 import { mountCrmPipelineRoutes } from "./handlers/crm-pipeline";
 import { mountCrmTimelineRoutes } from "./handlers/crm-timeline";
 import { mountProjectRoutes } from "./handlers/project-projects";
@@ -103,6 +104,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountCrmOpportunityRoutes(app);
   mountCrmLeadRoutes(app);
   mountCrmTimelineRoutes(app);
+  mountCrmQuoteHandoffRoutes(app);
   mountProjectRoutes(app);
   mountProjectTaskRoutes(app);
   mountProjectTimelineRoutes(app);

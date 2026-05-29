@@ -1,12 +1,13 @@
 import type { RouteContract } from "./foundation";
 
 // Billing route registry (DS 4.0 — Invoice + InvoiceLine; DS 4.1 — Payment; DS 4.2 — Tax engine;
-// DS 4.3 — Account + JournalEntry double-entry).
+// DS 4.3 — Account + JournalEntry double-entry; DS 2.7 — from-quote-handoff CRM→Billing).
 export function buildBillingRoutes(): RouteContract[] {
   return [
     { method: "GET", path: "/billing/invoices", audited: false },
     { method: "POST", path: "/billing/invoices", audited: true },
     { method: "POST", path: "/billing/invoices/from-proposal", audited: true },
+    { method: "POST", path: "/billing/invoices/from-quote-handoff", audited: true },
     { method: "GET", path: "/billing/invoices/:id", audited: false },
     { method: "POST", path: "/billing/invoices/:id/issue", audited: true },
     { method: "POST", path: "/billing/invoices/:id/pay", audited: true },

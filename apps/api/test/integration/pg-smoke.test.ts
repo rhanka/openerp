@@ -2481,6 +2481,144 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   }, 30000);
 
+  it("QuoteHandoff CRM→Billing end-to-end (DS 2.7): won → handoff → invoice, totals + audit verified", async () => {
+    const { createCompany } = await import("../../src/crm/company-service");
+    const { createPipelineStage } = await import("../../src/crm/pipeline-stage-service");
+    const { createOpportunity, updateOpportunity } = await import("../../src/crm/opportunity-service");
+    const { createInvoiceFromQuoteHandoff } = await import("../../src/billing/invoice-service");
+    const { getInvoiceById } = await import("../../src/billing/invoice-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('QuoteHandoff Co DS27', 'QuoteHandoff Co DS27', 'qh-ds27', 'active', 'fr',
+             'CAD', 'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sales-ds27-id@qh.local', 'Sales DS27', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sales-ds27@qh.local', 'Sales DS27', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userId = userRes.rows[0]!.id;
+        const tenant = { organizationId: orgId, actorUserId: userId };
+
+        const company = await createCompany(client, tenant, { displayName: "DS27 Client Corp" });
+        const discovery = await createPipelineStage(client, tenant, {
+          name: "Discovery",
+          orderIndex: 0,
+          isInitial: true
+        });
+        const closedWon = await createPipelineStage(client, tenant, {
+          name: "Closed Won",
+          orderIndex: 1,
+          isWon: true
+        });
+
+        const expectedValue = { amountMinor: 2500000, currency: "CAD", scale: 2 };
+
+        const opp = await createOpportunity(client, tenant, {
+          companyId: company.id,
+          name: "DS27 Commercial Deal",
+          stageId: discovery.id,
+          expectedValue,
+          currency: "CAD"
+        });
+
+        // Transition to won — should auto-raise a QuoteHandoff
+        await updateOpportunity(client, tenant, opp.id, {
+          stageId: closedWon.id,
+          status: "won"
+        });
+
+        // Assert a quote_handoffs row was created (status pending, target invoice)
+        const handoffRows = await client.query<{
+          id: string;
+          status: string;
+          target_type: string;
+          requested_by_user_id: string;
+        }>(
+          `select id, status, target_type, requested_by_user_id
+             from quote_handoffs
+            where organization_id = $1 and opportunity_id = $2 and deleted_at is null`,
+          [orgId, opp.id]
+        );
+        expect(handoffRows.rows).toHaveLength(1);
+        const handoff = handoffRows.rows[0]!;
+        expect(handoff.status).toBe("pending");
+        expect(handoff.target_type).toBe("invoice");
+        expect(handoff.requested_by_user_id).toBe(userId);
+
+        // POST from-quote-handoff — builds a draft invoice with 1 line from expectedValue
+        const invoice = await createInvoiceFromQuoteHandoff(client, tenant, handoff.id);
+        expect(invoice.status).toBe("draft");
+        expect(invoice.lines).toHaveLength(1);
+        expect(invoice.lines[0]!.sourceType).toBe("quote_handoff");
+        expect(invoice.lines[0]!.sourceId).toBe(handoff.id);
+        expect(invoice.lines[0]!.description).toBe("DS27 Commercial Deal");
+        expect(invoice.total.amountMinor).toBe(2500000);
+        expect(invoice.total.currency).toBe("CAD");
+
+        // Verify through getInvoiceById
+        const fetched = await getInvoiceById(client, tenant, invoice.id);
+        expect(fetched).not.toBeNull();
+        expect(fetched!.lines).toHaveLength(1);
+        expect(fetched!.total.amountMinor).toBe(2500000);
+
+        // Handoff should now be accepted
+        const handoffAfter = await client.query<{ status: string; accepted_at: string }>(
+          `select status, accepted_at from quote_handoffs where id = $1`,
+          [handoff.id]
+        );
+        expect(handoffAfter.rows[0]!.status).toBe("accepted");
+        expect(handoffAfter.rows[0]!.accepted_at).toBeTruthy();
+
+        // Check audit rows: crm.quote_handoff.requested + .accepted + billing.invoice.created
+        const auditHandoffRequested = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'quote_handoff' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, handoff.id]
+        );
+        const auditActions = auditHandoffRequested.rows.map((r) => r.action);
+        expect(auditActions).toContain("crm.quote_handoff.requested");
+        expect(auditActions).toContain("crm.quote_handoff.accepted");
+
+        const auditInvoice = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'invoice' and resource_id = $2::text`,
+          [orgId, invoice.id]
+        );
+        expect(auditInvoice.rows.map((r) => r.action)).toContain("billing.invoice.created");
+
+        // Timeline: crm.quote_handoff.requested on the opportunity
+        const timelineRows = await client.query<{ entry_type: string }>(
+          `select entry_type from timeline_entries
+            where organization_id = $1 and resource_type = 'opportunity' and resource_id = $2
+            order by occurred_at asc`,
+          [orgId, opp.id]
+        );
+        const entryTypes = timelineRows.rows.map((r) => r.entry_type);
+        expect(entryTypes).toContain("crm.quote_handoff.requested");
+        expect(entryTypes).toContain("crm.quote_handoff.accepted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
+
   it("listUsers returns the seeded demo user for the tenant (users endpoint smoke)", async () => {
     const { listUsers } = await import("../../src/foundation/user-identities");
 

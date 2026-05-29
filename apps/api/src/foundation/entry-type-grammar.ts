@@ -30,6 +30,8 @@ export const ALLOWED_VERBS = new Set([
   "submitted",
   "approved",
   "rejected",
+  "requested",
+  "accepted",
   "decided",
   "escalated",
   "expired",
