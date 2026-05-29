@@ -40,6 +40,10 @@ const adminRoutes: Array<{
   {
     path: "/admin/billing/taxes",
     labels: { en: "Taxes", fr: "Taxes" }
+  },
+  {
+    path: "/admin/reporting/saved-views",
+    labels: { en: "Saved views", fr: "Vues" }
   }
 ];
 
@@ -89,10 +93,10 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
           await expect(switcher).toBeVisible();
           await expect(switcherIcon).toBeVisible();
 
-          // Verify all four section headers are present on admin routes
+          // Verify all five section headers are present on admin routes
           const sectionLabels = locale === "en"
-            ? ["CRM", "Projects", "Billing", "Admin"]
-            : ["CRM", "Projets", "Facturation", "Admin"];
+            ? ["CRM", "Projects", "Billing", "Reporting", "Admin"]
+            : ["CRM", "Projets", "Facturation", "Rapports", "Admin"];
           for (const sectionLabel of sectionLabels) {
             await expect(
               page.locator(".shell__nav-heading", { hasText: sectionLabel })
@@ -296,7 +300,7 @@ test("UI review: keyboard flow on /login reaches form fields directly (no sideba
   await page.waitForLoadState("domcontentloaded");
 
   // On pre-auth: header controls (brand → EN → FR) then directly to form (no sidebar)
-  await tabUntilFocused(page, page.getByLabel("Email address"), 10);
+  await tabUntilFocused(page, page.getByLabel("Email address"), 11);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
 });

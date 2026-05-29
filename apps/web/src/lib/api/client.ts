@@ -1,5 +1,10 @@
 import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
+  SavedView,
+  CreateSavedViewInput,
+  UpdateSavedViewInput
+} from "@sentropic/openerp-domain/reporting";
+import type {
   Account,
   AccountType,
   CreateAccountInput,
@@ -816,6 +821,43 @@ export function createApiClient(options: ApiClientOptions) {
       );
     },
 
+    // ---------------------------------------------------------------------------
+    // Reporting — SavedViews (DS 5.0)
+    // ---------------------------------------------------------------------------
+
+    async listSavedViews(query: {
+      resourceType?: string;
+      ownerUserId?: string;
+      shared?: boolean;
+    } = {}): Promise<SavedView[]> {
+      const params = new URLSearchParams();
+      if (query.resourceType) params.set("resourceType", query.resourceType);
+      if (query.ownerUserId) params.set("ownerUserId", query.ownerUserId);
+      if (query.shared !== undefined) params.set("shared", String(query.shared));
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: SavedView[] }>(`/reporting/saved-views${suffix}`);
+      return body.items;
+    },
+
+    async createSavedView(input: CreateSavedViewInput): Promise<SavedView> {
+      return request<SavedView>(`/reporting/saved-views`, { method: "POST", body: input });
+    },
+
+    async getSavedView(id: string): Promise<SavedView> {
+      return request<SavedView>(`/reporting/saved-views/${encodeURIComponent(id)}`);
+    },
+
+    async updateSavedView(id: string, patch: UpdateSavedViewInput): Promise<SavedView> {
+      return request<SavedView>(`/reporting/saved-views/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteSavedView(id: string): Promise<void> {
+      return requestNoContent(`/reporting/saved-views/${encodeURIComponent(id)}`);
+    },
+
     async listUsers(query: { limit?: number; offset?: number } = {}): Promise<TenantUserSummary[]> {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(query)) {
@@ -860,6 +902,13 @@ export type {
   UpdateTaxCategoryInput,
   CreateTaxRateVersionInput,
   UpdateTaxRateVersionInput
+};
+
+// Re-export reporting types so web pages can import from the client module
+export type {
+  SavedView,
+  CreateSavedViewInput,
+  UpdateSavedViewInput
 };
 
 async function safeJson(response: Response): Promise<unknown | null> {

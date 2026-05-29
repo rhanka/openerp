@@ -2815,4 +2815,90 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   }, 30000);
+
+  it("SavedView end-to-end (DS 5.0): create -> list filtered by resourceType -> update -> soft-delete; audit rows persist", async () => {
+    const { createSavedView, updateSavedView, deleteSavedView, listSavedViews } = await import(
+      "../../src/reporting/saved-view-service"
+    );
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('ReportCo DS50', 'ReportCo DS50', 'reportco-ds50', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('report-ds50-id@reportco.local', 'Report DS50', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'report-ds50@reportco.local', 'Report DS50', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenant = { organizationId: orgId, actorUserId: userRes.rows[0]!.id };
+
+        // Create a saved view for crm.opportunity
+        const sv = await createSavedView(client, tenant, {
+          resourceType: "crm.opportunity",
+          name: "Open opps DS50",
+          filters: { status: "open" },
+          columns: ["name", "status"],
+          isShared: false
+        });
+        expect(sv.id).toBeTruthy();
+        expect(sv.resourceType).toBe("crm.opportunity");
+        expect(sv.name).toBe("Open opps DS50");
+        expect(sv.isShared).toBe(false);
+
+        // Create a second view for billing.invoice — must NOT appear in crm filter
+        await createSavedView(client, tenant, {
+          resourceType: "billing.invoice",
+          name: "Draft invoices DS50",
+          isShared: true
+        });
+
+        // List filtered by resourceType — returns only the crm.opportunity one
+        const listed = await listSavedViews(client, tenant, { resourceType: "crm.opportunity" });
+        expect(listed).toHaveLength(1);
+        expect(listed[0]!.id).toBe(sv.id);
+
+        // Update — name changes
+        const updated = await updateSavedView(client, tenant, sv.id, {
+          name: "Open opps DS50 updated",
+          isShared: true
+        });
+        expect(updated.name).toBe("Open opps DS50 updated");
+        expect(updated.isShared).toBe(true);
+
+        // Soft-delete — must not appear in list any more
+        await deleteSavedView(client, tenant, sv.id);
+        const afterDelete = await listSavedViews(client, tenant, { resourceType: "crm.opportunity" });
+        expect(afterDelete).toHaveLength(0);
+
+        // Audit rows preserved: created, updated, deleted
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'saved_view' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, sv.id]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("reporting.saved_view.created");
+        expect(actions).toContain("reporting.saved_view.updated");
+        expect(actions).toContain("reporting.saved_view.deleted");
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
 });

@@ -31,6 +31,10 @@
     "./billing": {
       "types": "./dist/billing.d.ts",
       "default": "./dist/billing.js"
+    },
+    "./reporting": {
+      "types": "./dist/reporting.d.ts",
+      "default": "./dist/reporting.js"
     }
   },
   "files": [

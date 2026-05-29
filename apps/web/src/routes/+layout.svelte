@@ -49,6 +49,10 @@
     { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" }
   ]));
 
+  const reportingItems = $derived(navGroup([
+    { label: t(locale, "nav.savedViews"), href: "/admin/reporting/saved-views" }
+  ]));
+
   const adminItems = $derived(navGroup([
     { label: t(locale, "nav.users"), href: "/admin/users" },
     { label: t(locale, "nav.roles"), href: "/admin/roles" },
@@ -129,6 +133,14 @@
             class="shell__sidenav"
             items={billingItems}
             label={t(locale, "nav.section.billing")}
+          />
+        </div>
+        <div class="shell__nav-group">
+          <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.reporting")}</p>
+          <SideNav
+            class="shell__sidenav"
+            items={reportingItems}
+            label={t(locale, "nav.section.reporting")}
           />
         </div>
         <div class="shell__nav-group">
