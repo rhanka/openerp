@@ -21,6 +21,13 @@ export class SavedViewNotFoundError extends Error {
   }
 }
 
+export class SavedViewForbiddenError extends Error {
+  readonly code = "FORBIDDEN";
+  constructor(id: string) {
+    super(`Only the owner of shared SavedView ${id} may modify it`);
+  }
+}
+
 export async function createSavedView(
   db: Queryable,
   context: TenantContext,
@@ -51,6 +58,9 @@ export async function updateSavedView(
   assertTenantContext(context);
   const before = await findSavedViewById(db, context, id);
   if (!before) throw new SavedViewNotFoundError(id);
+  if (before.isShared && before.ownerUserId !== null && before.ownerUserId !== context.actorUserId) {
+    throw new SavedViewForbiddenError(id);
+  }
   const updated = await updateSavedViewRepo(db, context, id, patch);
   if (!updated) throw new SavedViewNotFoundError(id);
   await emitSavedViewAudit(db, context, {
@@ -78,6 +88,9 @@ export async function deleteSavedView(
   assertTenantContext(context);
   const before = await findSavedViewById(db, context, id);
   if (!before) throw new SavedViewNotFoundError(id);
+  if (before.isShared && before.ownerUserId !== null && before.ownerUserId !== context.actorUserId) {
+    throw new SavedViewForbiddenError(id);
+  }
   const deleted = await softDeleteSavedView(db, context, id);
   if (!deleted) throw new SavedViewNotFoundError(id);
   await emitSavedViewAudit(db, context, {

@@ -2,7 +2,11 @@ import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/open
 import type {
   SavedView,
   CreateSavedViewInput,
-  UpdateSavedViewInput
+  UpdateSavedViewInput,
+  ReportDefinition,
+  CreateReportDefinitionInput,
+  UpdateReportDefinitionInput,
+  ReportRun
 } from "@sentropic/openerp-domain/reporting";
 import type {
   Account,
@@ -858,6 +862,81 @@ export function createApiClient(options: ApiClientOptions) {
       return requestNoContent(`/reporting/saved-views/${encodeURIComponent(id)}`);
     },
 
+    // ---------------------------------------------------------------------------
+    // Reporting — ReportDefinition + ReportRun (DS 5.1)
+    // ---------------------------------------------------------------------------
+
+    async listReportTypes(): Promise<Array<{
+      reportType: string;
+      labelKey: string;
+      params: Array<{ key: string; type: string; required: boolean }>;
+      columns: Array<{ key: string; labelKey: string; dataType: string }>;
+    }>> {
+      const body = await request<{ items: Array<{
+        reportType: string;
+        labelKey: string;
+        params: Array<{ key: string; type: string; required: boolean }>;
+        columns: Array<{ key: string; labelKey: string; dataType: string }>;
+      }> }>("/reporting/report-types");
+      return body.items;
+    },
+
+    async listReportDefinitions(query: {
+      reportType?: string;
+      ownerUserId?: string;
+      shared?: boolean;
+    } = {}): Promise<ReportDefinition[]> {
+      const params = new URLSearchParams();
+      if (query.reportType) params.set("reportType", query.reportType);
+      if (query.ownerUserId) params.set("ownerUserId", query.ownerUserId);
+      if (query.shared !== undefined) params.set("shared", String(query.shared));
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: ReportDefinition[] }>(`/reporting/report-definitions${suffix}`);
+      return body.items;
+    },
+
+    async createReportDefinition(input: CreateReportDefinitionInput): Promise<ReportDefinition> {
+      return request<ReportDefinition>("/reporting/report-definitions", {
+        method: "POST",
+        body: input
+      });
+    },
+
+    async getReportDefinition(id: string): Promise<ReportDefinition> {
+      return request<ReportDefinition>(`/reporting/report-definitions/${encodeURIComponent(id)}`);
+    },
+
+    async updateReportDefinition(id: string, patch: UpdateReportDefinitionInput): Promise<ReportDefinition> {
+      return request<ReportDefinition>(`/reporting/report-definitions/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteReportDefinition(id: string): Promise<void> {
+      return requestNoContent(`/reporting/report-definitions/${encodeURIComponent(id)}`);
+    },
+
+    async runReportDefinition(id: string): Promise<ReportRun> {
+      return request<ReportRun>(`/reporting/report-definitions/${encodeURIComponent(id)}/run`, {
+        method: "POST"
+      });
+    },
+
+    async listReportRuns(query: {
+      reportDefinitionId?: string;
+    } = {}): Promise<ReportRun[]> {
+      const params = new URLSearchParams();
+      if (query.reportDefinitionId) params.set("reportDefinitionId", query.reportDefinitionId);
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: ReportRun[] }>(`/reporting/report-runs${suffix}`);
+      return body.items;
+    },
+
+    async getReportRun(id: string): Promise<ReportRun> {
+      return request<ReportRun>(`/reporting/report-runs/${encodeURIComponent(id)}`);
+    },
+
     async listUsers(query: { limit?: number; offset?: number } = {}): Promise<TenantUserSummary[]> {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(query)) {
@@ -908,7 +987,11 @@ export type {
 export type {
   SavedView,
   CreateSavedViewInput,
-  UpdateSavedViewInput
+  UpdateSavedViewInput,
+  ReportDefinition,
+  CreateReportDefinitionInput,
+  UpdateReportDefinitionInput,
+  ReportRun
 };
 
 async function safeJson(response: Response): Promise<unknown | null> {

@@ -50,7 +50,8 @@
   ]));
 
   const reportingItems = $derived(navGroup([
-    { label: t(locale, "nav.savedViews"), href: "/admin/reporting/saved-views" }
+    { label: t(locale, "nav.savedViews"), href: "/admin/reporting/saved-views" },
+    { label: t(locale, "nav.reportDefinitions"), href: "/admin/reporting/report-definitions" }
   ]));
 
   const adminItems = $derived(navGroup([

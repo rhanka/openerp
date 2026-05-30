@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { SavedView } from "@sentropic/openerp-domain/reporting";
 import type { Queryable } from "../../src/db/client";
 import {
+  SavedViewForbiddenError,
   SavedViewNotFoundError,
   createSavedView,
   deleteSavedView,
@@ -154,6 +155,7 @@ function makeFakeDb() {
 }
 
 const context = { organizationId: "org_1", actorUserId: "user_actor" };
+const contextB = { organizationId: "org_1", actorUserId: "user_other" };
 
 describe("SavedViewService (Reporting Demo Slice 5.0)", () => {
   it("creates a saved view and emits reporting.saved_view.created", async () => {
@@ -236,5 +238,33 @@ describe("SavedViewService (Reporting Demo Slice 5.0)", () => {
     await expect(deleteSavedView(db, context, "sv_nope")).rejects.toBeInstanceOf(
       SavedViewNotFoundError
     );
+  });
+
+  it("ownership enforcement: shared SavedView non-owner update throws SavedViewForbiddenError", async () => {
+    const { db } = makeFakeDb();
+    // Create a shared view owned by user_actor
+    const created = await createSavedView(db, context, {
+      resourceType: "crm.opportunity",
+      name: "Shared view",
+      isShared: true,
+      ownerUserId: "user_actor"
+    });
+    // user_other tries to update
+    await expect(
+      updateSavedView(db, contextB, created.id, { name: "Hacked" })
+    ).rejects.toBeInstanceOf(SavedViewForbiddenError);
+  });
+
+  it("ownership enforcement: shared SavedView non-owner delete throws SavedViewForbiddenError", async () => {
+    const { db } = makeFakeDb();
+    const created = await createSavedView(db, context, {
+      resourceType: "crm.opportunity",
+      name: "Shared delete test",
+      isShared: true,
+      ownerUserId: "user_actor"
+    });
+    await expect(
+      deleteSavedView(db, contextB, created.id)
+    ).rejects.toBeInstanceOf(SavedViewForbiddenError);
   });
 });

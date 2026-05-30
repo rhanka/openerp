@@ -44,6 +44,10 @@ const adminRoutes: Array<{
   {
     path: "/admin/reporting/saved-views",
     labels: { en: "Saved views", fr: "Vues" }
+  },
+  {
+    path: "/admin/reporting/report-definitions",
+    labels: { en: "Reports", fr: "Rapports" }
   }
 ];
 
@@ -271,7 +275,7 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
   await page.goto("/admin/approvals");
   await page.waitForLoadState("domcontentloaded");
 
-  await tabUntilFocused(page, page.getByLabel("OpenERP home"), 1);
+  await tabUntilFocused(page, page.getByLabel("OpenERP home"), 2);
   await page.keyboard.press("Tab");
   const enButton = page.getByTestId("locale-switcher").getByRole("button", { name: "EN" });
   await expect(enButton).toBeFocused();

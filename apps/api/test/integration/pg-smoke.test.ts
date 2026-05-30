@@ -2901,4 +2901,121 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   }, 30000);
+
+  it("DS 5.1: ReportDefinition CRUD + run + audit + ownership-403", async () => {
+    const { createReportDefinition, deleteReportDefinition, listReportDefinitions, runReportDefinition, ForbiddenError } = await import(
+      "../../src/reporting/report-definition-service"
+    );
+    const { createPipelineStage } = await import("../../src/crm/pipeline-stage-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('ReportCo DS51', 'ReportCo DS51', 'reportco-ds51', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userARes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('report-ds51-a-id@reportco.local', 'Report A DS51', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'report-ds51-a@reportco.local', 'Report A DS51', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userBRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('report-ds51-b-id@reportco.local', 'Report B DS51', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'report-ds51-b@reportco.local', 'Report B DS51', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenantA = { organizationId: orgId, actorUserId: userARes.rows[0]!.id };
+        const tenantB = { organizationId: orgId, actorUserId: userBRes.rows[0]!.id };
+
+        // Seed a pipeline stage so the crm.pipeline_funnel report produces rows
+        await createPipelineStage(client, tenantA, {
+          name: "Discovery DS51",
+          orderIndex: 0,
+          isInitial: true
+        });
+
+        // Create a ReportDefinition (crm.pipeline_funnel — no required params)
+        const rd = await createReportDefinition(client, tenantA, {
+          reportType: "crm.pipeline_funnel",
+          name: "Pipeline funnel DS51",
+          ownerUserId: tenantA.actorUserId,
+          isShared: false
+        });
+        expect(rd.id).toBeTruthy();
+        expect(rd.reportType).toBe("crm.pipeline_funnel");
+
+        // Run it
+        const run = await runReportDefinition(client, tenantA, rd.id);
+        expect(run.status).toBe("completed");
+        expect(run.rowCount).toBeGreaterThanOrEqual(1);
+        expect(run.resultColumns.length).toBeGreaterThan(0);
+        const colKeys = run.resultColumns.map((c) => c.key);
+        expect(colKeys).toContain("stage");
+        expect(colKeys).toContain("open_count");
+        expect(colKeys).toContain("pipeline_value_minor");
+
+        // Verify report_runs row exists with correct data
+        const runRow = await client.query<{
+          status: string;
+          row_count: number;
+          result_columns: unknown;
+        }>(
+          `select status, row_count, result_columns from report_runs
+            where organization_id = $1 and id = $2`,
+          [orgId, run.id]
+        );
+        expect(runRow.rows[0]!.status).toBe("completed");
+        expect(runRow.rows[0]!.row_count).toBeGreaterThanOrEqual(1);
+
+        // Verify audit events: report_definition.created + report_run.completed
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1
+              and action in ('reporting.report_definition.created', 'reporting.report_run.completed')
+            order by created_at asc`,
+          [orgId]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("reporting.report_definition.created");
+        expect(actions).toContain("reporting.report_run.completed");
+
+        // Soft-delete leaves the definition out of list
+        await deleteReportDefinition(client, tenantA, rd.id);
+        const listed = await listReportDefinitions(client, tenantA);
+        expect(listed.find((d) => d.id === rd.id)).toBeUndefined();
+
+        // --- Ownership-403: shared definition owned by A, user B cannot delete ---
+        const rdShared = await createReportDefinition(client, tenantA, {
+          reportType: "crm.pipeline_funnel",
+          name: "Shared funnel DS51",
+          ownerUserId: tenantA.actorUserId,
+          isShared: true
+        });
+        await expect(
+          deleteReportDefinition(client, tenantB, rdShared.id)
+        ).rejects.toBeInstanceOf(ForbiddenError);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
 });
