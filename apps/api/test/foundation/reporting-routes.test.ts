@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildReportingRoutes } from "../../src/http/routes/reporting";
 
-describe("reporting route registry (DS 5.0 + DS 5.1)", () => {
-  it("registers saved-views CRUD + report-definitions + report-runs endpoints", () => {
+describe("reporting route registry (DS 5.0 + DS 5.1 + DS 5.2)", () => {
+  it("registers saved-views CRUD + report-definitions + report-runs + dashboards endpoints", () => {
     const paths = buildReportingRoutes().map((r) => `${r.method} ${r.path}`);
     // DS 5.0 saved-views
     expect(paths).toContain("GET /reporting/saved-views");
@@ -22,6 +22,17 @@ describe("reporting route registry (DS 5.0 + DS 5.1)", () => {
     // DS 5.1 report-runs
     expect(paths).toContain("GET /reporting/report-runs");
     expect(paths).toContain("GET /reporting/report-runs/:id");
+    // DS 5.2 dashboards
+    expect(paths).toContain("GET /reporting/dashboards");
+    expect(paths).toContain("POST /reporting/dashboards");
+    expect(paths).toContain("GET /reporting/dashboards/:id");
+    expect(paths).toContain("PATCH /reporting/dashboards/:id");
+    expect(paths).toContain("DELETE /reporting/dashboards/:id");
+    expect(paths).toContain("GET /reporting/dashboards/:id/render");
+    expect(paths).toContain("GET /reporting/dashboards/:id/widgets");
+    expect(paths).toContain("POST /reporting/dashboards/:id/widgets");
+    expect(paths).toContain("PATCH /reporting/dashboards/:id/widgets/:widgetId");
+    expect(paths).toContain("DELETE /reporting/dashboards/:id/widgets/:widgetId");
   });
 
   it("flags mutating endpoints as audited (saved-views)", () => {
@@ -52,5 +63,23 @@ describe("reporting route registry (DS 5.0 + DS 5.1)", () => {
     expect(routes.find((r) => r.path === "/reporting/report-definitions/:id" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/reporting/report-runs" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/reporting/report-runs/:id" && r.method === "GET")?.audited).toBe(false);
+  });
+
+  it("flags dashboard mutating endpoints as audited (DS 5.2)", () => {
+    const routes = buildReportingRoutes();
+    expect(routes.find((r) => r.path === "/reporting/dashboards" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id" && r.method === "PATCH")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id" && r.method === "DELETE")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id/widgets" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id/widgets/:widgetId" && r.method === "PATCH")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id/widgets/:widgetId" && r.method === "DELETE")?.audited).toBe(true);
+  });
+
+  it("flags dashboard GET + render + widgets list as not audited (DS 5.2)", () => {
+    const routes = buildReportingRoutes();
+    expect(routes.find((r) => r.path === "/reporting/dashboards" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id/render" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/reporting/dashboards/:id/widgets" && r.method === "GET")?.audited).toBe(false);
   });
 });

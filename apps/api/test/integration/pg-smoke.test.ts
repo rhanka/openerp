@@ -2902,6 +2902,144 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
   }, 30000);
 
+  it("DS 5.2: Dashboard CRUD + widget + render non-persisting + audit + ownership-403", async () => {
+    const { createReportDefinition } = await import("../../src/reporting/report-definition-service");
+    const { createDashboard, deleteDashboard, listDashboards, addWidget, renderDashboard, DashboardForbiddenError } = await import(
+      "../../src/reporting/dashboard-service"
+    );
+    const { createPipelineStage } = await import("../../src/crm/pipeline-stage-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('DashCo DS52', 'DashCo DS52', 'dashco-ds52', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+        const userARes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('dash-ds52-a-id@dashco.local', 'Dash A DS52', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'dash-ds52-a@dashco.local', 'Dash A DS52', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userBRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('dash-ds52-b-id@dashco.local', 'Dash B DS52', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'dash-ds52-b@dashco.local', 'Dash B DS52', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenantA = { organizationId: orgId, actorUserId: userARes.rows[0]!.id };
+        const tenantB = { organizationId: orgId, actorUserId: userBRes.rows[0]!.id };
+
+        // Seed pipeline stage + opportunity for crm.pipeline_funnel report
+        const stage = await createPipelineStage(client, tenantA, {
+          name: "Discovery DS52",
+          orderIndex: 0,
+          isInitial: true
+        });
+        void stage;
+
+        // Create a ReportDefinition
+        const rd = await createReportDefinition(client, tenantA, {
+          reportType: "crm.pipeline_funnel",
+          name: "Pipeline funnel DS52",
+          ownerUserId: tenantA.actorUserId,
+          isShared: false
+        });
+        expect(rd.id).toBeTruthy();
+
+        // Create a Dashboard
+        const dash = await createDashboard(client, tenantA, {
+          name: "My dashboard DS52",
+          ownerUserId: tenantA.actorUserId,
+          isShared: false
+        });
+        expect(dash.id).toBeTruthy();
+        expect(dash.name).toBe("My dashboard DS52");
+
+        // Add a widget
+        const widget = await addWidget(client, tenantA, dash.id, {
+          reportDefinitionId: rd.id,
+          position: 0
+        });
+        expect(widget.id).toBeTruthy();
+        expect(widget.dashboardId).toBe(dash.id);
+
+        // Count report_runs before render
+        const runCountBefore = await client.query<{ count: string }>(
+          `select count(*)::text as count from report_runs where organization_id = $1`,
+          [orgId]
+        );
+        const runCountBeforeN = parseInt(runCountBefore.rows[0]!.count);
+
+        // GET render — transient, non-persisting
+        const rendered = await renderDashboard(client, tenantA, dash.id);
+        expect(rendered.dashboard.id).toBe(dash.id);
+        expect(rendered.widgets).toHaveLength(1);
+        expect(rendered.widgets[0]!.columns.length).toBeGreaterThan(0);
+        expect(rendered.widgets[0]!.rowCount).toBeGreaterThanOrEqual(1);
+
+        // Assert NO new report_runs row was created by render
+        const runCountAfter = await client.query<{ count: string }>(
+          `select count(*)::text as count from report_runs where organization_id = $1`,
+          [orgId]
+        );
+        expect(parseInt(runCountAfter.rows[0]!.count)).toBe(runCountBeforeN);
+
+        // Assert audit rows: reporting.dashboard.created + reporting.dashboard_widget.created
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1
+              and action in ('reporting.dashboard.created', 'reporting.dashboard_widget.created')
+            order by created_at asc`,
+          [orgId]
+        );
+        const actions = auditRows.rows.map((r) => r.action);
+        expect(actions).toContain("reporting.dashboard.created");
+        expect(actions).toContain("reporting.dashboard_widget.created");
+
+        // Soft-delete removes dashboard from list
+        await deleteDashboard(client, tenantA, dash.id);
+        const listed = await listDashboards(client, tenantA);
+        expect(listed.find((d) => d.id === dash.id)).toBeUndefined();
+
+        // Shared dashboard owner-only 403: user B cannot add widget to user A's shared dashboard
+        const dashShared = await createDashboard(client, tenantA, {
+          name: "Shared DS52",
+          ownerUserId: tenantA.actorUserId,
+          isShared: true
+        });
+        const rd2 = await createReportDefinition(client, tenantA, {
+          reportType: "crm.pipeline_funnel",
+          name: "Funnel shared DS52",
+          ownerUserId: tenantA.actorUserId,
+          isShared: true
+        });
+        await expect(
+          addWidget(client, tenantB, dashShared.id, { reportDefinitionId: rd2.id })
+        ).rejects.toBeInstanceOf(DashboardForbiddenError);
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
+
   it("DS 5.1: ReportDefinition CRUD + run + audit + ownership-403", async () => {
     const { createReportDefinition, deleteReportDefinition, listReportDefinitions, runReportDefinition, ForbiddenError } = await import(
       "../../src/reporting/report-definition-service"

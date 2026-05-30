@@ -18,6 +18,17 @@ export function buildReportingRoutes(): RouteContract[] {
     { method: "DELETE", path: "/reporting/report-definitions/:id", audited: true },
     { method: "POST", path: "/reporting/report-definitions/:id/run", audited: true },
     { method: "GET", path: "/reporting/report-runs", audited: false },
-    { method: "GET", path: "/reporting/report-runs/:id", audited: false }
+    { method: "GET", path: "/reporting/report-runs/:id", audited: false },
+    // Dashboard + DashboardWidget (DS 5.2)
+    { method: "GET", path: "/reporting/dashboards", audited: false },
+    { method: "POST", path: "/reporting/dashboards", audited: true },
+    { method: "GET", path: "/reporting/dashboards/:id", audited: false },
+    { method: "PATCH", path: "/reporting/dashboards/:id", audited: true },
+    { method: "DELETE", path: "/reporting/dashboards/:id", audited: true },
+    { method: "GET", path: "/reporting/dashboards/:id/render", audited: false },
+    { method: "GET", path: "/reporting/dashboards/:id/widgets", audited: false },
+    { method: "POST", path: "/reporting/dashboards/:id/widgets", audited: true },
+    { method: "PATCH", path: "/reporting/dashboards/:id/widgets/:widgetId", audited: true },
+    { method: "DELETE", path: "/reporting/dashboards/:id/widgets/:widgetId", audited: true }
   ];
 }

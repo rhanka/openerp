@@ -6,7 +6,13 @@ import type {
   ReportDefinition,
   CreateReportDefinitionInput,
   UpdateReportDefinitionInput,
-  ReportRun
+  ReportRun,
+  Dashboard,
+  CreateDashboardInput,
+  UpdateDashboardInput,
+  DashboardWidget,
+  CreateDashboardWidgetInput,
+  UpdateDashboardWidgetInput
 } from "@sentropic/openerp-domain/reporting";
 import type {
   Account,
@@ -937,6 +943,82 @@ export function createApiClient(options: ApiClientOptions) {
       return request<ReportRun>(`/reporting/report-runs/${encodeURIComponent(id)}`);
     },
 
+    // ---------------------------------------------------------------------------
+    // Reporting — Dashboards + DashboardWidgets (DS 5.2)
+    // ---------------------------------------------------------------------------
+
+    async listDashboards(query: {
+      ownerUserId?: string;
+      shared?: boolean;
+    } = {}): Promise<Dashboard[]> {
+      const params = new URLSearchParams();
+      if (query.ownerUserId) params.set("ownerUserId", query.ownerUserId);
+      if (query.shared !== undefined) params.set("shared", String(query.shared));
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: Dashboard[] }>(`/reporting/dashboards${suffix}`);
+      return body.items;
+    },
+
+    async createDashboard(input: CreateDashboardInput): Promise<Dashboard> {
+      return request<Dashboard>("/reporting/dashboards", { method: "POST", body: input });
+    },
+
+    async getDashboard(id: string): Promise<Dashboard> {
+      return request<Dashboard>(`/reporting/dashboards/${encodeURIComponent(id)}`);
+    },
+
+    async updateDashboard(id: string, patch: UpdateDashboardInput): Promise<Dashboard> {
+      return request<Dashboard>(`/reporting/dashboards/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteDashboard(id: string): Promise<void> {
+      return requestNoContent(`/reporting/dashboards/${encodeURIComponent(id)}`);
+    },
+
+    async renderDashboard(id: string): Promise<{
+      dashboard: Dashboard;
+      widgets: Array<{
+        widget: DashboardWidget;
+        reportType: string;
+        columns: Array<{ key: string; labelKey: string; dataType: string }>;
+        rows: Record<string, unknown>[];
+        rowCount: number;
+        error?: string;
+      }>;
+    }> {
+      return request(`/reporting/dashboards/${encodeURIComponent(id)}/render`);
+    },
+
+    async listDashboardWidgets(dashboardId: string): Promise<DashboardWidget[]> {
+      const body = await request<{ items: DashboardWidget[] }>(
+        `/reporting/dashboards/${encodeURIComponent(dashboardId)}/widgets`
+      );
+      return body.items;
+    },
+
+    async addDashboardWidget(dashboardId: string, input: CreateDashboardWidgetInput): Promise<DashboardWidget> {
+      return request<DashboardWidget>(
+        `/reporting/dashboards/${encodeURIComponent(dashboardId)}/widgets`,
+        { method: "POST", body: input }
+      );
+    },
+
+    async updateDashboardWidget(dashboardId: string, widgetId: string, patch: UpdateDashboardWidgetInput): Promise<DashboardWidget> {
+      return request<DashboardWidget>(
+        `/reporting/dashboards/${encodeURIComponent(dashboardId)}/widgets/${encodeURIComponent(widgetId)}`,
+        { method: "PATCH", body: patch }
+      );
+    },
+
+    async removeDashboardWidget(dashboardId: string, widgetId: string): Promise<void> {
+      return requestNoContent(
+        `/reporting/dashboards/${encodeURIComponent(dashboardId)}/widgets/${encodeURIComponent(widgetId)}`
+      );
+    },
+
     async listUsers(query: { limit?: number; offset?: number } = {}): Promise<TenantUserSummary[]> {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(query)) {
@@ -991,7 +1073,13 @@ export type {
   ReportDefinition,
   CreateReportDefinitionInput,
   UpdateReportDefinitionInput,
-  ReportRun
+  ReportRun,
+  Dashboard,
+  CreateDashboardInput,
+  UpdateDashboardInput,
+  DashboardWidget,
+  CreateDashboardWidgetInput,
+  UpdateDashboardWidgetInput
 };
 
 async function safeJson(response: Response): Promise<unknown | null> {

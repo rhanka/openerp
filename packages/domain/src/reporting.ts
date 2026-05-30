@@ -85,6 +85,58 @@ export interface ReportRun {
   createdAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Dashboard + DashboardWidget (DS 5.2 — Article 4.5).
+// A Dashboard composes ReportDefinitions as ordered widgets. Rendering
+// executes each widget's report live (transient, non-persisted).
+// ---------------------------------------------------------------------------
+
+export interface Dashboard {
+  id: string;
+  organizationId: string;
+  ownerUserId: string | null;
+  name: string;
+  description: string | null;
+  isShared: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDashboardInput {
+  ownerUserId?: string | null;
+  name: string;
+  description?: string | null;
+  isShared?: boolean;
+}
+
+export interface UpdateDashboardInput {
+  name?: string;
+  description?: string | null;
+  isShared?: boolean;
+}
+
+export interface DashboardWidget {
+  id: string;
+  organizationId: string;
+  dashboardId: string;
+  reportDefinitionId: string;
+  title: string | null;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDashboardWidgetInput {
+  reportDefinitionId: string;
+  title?: string | null;
+  position?: number;
+}
+
+export interface UpdateDashboardWidgetInput {
+  title?: string | null;
+  position?: number;
+}
+
 export const REPORTING_DOMAIN_EVENTS = [
   "reporting.saved_view.created",
   "reporting.saved_view.updated",
@@ -93,7 +145,13 @@ export const REPORTING_DOMAIN_EVENTS = [
   "reporting.report_definition.updated",
   "reporting.report_definition.deleted",
   "reporting.report_run.completed",
-  "reporting.report_run.failed"
+  "reporting.report_run.failed",
+  "reporting.dashboard.created",
+  "reporting.dashboard.updated",
+  "reporting.dashboard.deleted",
+  "reporting.dashboard_widget.created",
+  "reporting.dashboard_widget.updated",
+  "reporting.dashboard_widget.deleted"
 ] as const;
 
 export type ReportingDomainEvent = (typeof REPORTING_DOMAIN_EVENTS)[number];
