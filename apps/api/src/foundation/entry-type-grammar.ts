@@ -13,6 +13,7 @@ export const ALLOWED_MODULES = new Set([
   "project",
   "billing",
   "reporting",
+  "workflow",
   "agentic",
   "system"
 ] as const);

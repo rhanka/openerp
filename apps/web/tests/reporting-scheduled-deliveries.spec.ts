@@ -68,7 +68,7 @@ test.describe("Reporting scheduled deliveries (DS 5.3 demo mode)", () => {
     await expect(page.getByRole("button", { name: "Create" })).toBeVisible();
   });
 
-  test("sidebar shows Reporting section with all four items including Scheduled deliveries", async ({ page, context, baseURL }) => {
+  test("sidebar shows Reporting section with all five items including Scheduled deliveries", async ({ page, context, baseURL }) => {
     await context.clearCookies();
     await context.addCookies([{
       name: "openerp_locale",
@@ -83,10 +83,11 @@ test.describe("Reporting scheduled deliveries (DS 5.3 demo mode)", () => {
       page.locator(".shell__nav-heading", { hasText: "Reporting" })
     ).toBeVisible();
 
-    // All four nav items in the Reporting section are present
+    // All five nav items in the Reporting section are present
     await expect(page.getByRole("link", { name: "Saved views", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Reports", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Dashboards", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Workflows", exact: true })).toBeVisible();
     const sdLink = page.getByRole("link", { name: "Scheduled deliveries", exact: true });
     await expect(sdLink).toBeVisible();
     await expect(sdLink).toHaveAttribute("aria-current", "page");

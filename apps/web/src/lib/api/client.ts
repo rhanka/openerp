@@ -1,5 +1,11 @@
 import type { ApprovalRequest, AuditEvent, TimelineEntry } from "@sentropic/openerp-domain";
 import type {
+  WorkflowDefinition,
+  CreateWorkflowDefinitionInput,
+  UpdateWorkflowDefinitionInput,
+  WorkflowRun
+} from "@sentropic/openerp-domain/workflow";
+import type {
   SavedView,
   CreateSavedViewInput,
   UpdateSavedViewInput,
@@ -1098,6 +1104,74 @@ export function createApiClient(options: ApiClientOptions) {
       return request<DeliveryRun>(`/reporting/delivery-runs/${encodeURIComponent(id)}`);
     },
 
+    // ---------------------------------------------------------------------------
+    // Workflow — WorkflowDefinition + WorkflowRun (DS 5.4)
+    // ---------------------------------------------------------------------------
+
+    async listWorkflows(query: {
+      triggerType?: string;
+      ownerUserId?: string;
+      shared?: boolean;
+      active?: boolean;
+    } = {}): Promise<WorkflowDefinition[]> {
+      const params = new URLSearchParams();
+      if (query.triggerType) params.set("triggerType", query.triggerType);
+      if (query.ownerUserId) params.set("ownerUserId", query.ownerUserId);
+      if (query.shared !== undefined) params.set("shared", String(query.shared));
+      if (query.active !== undefined) params.set("active", String(query.active));
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: WorkflowDefinition[] }>(`/workflows${suffix}`);
+      return body.items;
+    },
+
+    async createWorkflow(input: CreateWorkflowDefinitionInput): Promise<WorkflowDefinition> {
+      return request<WorkflowDefinition>("/workflows", { method: "POST", body: input });
+    },
+
+    async getWorkflow(id: string): Promise<WorkflowDefinition> {
+      return request<WorkflowDefinition>(`/workflows/${encodeURIComponent(id)}`);
+    },
+
+    async updateWorkflow(id: string, patch: UpdateWorkflowDefinitionInput): Promise<WorkflowDefinition> {
+      return request<WorkflowDefinition>(`/workflows/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteWorkflow(id: string): Promise<void> {
+      const reqHeaders = headers();
+      const response = await doFetch(`${options.baseUrl}/workflows/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: reqHeaders
+      });
+      if (!response.ok && response.status !== 204) {
+        const body = (await safeJson(response)) as { code?: string } | null;
+        const err = new Error(`API ${response.status}`) as ApiError;
+        err.status = response.status;
+        if (body?.code) err.code = body.code;
+        throw err;
+      }
+    },
+
+    async runWorkflowNow(id: string): Promise<WorkflowRun> {
+      return request<WorkflowRun>(`/workflows/${encodeURIComponent(id)}/run`, { method: "POST" });
+    },
+
+    async listWorkflowRuns(workflowId: string): Promise<WorkflowRun[]> {
+      const body = await request<{ items: WorkflowRun[] }>(
+        `/workflows/${encodeURIComponent(workflowId)}/runs`
+      );
+      return body.items;
+    },
+
+    async getWorkflowCatalog(): Promise<{
+      triggers: Array<{ eventType: string; labelKey: string }>;
+      actions: Array<{ actionType: string; labelKey: string }>;
+    }> {
+      return request("/workflows/catalog");
+    },
+
     async listUsers(query: { limit?: number; offset?: number } = {}): Promise<TenantUserSummary[]> {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(query)) {
@@ -1142,6 +1216,14 @@ export type {
   UpdateTaxCategoryInput,
   CreateTaxRateVersionInput,
   UpdateTaxRateVersionInput
+};
+
+// Re-export workflow types so web pages can import from the client module
+export type {
+  WorkflowDefinition,
+  CreateWorkflowDefinitionInput,
+  UpdateWorkflowDefinitionInput,
+  WorkflowRun
 };
 
 // Re-export reporting types so web pages can import from the client module

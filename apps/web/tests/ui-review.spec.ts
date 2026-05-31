@@ -56,6 +56,10 @@ const adminRoutes: Array<{
   {
     path: "/admin/reporting/scheduled-deliveries",
     labels: { en: "Scheduled deliveries", fr: "Livraisons planifiees" }
+  },
+  {
+    path: "/admin/reporting/workflows",
+    labels: { en: "Workflows", fr: "Flux de travail" }
   }
 ];
 

@@ -29,8 +29,11 @@ import { mountReportingSavedViewRoutes } from "./handlers/reporting-saved-views"
 import { mountReportingReportDefinitionRoutes } from "./handlers/reporting-report-definitions";
 import { mountReportingDashboardRoutes } from "./handlers/reporting-dashboards";
 import { mountReportingScheduledDeliveryRoutes } from "./handlers/reporting-scheduled-deliveries";
+import { mountWorkflowRoutes } from "./handlers/workflow-definitions";
 import { mountUsersRoutes } from "./handlers/users";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
+import { setWorkflowEvaluator } from "../foundation/audit-emit";
+import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
 // The HTTP server itself is started by apps/api/src/server.ts via the
@@ -70,6 +73,10 @@ export class TenantResolutionError extends Error {
 }
 
 export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
+  // Register the workflow evaluator so that audit events trigger matching workflows.
+  // This is a no-op if called multiple times (safe for tests).
+  setWorkflowEvaluator(makeWorkflowEvaluator());
+
   const app = new Hono<AppBindings>();
 
   app.use("*", async (c, next) => {
@@ -126,6 +133,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountReportingReportDefinitionRoutes(app);
   mountReportingDashboardRoutes(app);
   mountReportingScheduledDeliveryRoutes(app);
+  mountWorkflowRoutes(app);
 
   return app;
 }

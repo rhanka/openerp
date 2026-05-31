@@ -3352,4 +3352,186 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   }, 30000);
+
+  it("DS 5.4: WorkflowDefinition + WorkflowRun — fire + created resource + idempotency/cascade guard + ownership-403", async () => {
+    const {
+      createWorkflowDefinition,
+      deleteWorkflowDefinition,
+      listWorkflowDefinitions,
+      runWorkflowNow,
+      listWorkflowRuns,
+      WorkflowForbiddenError
+    } = await import("../../src/workflow/workflow-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('WfCo DS54', 'WfCo DS54', 'wfco-ds54', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+
+        const userARes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('wf-ds54-a-id@wfco.local', 'WF A DS54', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'wf-ds54-a@wfco.local', 'WF A DS54', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userBRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('wf-ds54-b-id@wfco.local', 'WF B DS54', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'wf-ds54-b@wfco.local', 'WF B DS54', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenantA = { organizationId: orgId, actorUserId: userARes.rows[0]!.id };
+        const tenantB = { organizationId: orgId, actorUserId: userBRes.rows[0]!.id };
+
+        // Create a WorkflowDefinition: trigger=crm.opportunity.won → action=create_notification
+        const wf = await createWorkflowDefinition(client, tenantA, {
+          name: "Notify on opp won DS54",
+          triggerType: "crm.opportunity.won",
+          actionType: "create_notification",
+          actionConfig: {
+            subjectKey: "workflow.test.subject",
+            bodyKey: "workflow.test.body",
+            recipientUserId: tenantA.actorUserId
+          },
+          isActive: true,
+          isShared: false,
+          ownerUserId: tenantA.actorUserId
+        });
+        expect(wf.id).toBeTruthy();
+        expect(wf.triggerType).toBe("crm.opportunity.won");
+        expect(wf.actionType).toBe("create_notification");
+
+        // Audit row: workflow.workflow_definition.created
+        const defAuditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'workflow_definition' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, wf.id]
+        );
+        expect(defAuditRows.rows.map((r) => r.action)).toContain("workflow.workflow_definition.created");
+
+        // -----------------------------------------------------------------------
+        // Manual run via runWorkflowNow — proves the action fires and creates a resource
+        // -----------------------------------------------------------------------
+        const run = await runWorkflowNow(client, tenantA, wf.id);
+        expect(run.id).toBeTruthy();
+        expect(run.status).toBe("completed");
+        expect(run.triggeredBy).toBe("manual");
+        expect(run.createdResourceType).toBe("notification");
+        expect(run.createdResourceId).not.toBeNull();
+
+        // Exactly ONE workflow_runs row
+        const runCountRows = await client.query<{ count: string }>(
+          `select count(*)::text as count from workflow_runs
+            where organization_id = $1 and workflow_definition_id = $2`,
+          [orgId, wf.id]
+        );
+        expect(runCountRows.rows[0]!.count).toBe("1");
+
+        // The run row has the correct shape
+        const runRows = await client.query<{
+          status: string;
+          triggered_by: string;
+          created_resource_type: string | null;
+          created_resource_id: string | null;
+        }>(
+          `select status, triggered_by, created_resource_type, created_resource_id
+             from workflow_runs where id = $1`,
+          [run.id]
+        );
+        const runRow = runRows.rows[0]!;
+        expect(runRow.status).toBe("completed");
+        expect(runRow.triggered_by).toBe("manual");
+        expect(runRow.created_resource_type).toBe("notification");
+        expect(runRow.created_resource_id).not.toBeNull();
+
+        // A notifications row must exist
+        const notifRows = await client.query<{ id: string }>(
+          `select id from notifications where id = $1`,
+          [run.createdResourceId]
+        );
+        expect(notifRows.rows).toHaveLength(1);
+
+        // Audit rows: workflow_run.completed present
+        const runAuditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1 and resource_type = 'workflow_run' and resource_id = $2::text
+            order by created_at asc`,
+          [orgId, run.id]
+        );
+        expect(runAuditRows.rows.map((r) => r.action)).toContain("workflow.workflow_run.completed");
+
+        // -----------------------------------------------------------------------
+        // CASCADE GUARD — the notification's own audit event must NOT have spawned
+        // a second workflow_run. Count must stay 1.
+        // -----------------------------------------------------------------------
+        const cascadeCountRows = await client.query<{ count: string }>(
+          `select count(*)::text as count from workflow_runs
+            where organization_id = $1 and workflow_definition_id = $2`,
+          [orgId, wf.id]
+        );
+        expect(cascadeCountRows.rows[0]!.count).toBe("1");
+
+        // -----------------------------------------------------------------------
+        // listWorkflowRuns returns the one run
+        // -----------------------------------------------------------------------
+        const runs = await listWorkflowRuns(client, tenantA, wf.id);
+        expect(runs).toHaveLength(1);
+        expect(runs[0]!.id).toBe(run.id);
+
+        // -----------------------------------------------------------------------
+        // listWorkflowDefinitions returns the definition
+        // -----------------------------------------------------------------------
+        const defs = await listWorkflowDefinitions(client, tenantA);
+        expect(defs.find((d) => d.id === wf.id)).toBeDefined();
+
+        // -----------------------------------------------------------------------
+        // Ownership-403: shared workflow owned by A; user B cannot mutate it.
+        // -----------------------------------------------------------------------
+        const wfShared = await createWorkflowDefinition(client, tenantA, {
+          name: "Shared WF DS54",
+          triggerType: "crm.opportunity.won",
+          actionType: "create_notification",
+          actionConfig: {
+            subjectKey: "workflow.test.subject",
+            bodyKey: "workflow.test.body"
+          },
+          isActive: true,
+          isShared: true,
+          ownerUserId: tenantA.actorUserId
+        });
+        await expect(
+          import("../../src/workflow/workflow-service").then(({ updateWorkflowDefinition }) =>
+            updateWorkflowDefinition(client, tenantB, wfShared.id, { name: "Hacked via service" })
+          )
+        ).rejects.toBeInstanceOf(WorkflowForbiddenError);
+
+        // Soft-delete removes from list
+        await deleteWorkflowDefinition(client, tenantA, wfShared.id);
+        const listedAfterDelete = await listWorkflowDefinitions(client, tenantA);
+        expect(listedAfterDelete.find((d) => d.id === wfShared.id)).toBeUndefined();
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
 });

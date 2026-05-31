@@ -35,6 +35,10 @@
     "./reporting": {
       "types": "./dist/reporting.d.ts",
       "default": "./dist/reporting.js"
+    },
+    "./workflow": {
+      "types": "./dist/workflow.d.ts",
+      "default": "./dist/workflow.js"
     }
   },
   "files": [
