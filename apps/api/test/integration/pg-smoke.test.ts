@@ -3156,4 +3156,200 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   }, 30000);
+
+  it("DS 5.3: ScheduledDelivery run + delivery_runs + frozen snapshot + audit + manual-no-advance + ownership-403", async () => {
+    const { createReportDefinition } = await import("../../src/reporting/report-definition-service");
+    const {
+      createScheduledDelivery,
+      deleteScheduledDelivery,
+      getScheduledDeliveryById,
+      listScheduledDeliveries,
+      runDueDeliveries,
+      runDeliveryNow,
+      ScheduledDeliveryForbiddenError
+    } = await import("../../src/reporting/scheduled-delivery-service");
+    const { createPipelineStage } = await import("../../src/crm/pipeline-stage-service");
+
+    await pool.withClient(async (client) => {
+      await client.query("begin");
+      try {
+        const orgRes = await client.query<{ id: string }>(
+          `insert into organizations (
+             legal_name, display_name, slug, status, default_locale, default_currency,
+             default_timezone, country, province_state
+           ) values ('SchedDelivCo DS53', 'SchedDelivCo DS53', 'scheddeliv-ds53', 'active', 'fr', 'CAD',
+             'America/Toronto', 'CA', 'QC')
+           returning id`,
+          []
+        );
+        const orgId = orgRes.rows[0]!.id;
+
+        const userARes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sched-ds53-a-id@scheddeliv.local', 'Sched A DS53', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sched-ds53-a@scheddeliv.local', 'Sched A DS53', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const userBRes = await client.query<{ id: string }>(
+          `with id as (
+             insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+             values ('sched-ds53-b-id@scheddeliv.local', 'Sched B DS53', 'fr', 'passkey', 'active', 'human')
+             returning id
+           )
+           insert into users (id, organization_id, email, display_name, preferred_locale, status)
+           select id.id, $1, 'sched-ds53-b@scheddeliv.local', 'Sched B DS53', 'fr', 'active' from id
+           returning id`,
+          [orgId]
+        );
+        const tenantA = { organizationId: orgId, actorUserId: userARes.rows[0]!.id };
+        const tenantB = { organizationId: orgId, actorUserId: userBRes.rows[0]!.id };
+
+        // Seed pipeline stage + opportunity so crm.pipeline_funnel returns rows
+        await createPipelineStage(client, tenantA, {
+          name: "Discovery DS53",
+          orderIndex: 0,
+          isInitial: true
+        });
+
+        // Create a ReportDefinition
+        const rd = await createReportDefinition(client, tenantA, {
+          reportType: "crm.pipeline_funnel",
+          name: "Pipeline funnel DS53",
+          ownerUserId: tenantA.actorUserId,
+          isShared: false
+        });
+        expect(rd.id).toBeTruthy();
+
+        // Create a ScheduledDelivery with next_run_at in the PAST so it is due
+        const pastDate = "2020-01-01T00:00:00.000Z";
+        // We directly insert with a past next_run_at bypassing the service's future-only constraint
+        const sdRes = await client.query<{ id: string }>(
+          `insert into scheduled_deliveries (
+             organization_id, owner_user_id, name, target_type, target_id,
+             cadence, timezone, next_run_at, channel, recipient_user_ids, is_shared, active
+           ) values ($1, $2, $3, 'report_definition', $4, 'weekly', 'UTC', $5::timestamptz,
+             'in_app', $6::jsonb, false, true)
+           returning id`,
+          [orgId, tenantA.actorUserId, "DS53 funnel delivery", rd.id, pastDate,
+           JSON.stringify([tenantA.actorUserId])]
+        );
+        const sdId = sdRes.rows[0]!.id;
+        expect(sdId).toBeTruthy();
+
+        // Capture report_runs count before
+        const runCountBefore = await client.query<{ count: string }>(
+          `select count(*)::text as count from report_runs where organization_id = $1`,
+          [orgId]
+        );
+        const runCountBeforeN = parseInt(runCountBefore.rows[0]!.count);
+
+        // POST /reporting/scheduled-deliveries/run → process due deliveries
+        const result = await runDueDeliveries(client, tenantA);
+        expect(result.processed).toBe(1);
+        expect(result.results[0]!.status).toBe("completed");
+
+        // A delivery_runs row should exist with status='completed' and non-null report_run_id
+        const drRows = await client.query<{
+          id: string;
+          status: string;
+          triggered_by: string;
+          report_run_id: string | null;
+        }>(
+          `select id, status, triggered_by, report_run_id
+             from delivery_runs
+            where organization_id = $1 and scheduled_delivery_id = $2`,
+          [orgId, sdId]
+        );
+        expect(drRows.rows).toHaveLength(1);
+        const dr = drRows.rows[0]!;
+        expect(dr.status).toBe("completed");
+        expect(dr.triggered_by).toBe("schedule");
+        expect(dr.report_run_id).not.toBeNull();
+
+        // A new report_runs row (frozen snapshot) should have been created
+        const runCountAfter = await client.query<{ count: string }>(
+          `select count(*)::text as count from report_runs where organization_id = $1`,
+          [orgId]
+        );
+        expect(parseInt(runCountAfter.rows[0]!.count)).toBeGreaterThan(runCountBeforeN);
+
+        // The schedule's next_run_at is now in the FUTURE (SKIP semantics)
+        const sdAfter = await getScheduledDeliveryById(client, tenantA, sdId);
+        expect(sdAfter).not.toBeNull();
+        const nextRunAtMs = new Date(sdAfter!.nextRunAt).getTime();
+        // next_run_at must now be in the FUTURE (SKIP semantics — skipped missed windows)
+        expect(nextRunAtMs).toBeGreaterThan(Date.now() - 60000); // within the last minute or in the future
+        expect(nextRunAtMs).toBeGreaterThan(new Date("2020-01-01").getTime()); // definitely past the seed value
+        // last_run_at must be set
+        expect(sdAfter!.lastRunAt).not.toBeNull();
+
+        // Audit rows: reporting.scheduled_delivery.created + reporting.delivery_run.completed
+        // Note: the direct INSERT above does not emit the created event — check delivery_run.completed
+        const auditRows = await client.query<{ action: string }>(
+          `select action from audit_events
+            where organization_id = $1
+              and action in ('reporting.delivery_run.completed', 'reporting.delivery_run.failed')
+            order by created_at asc`,
+          [orgId]
+        );
+        const auditActions = auditRows.rows.map((r) => r.action);
+        expect(auditActions).toContain("reporting.delivery_run.completed");
+
+        // Manual single run: triggered_by=manual AND next_run_at UNCHANGED
+        const nextRunAtBefore = sdAfter!.nextRunAt;
+        const manualRun = await runDeliveryNow(client, tenantA, sdId);
+        expect(manualRun.triggeredBy).toBe("manual");
+        expect(manualRun.status).toBe("completed");
+
+        // next_run_at must NOT have changed (compare as epoch ms to avoid tz-string precision diffs)
+        const sdAfterManual = await getScheduledDeliveryById(client, tenantA, sdId);
+        const nextRunAtBeforeMs = new Date(nextRunAtBefore).getTime();
+        const nextRunAtAfterMs = new Date(sdAfterManual!.nextRunAt).getTime();
+        expect(nextRunAtAfterMs).toBe(nextRunAtBeforeMs);
+
+        // Two delivery_runs now (schedule + manual)
+        const drRows2 = await client.query<{ triggered_by: string }>(
+          `select triggered_by from delivery_runs
+            where organization_id = $1 and scheduled_delivery_id = $2
+            order by created_at asc`,
+          [orgId, sdId]
+        );
+        expect(drRows2.rows.map((r) => r.triggered_by)).toEqual(["schedule", "manual"]);
+
+        // Shared delivery owner-only 403: user B cannot PATCH user A's shared delivery
+        const sdShared = await createScheduledDelivery(client, tenantA, {
+          name: "Shared DS53",
+          targetType: "report_definition",
+          targetId: rd.id,
+          cadence: "monthly",
+          ownerUserId: tenantA.actorUserId,
+          isShared: true
+        });
+        await expect(
+          // attempt to update as tenantB
+          client.query(
+            `update scheduled_deliveries set name = 'Hacked' where id = $1`,
+            [sdShared.id]
+          )
+        ).resolves.toBeDefined(); // Direct SQL bypasses service; use service for 403
+        await expect(
+          import("../../src/reporting/scheduled-delivery-service").then(({ updateScheduledDelivery }) =>
+            updateScheduledDelivery(client, tenantB, sdShared.id, { name: "Hacked via service" })
+          )
+        ).rejects.toBeInstanceOf(ScheduledDeliveryForbiddenError);
+
+        // Soft-delete removes from list
+        await deleteScheduledDelivery(client, tenantA, sdShared.id);
+        const listed = await listScheduledDeliveries(client, tenantA);
+        expect(listed.find((d) => d.id === sdShared.id)).toBeUndefined();
+      } finally {
+        await client.query("rollback");
+      }
+    });
+  }, 30000);
 });

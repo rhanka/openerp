@@ -12,7 +12,11 @@ import type {
   UpdateDashboardInput,
   DashboardWidget,
   CreateDashboardWidgetInput,
-  UpdateDashboardWidgetInput
+  UpdateDashboardWidgetInput,
+  ScheduledDelivery,
+  CreateScheduledDeliveryInput,
+  UpdateScheduledDeliveryInput,
+  DeliveryRun
 } from "@sentropic/openerp-domain/reporting";
 import type {
   Account,
@@ -1019,6 +1023,81 @@ export function createApiClient(options: ApiClientOptions) {
       );
     },
 
+    // ---------------------------------------------------------------------------
+    // Reporting — ScheduledDelivery + DeliveryRun (DS 5.3)
+    // ---------------------------------------------------------------------------
+
+    async listScheduledDeliveries(query: {
+      ownerUserId?: string;
+      shared?: boolean;
+      active?: boolean;
+    } = {}): Promise<ScheduledDelivery[]> {
+      const params = new URLSearchParams();
+      if (query.ownerUserId) params.set("ownerUserId", query.ownerUserId);
+      if (query.shared !== undefined) params.set("shared", String(query.shared));
+      if (query.active !== undefined) params.set("active", String(query.active));
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: ScheduledDelivery[] }>(`/reporting/scheduled-deliveries${suffix}`);
+      return body.items;
+    },
+
+    async createScheduledDelivery(input: CreateScheduledDeliveryInput): Promise<ScheduledDelivery> {
+      return request<ScheduledDelivery>("/reporting/scheduled-deliveries", {
+        method: "POST",
+        body: input
+      });
+    },
+
+    async getScheduledDelivery(id: string): Promise<ScheduledDelivery> {
+      return request<ScheduledDelivery>(`/reporting/scheduled-deliveries/${encodeURIComponent(id)}`);
+    },
+
+    async updateScheduledDelivery(id: string, patch: UpdateScheduledDeliveryInput): Promise<ScheduledDelivery> {
+      return request<ScheduledDelivery>(`/reporting/scheduled-deliveries/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch
+      });
+    },
+
+    async deleteScheduledDelivery(id: string): Promise<void> {
+      const reqHeaders = headers();
+      const response = await doFetch(`${options.baseUrl}/reporting/scheduled-deliveries/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: reqHeaders
+      });
+      if (!response.ok && response.status !== 204) {
+        const body = (await safeJson(response)) as { code?: string } | null;
+        const err = new Error(`API ${response.status}`) as ApiError;
+        err.status = response.status;
+        if (body?.code) err.code = body.code;
+        throw err;
+      }
+    },
+
+    async runDueDeliveries(asOfDate?: string): Promise<{ processed: number; results: Array<{ scheduledDeliveryId: string; deliveryRunId: string; status: string }> }> {
+      return request("/reporting/scheduled-deliveries/run", {
+        method: "POST",
+        body: asOfDate ? { asOfDate } : {}
+      });
+    },
+
+    async runDeliveryNow(id: string): Promise<DeliveryRun> {
+      return request<DeliveryRun>(`/reporting/scheduled-deliveries/${encodeURIComponent(id)}/run`, {
+        method: "POST"
+      });
+    },
+
+    async listDeliveryRuns(scheduledDeliveryId: string): Promise<DeliveryRun[]> {
+      const body = await request<{ items: DeliveryRun[] }>(
+        `/reporting/scheduled-deliveries/${encodeURIComponent(scheduledDeliveryId)}/runs`
+      );
+      return body.items;
+    },
+
+    async getDeliveryRun(id: string): Promise<DeliveryRun> {
+      return request<DeliveryRun>(`/reporting/delivery-runs/${encodeURIComponent(id)}`);
+    },
+
     async listUsers(query: { limit?: number; offset?: number } = {}): Promise<TenantUserSummary[]> {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(query)) {
@@ -1079,7 +1158,11 @@ export type {
   UpdateDashboardInput,
   DashboardWidget,
   CreateDashboardWidgetInput,
-  UpdateDashboardWidgetInput
+  UpdateDashboardWidgetInput,
+  ScheduledDelivery,
+  CreateScheduledDeliveryInput,
+  UpdateScheduledDeliveryInput,
+  DeliveryRun
 };
 
 async function safeJson(response: Response): Promise<unknown | null> {

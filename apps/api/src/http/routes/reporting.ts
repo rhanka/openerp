@@ -29,6 +29,16 @@ export function buildReportingRoutes(): RouteContract[] {
     { method: "GET", path: "/reporting/dashboards/:id/widgets", audited: false },
     { method: "POST", path: "/reporting/dashboards/:id/widgets", audited: true },
     { method: "PATCH", path: "/reporting/dashboards/:id/widgets/:widgetId", audited: true },
-    { method: "DELETE", path: "/reporting/dashboards/:id/widgets/:widgetId", audited: true }
+    { method: "DELETE", path: "/reporting/dashboards/:id/widgets/:widgetId", audited: true },
+    // ScheduledDelivery + DeliveryRun (DS 5.3)
+    { method: "GET", path: "/reporting/scheduled-deliveries", audited: false },
+    { method: "POST", path: "/reporting/scheduled-deliveries", audited: true },
+    { method: "GET", path: "/reporting/scheduled-deliveries/:id", audited: false },
+    { method: "PATCH", path: "/reporting/scheduled-deliveries/:id", audited: true },
+    { method: "DELETE", path: "/reporting/scheduled-deliveries/:id", audited: true },
+    { method: "POST", path: "/reporting/scheduled-deliveries/run", audited: true },
+    { method: "POST", path: "/reporting/scheduled-deliveries/:id/run", audited: true },
+    { method: "GET", path: "/reporting/scheduled-deliveries/:id/runs", audited: false },
+    { method: "GET", path: "/reporting/delivery-runs/:id", audited: false }
   ];
 }

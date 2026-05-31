@@ -137,6 +137,70 @@ export interface UpdateDashboardWidgetInput {
   position?: number;
 }
 
+// ---------------------------------------------------------------------------
+// ScheduledDelivery + DeliveryRun (DS 5.3 — Article 4.5).
+// A ScheduledDelivery targets a ReportDefinition on a cadence; firing
+// executes the report once and persists a frozen ReportRun snapshot plus an
+// audited DeliveryRun (in-app channel; recipients recorded).
+// ---------------------------------------------------------------------------
+
+export type ScheduledDeliveryCadence = "daily" | "weekly" | "monthly" | "quarterly" | "annual";
+
+export interface ScheduledDelivery {
+  id: string;
+  organizationId: string;
+  ownerUserId: string | null;
+  name: string;
+  targetType: "report_definition";
+  targetId: string;
+  cadence: ScheduledDeliveryCadence;
+  timezone: string;
+  nextRunAt: string;
+  lastRunAt: string | null;
+  channel: "in_app";
+  recipientUserIds: string[];
+  isShared: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateScheduledDeliveryInput {
+  ownerUserId?: string | null;
+  name: string;
+  targetType: "report_definition";
+  targetId: string;
+  cadence: ScheduledDeliveryCadence;
+  timezone?: string;
+  recipientUserIds?: string[];
+  isShared?: boolean;
+  active?: boolean;
+}
+
+export interface UpdateScheduledDeliveryInput {
+  name?: string;
+  cadence?: ScheduledDeliveryCadence;
+  timezone?: string;
+  recipientUserIds?: string[];
+  isShared?: boolean;
+  active?: boolean;
+  nextRunAt?: string;
+}
+
+export interface DeliveryRun {
+  id: string;
+  organizationId: string;
+  scheduledDeliveryId: string;
+  reportRunId: string | null;
+  triggeredBy: "schedule" | "manual";
+  status: "completed" | "failed" | "skipped";
+  errorDetail: string | null;
+  snapshotSummary: Record<string, unknown>;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
 export const REPORTING_DOMAIN_EVENTS = [
   "reporting.saved_view.created",
   "reporting.saved_view.updated",
@@ -151,7 +215,12 @@ export const REPORTING_DOMAIN_EVENTS = [
   "reporting.dashboard.deleted",
   "reporting.dashboard_widget.created",
   "reporting.dashboard_widget.updated",
-  "reporting.dashboard_widget.deleted"
+  "reporting.dashboard_widget.deleted",
+  "reporting.scheduled_delivery.created",
+  "reporting.scheduled_delivery.updated",
+  "reporting.scheduled_delivery.deleted",
+  "reporting.delivery_run.completed",
+  "reporting.delivery_run.failed"
 ] as const;
 
 export type ReportingDomainEvent = (typeof REPORTING_DOMAIN_EVENTS)[number];

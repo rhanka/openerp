@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildReportingRoutes } from "../../src/http/routes/reporting";
 
-describe("reporting route registry (DS 5.0 + DS 5.1 + DS 5.2)", () => {
-  it("registers saved-views CRUD + report-definitions + report-runs + dashboards endpoints", () => {
+describe("reporting route registry (DS 5.0 + DS 5.1 + DS 5.2 + DS 5.3)", () => {
+  it("registers saved-views CRUD + report-definitions + report-runs + dashboards + scheduled-deliveries endpoints", () => {
     const paths = buildReportingRoutes().map((r) => `${r.method} ${r.path}`);
     // DS 5.0 saved-views
     expect(paths).toContain("GET /reporting/saved-views");
@@ -33,6 +33,33 @@ describe("reporting route registry (DS 5.0 + DS 5.1 + DS 5.2)", () => {
     expect(paths).toContain("POST /reporting/dashboards/:id/widgets");
     expect(paths).toContain("PATCH /reporting/dashboards/:id/widgets/:widgetId");
     expect(paths).toContain("DELETE /reporting/dashboards/:id/widgets/:widgetId");
+    // DS 5.3 scheduled-deliveries
+    expect(paths).toContain("GET /reporting/scheduled-deliveries");
+    expect(paths).toContain("POST /reporting/scheduled-deliveries");
+    expect(paths).toContain("GET /reporting/scheduled-deliveries/:id");
+    expect(paths).toContain("PATCH /reporting/scheduled-deliveries/:id");
+    expect(paths).toContain("DELETE /reporting/scheduled-deliveries/:id");
+    expect(paths).toContain("POST /reporting/scheduled-deliveries/run");
+    expect(paths).toContain("POST /reporting/scheduled-deliveries/:id/run");
+    expect(paths).toContain("GET /reporting/scheduled-deliveries/:id/runs");
+    expect(paths).toContain("GET /reporting/delivery-runs/:id");
+  });
+
+  it("flags scheduled-deliveries mutating endpoints as audited (DS 5.3)", () => {
+    const routes = buildReportingRoutes();
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries/:id" && r.method === "PATCH")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries/:id" && r.method === "DELETE")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries/run" && r.method === "POST")?.audited).toBe(true);
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries/:id/run" && r.method === "POST")?.audited).toBe(true);
+  });
+
+  it("flags scheduled-deliveries GET endpoints as not audited (DS 5.3)", () => {
+    const routes = buildReportingRoutes();
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries/:id" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/reporting/scheduled-deliveries/:id/runs" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/reporting/delivery-runs/:id" && r.method === "GET")?.audited).toBe(false);
   });
 
   it("flags mutating endpoints as audited (saved-views)", () => {

@@ -52,6 +52,10 @@ const adminRoutes: Array<{
   {
     path: "/admin/reporting/dashboards",
     labels: { en: "Dashboards", fr: "Tableaux de bord" }
+  },
+  {
+    path: "/admin/reporting/scheduled-deliveries",
+    labels: { en: "Scheduled deliveries", fr: "Livraisons planifiees" }
   }
 ];
 
