@@ -3534,4 +3534,191 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       }
     });
   }, 30000);
+
+  it("DS 5.5: WebhookEndpoint + WebhookDelivery — signed pending_egress + idempotency + secret-not-in-GET + no-egress + ownership-403", async () => {
+    const { createHmac } = await import("node:crypto");
+    const { createWebhookEndpoint, deleteWebhookEndpoint, getWebhookEndpointById, listWebhookEndpoints, WebhookForbiddenError } = await import("../../src/webhook/webhook-service");
+    const { buildApp, headerTenantResolver } = await import("../../src/http/app");
+
+    // Use ephemeral DB isolated for this suite instance
+    const ephemeralDs55 = await createEphemeralDb("pgsmoke-ds55");
+    const poolDs55 = createPgPool({ connectionString: ephemeralDs55.connectionString });
+
+    try {
+      await runMigrations(poolDs55, {
+        directory: new URL("../../src/db/migrations", import.meta.url).pathname
+      });
+
+      await poolDs55.withClient(async (client) => {
+        await client.query("begin");
+        try {
+          const orgRes = await client.query<{ id: string }>(
+            `insert into organizations (
+               legal_name, display_name, slug, status, default_locale, default_currency,
+               default_timezone, country, province_state
+             ) values ('WH DS55 Co', 'WH DS55 Co', 'wh-ds55', 'active', 'fr', 'CAD',
+               'America/Toronto', 'CA', 'QC')
+             returning id`,
+            []
+          );
+          const orgId = orgRes.rows[0]!.id;
+
+          const userARes = await client.query<{ id: string }>(
+            `with id as (
+               insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+               values ('wh-ds55-a-id@wh.local', 'WH A DS55', 'fr', 'passkey', 'active', 'human')
+               returning id
+             )
+             insert into users (id, organization_id, email, display_name, preferred_locale, status)
+             select id.id, $1, 'wh-ds55-a@wh.local', 'WH A DS55', 'fr', 'active' from id
+             returning id`,
+            [orgId]
+          );
+          const userBRes = await client.query<{ id: string }>(
+            `with id as (
+               insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+               values ('wh-ds55-b-id@wh.local', 'WH B DS55', 'fr', 'passkey', 'active', 'human')
+               returning id
+             )
+             insert into users (id, organization_id, email, display_name, preferred_locale, status)
+             select id.id, $1, 'wh-ds55-b@wh.local', 'WH B DS55', 'fr', 'active' from id
+             returning id`,
+            [orgId]
+          );
+          const tenantA = { organizationId: orgId, actorUserId: userARes.rows[0]!.id };
+          const tenantB = { organizationId: orgId, actorUserId: userBRes.rows[0]!.id };
+
+          // 1. Create endpoint subscribed to project.task.completed
+          const createResult = await createWebhookEndpoint(client, tenantA, {
+            name: "Task completed webhook",
+            targetUrl: "https://hooks.example.com/task-done",
+            eventTypes: ["project.task.completed"],
+            isActive: true,
+            isShared: false,
+            ownerUserId: tenantA.actorUserId
+          });
+
+          // Assert create response carries signingSecret
+          expect(typeof createResult.signingSecret).toBe("string");
+          expect(createResult.signingSecret.length).toBe(64);
+          const storedSecret = createResult.signingSecret;
+
+          // 2. GET /webhook/endpoints/:id response must NOT contain signingSecret
+          // Test via the service (which mirrors the HTTP handler)
+          const retrieved = await getWebhookEndpointById(client, tenantA, createResult.id);
+          expect(retrieved).not.toBeNull();
+          expect((retrieved as unknown as Record<string, unknown>).signingSecret).toBeUndefined();
+          expect((retrieved as unknown as Record<string, unknown>).signing_secret).toBeUndefined();
+
+          // Also verify via buildApp (HTTP handler path)
+          const app = buildApp({ db: client, resolveTenant: headerTenantResolver });
+          const getRes = await app.request(`/webhook/endpoints/${createResult.id}`, {
+            headers: {
+              "x-organization-id": orgId,
+              "x-user-identity-id": tenantA.actorUserId
+            }
+          });
+          expect(getRes.status).toBe(200);
+          const httpBody = await getRes.json() as Record<string, unknown>;
+          expect(httpBody.signingSecret).toBeUndefined();
+          expect(httpBody.signing_secret).toBeUndefined();
+
+          // 3. Perform a mutation that fires project.task.completed
+          // We need a project task — create one via the service and mark it complete
+          const { createProject } = await import("../../src/project/project-service");
+          const { createProjectTask, updateProjectTask } = await import("../../src/project/project-task-service");
+
+          const project = await createProject(client, tenantA, {
+            name: "Test project DS55"
+          });
+          const task = await createProjectTask(client, tenantA, {
+            projectId: project.id,
+            title: "Test task for webhook",
+            status: "todo"
+          });
+
+          // Mark task as done → fires project.task.completed → webhook evaluator records delivery
+          await updateProjectTask(client, tenantA, task.id, { status: "done" });
+
+          // 4. Assert exactly ONE webhook_deliveries row exists, status=pending_egress
+          const deliveries = await client.query<{
+            id: string;
+            status: string;
+            http_status: number | null;
+            delivered_at: string | null;
+            signature: string;
+            payload: Record<string, unknown>;
+            trigger_audit_event_id: string;
+            signed_at: string;
+          }>(
+            `select id, status, http_status, delivered_at, signature, payload,
+                    trigger_audit_event_id, signed_at
+               from webhook_deliveries
+              where organization_id = $1 and webhook_endpoint_id = $2
+              order by created_at`,
+            [orgId, createResult.id]
+          );
+          expect(deliveries.rows.length).toBe(1);
+          const delivery = deliveries.rows[0]!;
+          expect(delivery.status).toBe("pending_egress");
+          expect(delivery.http_status).toBeNull();    // NO egress
+          expect(delivery.delivered_at).toBeNull();  // NO egress
+          expect(delivery.signature).toMatch(/^v1=/);
+          expect(delivery.signature.length).toBeGreaterThan(65);
+
+          // 5. Verify HMAC signature is correct.
+          // Use the same canonical serialization (sorted keys) as the evaluator
+          // to produce a rawBody that matches despite JSONB key reordering.
+          const { canonicalizePayload } = await import("../../src/webhook/webhook-signer");
+          const rawBody = canonicalizePayload(delivery.payload as Record<string, unknown>);
+          const signedAtUnix = Math.floor(new Date(delivery.signed_at).getTime() / 1000);
+          const message = `${delivery.trigger_audit_event_id}.${signedAtUnix}.${rawBody}`;
+          const expected = "v1=" + createHmac("sha256", storedSecret).update(message).digest("hex");
+          expect(delivery.signature).toBe(expected);
+
+          // 6. Idempotency: complete the task again (would fire the same audit event?) - we simulate by
+          //    calling the webhook evaluator directly with the same auditEventId
+          const { makeWebhookEvaluator } = await import("../../src/webhook/webhook-evaluator");
+          const evaluator = makeWebhookEvaluator();
+          await evaluator(client, tenantA, {
+            auditEventId: delivery.trigger_audit_event_id,
+            action: "project.task.completed",
+            resourceType: "project_task",
+            resourceId: task.id
+          });
+
+          // Still only one delivery (idempotent on auditEventId)
+          const deliveriesAfter = await client.query<{ id: string }>(
+            `select id from webhook_deliveries where organization_id = $1 and webhook_endpoint_id = $2`,
+            [orgId, createResult.id]
+          );
+          expect(deliveriesAfter.rows.length).toBe(1);
+
+          // 7. Ownership-403: user B cannot PATCH user A's shared endpoint
+          // First make it shared
+          await client.query(
+            `update webhook_endpoints set is_shared = true, owner_user_id = $3, updated_at = now()
+              where id = $1 and organization_id = $2`,
+            [createResult.id, orgId, tenantA.actorUserId]
+          );
+          await expect(
+            import("../../src/webhook/webhook-service").then(({ updateWebhookEndpoint }) =>
+              updateWebhookEndpoint(client, tenantB, createResult.id, { name: "Hacked" })
+            )
+          ).rejects.toBeInstanceOf(WebhookForbiddenError);
+
+          // 8. Soft-delete removes from list
+          await deleteWebhookEndpoint(client, tenantA, createResult.id);
+          const listedAfterDelete = await listWebhookEndpoints(client, tenantA);
+          expect(listedAfterDelete.find((e) => e.id === createResult.id)).toBeUndefined();
+
+        } finally {
+          await client.query("rollback");
+        }
+      });
+    } finally {
+      await poolDs55.end();
+      await ephemeralDs55.drop();
+    }
+  }, 60000);
 });

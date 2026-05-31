@@ -6,6 +6,14 @@ import type {
   WorkflowRun
 } from "@sentropic/openerp-domain/workflow";
 import type {
+  WebhookEndpoint,
+  WebhookDelivery,
+  CreateWebhookEndpointInput,
+  UpdateWebhookEndpointInput,
+  CreateWebhookEndpointResult,
+  WebhookEventTypeEntry
+} from "@sentropic/openerp-domain/webhook";
+import type {
   SavedView,
   CreateSavedViewInput,
   UpdateSavedViewInput,
@@ -1170,6 +1178,57 @@ export function createApiClient(options: ApiClientOptions) {
       actions: Array<{ actionType: string; labelKey: string }>;
     }> {
       return request("/workflows/catalog");
+    },
+
+    async listWebhookEndpoints(query: { ownerUserId?: string; shared?: boolean; active?: boolean } = {}): Promise<WebhookEndpoint[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<{ items: WebhookEndpoint[] }>(`/webhook/endpoints${suffix}`);
+      return body.items;
+    },
+
+    async getWebhookEndpoint(id: string): Promise<WebhookEndpoint> {
+      return request<WebhookEndpoint>(`/webhook/endpoints/${encodeURIComponent(id)}`);
+    },
+
+    async createWebhookEndpoint(input: CreateWebhookEndpointInput): Promise<CreateWebhookEndpointResult> {
+      return request<CreateWebhookEndpointResult>(`/webhook/endpoints`, { method: "POST", body: input });
+    },
+
+    async updateWebhookEndpoint(id: string, patch: UpdateWebhookEndpointInput): Promise<WebhookEndpoint> {
+      return request<WebhookEndpoint>(`/webhook/endpoints/${encodeURIComponent(id)}`, { method: "PATCH", body: patch });
+    },
+
+    async rotateWebhookSecret(id: string): Promise<{ signingSecret: string }> {
+      return request<{ signingSecret: string }>(`/webhook/endpoints/${encodeURIComponent(id)}/rotate-secret`, { method: "POST" });
+    },
+
+    async deleteWebhookEndpoint(id: string): Promise<void> {
+      return requestNoContent(`/webhook/endpoints/${encodeURIComponent(id)}`);
+    },
+
+    async testWebhookEndpoint(id: string): Promise<WebhookDelivery> {
+      return request<WebhookDelivery>(`/webhook/endpoints/${encodeURIComponent(id)}/test`, { method: "POST" });
+    },
+
+    async listWebhookDeliveries(endpointId: string): Promise<WebhookDelivery[]> {
+      const body = await request<{ items: WebhookDelivery[] }>(
+        `/webhook/endpoints/${encodeURIComponent(endpointId)}/deliveries`
+      );
+      return body.items;
+    },
+
+    async getWebhookDelivery(id: string): Promise<WebhookDelivery> {
+      return request<WebhookDelivery>(`/webhook/deliveries/${encodeURIComponent(id)}`);
+    },
+
+    async listWebhookEventTypes(): Promise<WebhookEventTypeEntry[]> {
+      const body = await request<{ items: WebhookEventTypeEntry[] }>(`/webhook/event-types`);
+      return body.items;
     },
 
     async listUsers(query: { limit?: number; offset?: number } = {}): Promise<TenantUserSummary[]> {

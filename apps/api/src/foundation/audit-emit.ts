@@ -69,6 +69,33 @@ export function setWorkflowEvaluator(fn: WorkflowEvaluatorFn): void {
 }
 
 // ---------------------------------------------------------------------------
+// Webhook evaluator registration.
+//
+// Mirror of the workflow evaluator pattern. audit-emit.ts must NOT import the
+// webhook module (foundation→feature cycle). The webhook module registers its
+// evaluator at buildApp startup via setWebhookEvaluator(); the default is null
+// (no-op) so all tests that don't go through buildApp keep unmodified behaviour.
+//
+// Suppression: same depth guard as the workflow evaluator — when depth >= 1,
+// the webhook evaluator is also not called (prevents cascade fan-out from
+// workflow actions' own audit events).
+// ---------------------------------------------------------------------------
+
+export type WebhookTriggerPayload = WorkflowTriggerPayload;
+
+export type WebhookEvaluatorFn = (
+  db: Queryable,
+  context: TenantContext,
+  payload: WebhookTriggerPayload
+) => Promise<void>;
+
+let _webhookEvaluator: WebhookEvaluatorFn | null = null;
+
+export function setWebhookEvaluator(fn: WebhookEvaluatorFn): void {
+  _webhookEvaluator = fn;
+}
+
+// ---------------------------------------------------------------------------
 // Extended TenantContext with workflow suppression marker.
 // We extend the base TenantContext with an optional depth counter so that
 // workflow actions can pass a "suppressed" context that prevents re-entrancy.
@@ -133,23 +160,37 @@ export async function recordAuditEvent(
     values
   );
 
-  // Invoke the workflow evaluator (if registered) unless we are already inside
-  // a workflow action (depth guard prevents cascade re-entrancy).
+  // Invoke evaluators (if registered) unless we are already inside a workflow
+  // action (depth guard prevents cascade re-entrancy for both evaluators).
   const depth = (context as AuditTenantContext).__workflowDepth ?? 0;
-  if (_workflowEvaluator !== null && depth < 1) {
+  if (depth < 1) {
     const auditEventId = result.rows[0]?.id;
     if (auditEventId) {
-      // Best-effort: swallow all errors so workflow failures never fail the
-      // originating mutation.
-      try {
-        await _workflowEvaluator(db, context, {
-          auditEventId,
-          action: input.action,
-          resourceType: input.resourceType,
-          resourceId: input.resourceId
-        });
-      } catch {
-        // Intentionally swallowed — best-effort guarantee.
+      const triggerPayload = {
+        auditEventId,
+        action: input.action,
+        resourceType: input.resourceType,
+        resourceId: input.resourceId
+      };
+
+      if (_workflowEvaluator !== null) {
+        // Best-effort: swallow all errors so workflow failures never fail the
+        // originating mutation.
+        try {
+          await _workflowEvaluator(db, context, triggerPayload);
+        } catch {
+          // Intentionally swallowed — best-effort guarantee.
+        }
+      }
+
+      if (_webhookEvaluator !== null) {
+        // Best-effort: swallow all errors so webhook failures never fail the
+        // originating mutation.
+        try {
+          await _webhookEvaluator(db, context, triggerPayload);
+        } catch {
+          // Intentionally swallowed — best-effort guarantee.
+        }
       }
     }
   }

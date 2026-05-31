@@ -14,6 +14,7 @@ export const ALLOWED_MODULES = new Set([
   "billing",
   "reporting",
   "workflow",
+  "webhook",
   "agentic",
   "system"
 ] as const);

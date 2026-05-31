@@ -54,7 +54,8 @@
     { label: t(locale, "nav.reportDefinitions"), href: "/admin/reporting/report-definitions" },
     { label: t(locale, "nav.dashboards"), href: "/admin/reporting/dashboards" },
     { label: t(locale, "nav.scheduledDeliveries"), href: "/admin/reporting/scheduled-deliveries" },
-    { label: t(locale, "nav.workflows"), href: "/admin/reporting/workflows" }
+    { label: t(locale, "nav.workflows"), href: "/admin/reporting/workflows" },
+    { label: t(locale, "nav.webhooks"), href: "/admin/reporting/webhooks" }
   ]));
 
   const adminItems = $derived(navGroup([

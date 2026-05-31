@@ -30,10 +30,12 @@ import { mountReportingReportDefinitionRoutes } from "./handlers/reporting-repor
 import { mountReportingDashboardRoutes } from "./handlers/reporting-dashboards";
 import { mountReportingScheduledDeliveryRoutes } from "./handlers/reporting-scheduled-deliveries";
 import { mountWorkflowRoutes } from "./handlers/workflow-definitions";
+import { mountWebhookRoutes } from "./handlers/webhook-endpoints";
 import { mountUsersRoutes } from "./handlers/users";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
-import { setWorkflowEvaluator } from "../foundation/audit-emit";
+import { setWorkflowEvaluator, setWebhookEvaluator } from "../foundation/audit-emit";
 import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
+import { makeWebhookEvaluator } from "../webhook/webhook-evaluator";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
 // The HTTP server itself is started by apps/api/src/server.ts via the
@@ -76,6 +78,9 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   // Register the workflow evaluator so that audit events trigger matching workflows.
   // This is a no-op if called multiple times (safe for tests).
   setWorkflowEvaluator(makeWorkflowEvaluator());
+
+  // Register the webhook evaluator so that audit events record matching deliveries.
+  setWebhookEvaluator(makeWebhookEvaluator());
 
   const app = new Hono<AppBindings>();
 
@@ -134,6 +139,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountReportingDashboardRoutes(app);
   mountReportingScheduledDeliveryRoutes(app);
   mountWorkflowRoutes(app);
+  mountWebhookRoutes(app);
 
   return app;
 }
