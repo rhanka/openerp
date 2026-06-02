@@ -53,4 +53,9 @@ export function startServer(options: StartServerOptions): RunningServer {
 // Re-export the header resolver so callers can build the default tenant
 // resolver from anywhere without reaching into ./http/app.
 export { headerTenantResolver } from "./http/app";
+
+// Re-export the JWT-verifying resolver so callers can wire production auth
+// without reaching into ./http/tenant-resolvers.
+export { createJwtTenantResolver } from "./http/tenant-resolvers";
+
 export type { Queryable };

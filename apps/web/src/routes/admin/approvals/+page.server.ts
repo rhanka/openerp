@@ -35,8 +35,16 @@ function clientFromLocalsOrEnv(
   locals: App.Locals
 ): { client: ReturnType<typeof createApiClient>; actorUserId: string } | null {
   const baseUrl = env.OPENERP_API_URL ?? "http://127.0.0.1:4000";
-  const organizationId = locals.session?.organizationId ?? env.OPENERP_DEV_ORG_ID ?? "";
-  const actorUserId = locals.session?.userIdentityId ?? env.OPENERP_DEV_USER_ID ?? "";
+  const token = locals.session?.token;
+  if (token) {
+    const actorUserId = locals.session!.userIdentityId;
+    return {
+      client: createApiClient({ baseUrl, token, fetch: fetchImpl as typeof globalThis.fetch }),
+      actorUserId
+    };
+  }
+  const organizationId = env.OPENERP_DEV_ORG_ID ?? "";
+  const actorUserId = env.OPENERP_DEV_USER_ID ?? "";
   if (!organizationId || !actorUserId) return null;
   return {
     client: createApiClient({

@@ -106,10 +106,18 @@ import type {
 
 export interface ApiClientOptions {
   baseUrl: string;
-  /** Tenant context headers — provided by the SSR layer until passkey-based
-   *  session cookies land. */
-  organizationId: string;
-  actorUserId: string;
+  /** Session JWT forwarded from the `openerp_session` cookie. When present the
+   *  client sends `Authorization: Bearer <token>` and the server verifies the
+   *  signature via its IdentityProvider (PG-09 / integration 0-A).
+   *
+   *  `organizationId` and `actorUserId` are kept for legacy code paths that have
+   *  not yet been migrated to the token-first path. If `token` is supplied it
+   *  takes precedence and the x-* headers are NOT sent. */
+  token?: string;
+  /** @deprecated Pass `token` instead. Kept for the OPENERP_DEV_* env fallback. */
+  organizationId?: string;
+  /** @deprecated Pass `token` instead. Kept for the OPENERP_DEV_* env fallback. */
+  actorUserId?: string;
   /** Hono `app.request()` style fetch override, used by tests. */
   fetch?: typeof fetch;
 }
@@ -132,9 +140,18 @@ export function createApiClient(options: ApiClientOptions) {
   const doFetch = options.fetch ?? fetch;
 
   function headers(): Record<string, string> {
+    if (options.token) {
+      // PG-09 / integration 0-A: forward the verified session JWT as a Bearer token.
+      // The API's jwtTenantResolver verifies the signature before trusting any claims.
+      return {
+        authorization: `Bearer ${options.token}`,
+        "content-type": "application/json"
+      };
+    }
+    // Legacy fallback for dev env using OPENERP_DEV_* plain-header path.
     return {
-      "x-organization-id": options.organizationId,
-      "x-user-identity-id": options.actorUserId,
+      "x-organization-id": options.organizationId ?? "",
+      "x-user-identity-id": options.actorUserId ?? "",
       "content-type": "application/json"
     };
   }
