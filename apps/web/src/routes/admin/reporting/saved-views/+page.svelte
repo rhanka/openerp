@@ -6,6 +6,7 @@
     Card,
     EmptyState,
     Input,
+    Select,
     Tag
   } from "@sentropic/design-system-svelte";
 
@@ -103,17 +104,16 @@
           required
           minlength={1}
         />
-        <div class="page__select-group">
-          <label class="page__select-label" for="sv-resource-type">
-            {t(locale, "reporting.savedViews.field.resourceType")}
-          </label>
-          <select class="page__select" id="sv-resource-type" name="resourceType" required>
-            <option value="">{t(locale, "reporting.savedViews.field.resourceTypePlaceholder")}</option>
-            {#each RESOURCE_TYPES as rt}
-              <option value={rt}>{resourceTypeLabel(rt)}</option>
-            {/each}
-          </select>
-        </div>
+        <Select
+          label={t(locale, "reporting.savedViews.field.resourceType")}
+          name="resourceType"
+          required
+        >
+          <option value="">{t(locale, "reporting.savedViews.field.resourceTypePlaceholder")}</option>
+          {#each RESOURCE_TYPES as rt}
+            <option value={rt}>{resourceTypeLabel(rt)}</option>
+          {/each}
+        </Select>
         <div class="page__checkbox-group">
           <label class="page__checkbox-label">
             <input type="checkbox" name="isShared" class="page__checkbox" />
@@ -206,29 +206,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1rem;
-  }
-
-  .page__select-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-  }
-
-  .page__select-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--st-semantic-text-default);
-  }
-
-  .page__select {
-    box-sizing: border-box;
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--st-semantic-border-default);
-    border-radius: var(--st-radius-sm, 4px);
-    background: var(--st-semantic-surface-default);
-    color: var(--st-semantic-text-default);
-    font-size: 0.875rem;
   }
 
   .page__checkbox-group {

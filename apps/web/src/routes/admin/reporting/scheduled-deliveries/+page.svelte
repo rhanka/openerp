@@ -6,6 +6,7 @@
     Card,
     EmptyState,
     Input,
+    Select,
     Tag
   } from "@sentropic/design-system-svelte";
 
@@ -134,28 +135,27 @@
           required
           minlength={1}
         />
-        <div class="page__field-group">
-          <label class="page__label" for="sd-target-id">
-            {t(locale, "reporting.scheduledDeliveries.field.targetId")}
-          </label>
-          <select id="sd-target-id" name="targetId" class="page__select" required>
-            <option value="">{t(locale, "reporting.scheduledDeliveries.field.targetIdPlaceholder")}</option>
-            {#each data.reportDefs as rd (rd.id)}
-              <option value={rd.id}>{rd.name}</option>
-            {/each}
-          </select>
-        </div>
-        <div class="page__field-group">
-          <label class="page__label" for="sd-cadence">
-            {t(locale, "reporting.scheduledDeliveries.field.cadence")}
-          </label>
-          <select id="sd-cadence" name="cadence" class="page__select" required data-testid="cadence-select">
-            <option value="">{t(locale, "reporting.scheduledDeliveries.field.cadencePlaceholder")}</option>
-            {#each CADENCES as cadence}
-              <option value={cadence}>{cadenceLabel(cadence)}</option>
-            {/each}
-          </select>
-        </div>
+        <Select
+          label={t(locale, "reporting.scheduledDeliveries.field.targetId")}
+          name="targetId"
+          required
+        >
+          <option value="">{t(locale, "reporting.scheduledDeliveries.field.targetIdPlaceholder")}</option>
+          {#each data.reportDefs as rd (rd.id)}
+            <option value={rd.id}>{rd.name}</option>
+          {/each}
+        </Select>
+        <Select
+          label={t(locale, "reporting.scheduledDeliveries.field.cadence")}
+          name="cadence"
+          required
+          data-testid="cadence-select"
+        >
+          <option value="">{t(locale, "reporting.scheduledDeliveries.field.cadencePlaceholder")}</option>
+          {#each CADENCES as cadence}
+            <option value={cadence}>{cadenceLabel(cadence)}</option>
+          {/each}
+        </Select>
         <Input
           label={t(locale, "reporting.scheduledDeliveries.field.timezone")}
           name="timezone"
@@ -318,27 +318,6 @@
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--st-semantic-text-primary);
-  }
-
-  .page__field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .page__label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--st-semantic-text-primary);
-  }
-
-  .page__select {
-    padding: 0.5rem;
-    border: 1px solid var(--st-semantic-border-default);
-    border-radius: 0.25rem;
-    background: var(--st-semantic-background-default);
-    color: var(--st-semantic-text-primary);
-    font-size: 0.875rem;
   }
 
   .page__checkbox-group {

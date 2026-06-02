@@ -6,6 +6,7 @@
     Card,
     EmptyState,
     Input,
+    Select,
     Tag
   } from "@sentropic/design-system-svelte";
 
@@ -119,28 +120,28 @@
           required
           minlength={1}
         />
-        <div class="page__field-group">
-          <label class="page__label" for="wf-trigger-type">
-            {t(locale, "workflow.field.triggerType")}
-          </label>
-          <select id="wf-trigger-type" name="triggerType" class="page__select" required data-testid="trigger-select">
-            <option value="">— {t(locale, "workflow.field.triggerType")} —</option>
-            {#each data.catalog.triggers as trigger}
-              <option value={trigger.eventType}>{triggerLabel(trigger.eventType)}</option>
-            {/each}
-          </select>
-        </div>
-        <div class="page__field-group">
-          <label class="page__label" for="wf-action-type">
-            {t(locale, "workflow.field.actionType")}
-          </label>
-          <select id="wf-action-type" name="actionType" class="page__select" required data-testid="action-select">
-            <option value="">— {t(locale, "workflow.field.actionType")} —</option>
-            {#each data.catalog.actions as action}
-              <option value={action.actionType}>{actionLabel(action.actionType)}</option>
-            {/each}
-          </select>
-        </div>
+        <Select
+          label={t(locale, "workflow.field.triggerType")}
+          name="triggerType"
+          required
+          data-testid="trigger-select"
+        >
+          <option value="">— {t(locale, "workflow.field.triggerType")} —</option>
+          {#each data.catalog.triggers as trigger}
+            <option value={trigger.eventType}>{triggerLabel(trigger.eventType)}</option>
+          {/each}
+        </Select>
+        <Select
+          label={t(locale, "workflow.field.actionType")}
+          name="actionType"
+          required
+          data-testid="action-select"
+        >
+          <option value="">— {t(locale, "workflow.field.actionType")} —</option>
+          {#each data.catalog.actions as action}
+            <option value={action.actionType}>{actionLabel(action.actionType)}</option>
+          {/each}
+        </Select>
         <Input
           label={t(locale, "workflow.field.actionConfig.subjectKey")}
           name="actionConfig_subjectKey"
@@ -312,27 +313,6 @@
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--st-semantic-text-primary);
-  }
-
-  .page__field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .page__label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--st-semantic-text-primary);
-  }
-
-  .page__select {
-    padding: 0.5rem;
-    border: 1px solid var(--st-semantic-border-default);
-    border-radius: 0.25rem;
-    background: var(--st-semantic-background-default);
-    color: var(--st-semantic-text-primary);
-    font-size: 0.875rem;
   }
 
   .page__checkbox-group {
