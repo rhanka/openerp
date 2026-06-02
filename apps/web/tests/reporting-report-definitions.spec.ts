@@ -37,7 +37,7 @@ test.describe("Reporting report-definitions (DS 5.1 demo mode)", () => {
     await page.goto("/admin/reporting/report-definitions");
     await page.waitForLoadState("domcontentloaded");
 
-    await expect(page.getByRole("heading", { name: "Rapports", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Rapports personnalisés", exact: true })).toBeVisible();
   });
 
   test("create form is present with name, reportType select, and isShared fields", async ({ page, context, baseURL }) => {

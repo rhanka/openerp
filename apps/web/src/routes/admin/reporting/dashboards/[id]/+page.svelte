@@ -33,12 +33,21 @@
     return t(locale, labelKey as Parameters<typeof t>[1]);
   }
 
-  function formatCellValue(value: unknown, dataType: string): string {
+  function formatCellValue(value: unknown, dataType: string, row?: Record<string, unknown>): string {
     if (value === null || value === undefined) return "-";
     if (dataType === "money") {
       const minor = Number(value);
       if (!isNaN(minor)) {
-        return (minor / 100).toFixed(2);
+        const amount = minor / 100;
+        const currency = row && typeof row["currency"] === "string" ? row["currency"] : null;
+        if (currency) {
+          try {
+            return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
+          } catch {
+            // fall through to default
+          }
+        }
+        return amount.toFixed(2);
       }
     }
     return String(value);
@@ -89,7 +98,7 @@
               </h2>
               <div class="page__widget-meta">
                 {#if renderedWidget.error}
-                  <Tag tone="warning">Error</Tag>
+                  <Tag tone="warning">{t(locale, "reporting.dashboards.widget.error")}</Tag>
                 {:else}
                   <span class="page__widget-rows">
                     {renderedWidget.rowCount} {t(locale, "reporting.reportRuns.results.rows")}
@@ -102,11 +111,11 @@
               <p class="page__widget-error">{renderedWidget.error}</p>
             {:else if renderedWidget.columns.length > 0}
               <div class="page__table-wrap" data-testid="widget-results-table">
-                <table class="page__table">
+                <table class="page__table" aria-label={renderedWidget.widget.title ?? renderedWidget.reportType}>
                   <thead>
                     <tr>
                       {#each renderedWidget.columns as col}
-                        <th>{columnLabel(col.labelKey)}</th>
+                        <th scope="col">{columnLabel(col.labelKey)}</th>
                       {/each}
                     </tr>
                   </thead>
@@ -114,7 +123,7 @@
                     {#each renderedWidget.rows as row}
                       <tr>
                         {#each renderedWidget.columns as col}
-                          <td>{formatCellValue(row[col.key], col.dataType)}</td>
+                          <td>{formatCellValue(row[col.key], col.dataType, row)}</td>
                         {/each}
                       </tr>
                     {/each}
@@ -247,7 +256,7 @@
   }
 
   .page__widget-error {
-    color: var(--st-semantic-text-danger, red);
+    color: var(--st-semantic-feedback-error);
     font-size: 0.875rem;
   }
 

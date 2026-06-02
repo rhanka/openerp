@@ -198,12 +198,12 @@
               </div>
               <div class="page__item-tags">
                 {#if workflow.isActive}
-                  <Tag tone="success">{t(locale, "workflow.field.isActive")}</Tag>
+                  <Tag tone="success">{t(locale, "workflow.tag.active")}</Tag>
                 {:else}
-                  <Tag tone="neutral">{t(locale, "workflow.field.isActive")}</Tag>
+                  <Tag tone="neutral">{t(locale, "workflow.tag.inactive")}</Tag>
                 {/if}
                 {#if workflow.isShared}
-                  <Tag tone="info">{t(locale, "workflow.field.isShared")}</Tag>
+                  <Tag tone="info">{t(locale, "workflow.tag.shared")}</Tag>
                 {/if}
               </div>
             </header>

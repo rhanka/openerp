@@ -47,7 +47,7 @@ const adminRoutes: Array<{
   },
   {
     path: "/admin/reporting/report-definitions",
-    labels: { en: "Reports", fr: "Rapports" }
+    labels: { en: "Reports", fr: "Rapports personnalisés" }
   },
   {
     path: "/admin/reporting/dashboards",

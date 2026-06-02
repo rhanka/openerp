@@ -179,7 +179,8 @@ export const actions: Actions = {
       return {
         ok: true as const,
         id,
-        signingSecret: result.signingSecret
+        signingSecret: result.signingSecret,
+        rotated: true as const
       };
     } catch (err) {
       return fail(502, { code: "API_ERROR", message: err instanceof Error ? err.message : String(err) });

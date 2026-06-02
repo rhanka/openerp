@@ -214,3 +214,31 @@ Acceptance criteria:
 7. Playwright `uxdr-005-006.spec.ts` company detail assertions pass for EN and FR locales.
 
 Go/No-Go: GO when acceptance criteria 1–7 verified by Playwright and lint gates.
+
+---
+
+## UXDR-007 — Reporting/Automation nav grouping
+
+Status: PROPOSED / NO-GO. Decision: KEEP the single "Reporting" nav section (6 items). The split into Reporting + Automation is deferred. Reopen trigger: a 7th item is added to the section, OR the URL namespace is re-architected.
+
+Ou: global admin shell, `apps/web/src/routes/+layout.svelte`, nav section header `nav.section.reporting`, all `/admin/reporting/*` routes. Reference UXDR-003 (module grouping).
+
+Orientation: Retain the single "Reporting" section (6 items: Saved views, Reports, Dashboards, Scheduled deliveries, Workflows, Webhooks). Do NOT split into a "Reporting" sub-section and an "Automation" sub-section at this time.
+
+Options rejetees:
+- Split into Reporting (Saved views, Reports, Dashboards, Scheduled deliveries) + Automation (Workflows, Webhooks): rejected now. The section currently has 6 items, which is below the 8-item cognitive-load threshold identified in UXDR-003. Both Workflows and Webhooks are output-oriented (they react to the same audit events that Reports consume) and belong in the same observability/automation surface. Splitting requires a nav IA decision, a URL re-architecture (currently all under `/admin/reporting/`), and new i18n section keys — disproportionate for 6 items.
+- Collapse Workflows + Webhooks under a nested "Automation" sub-heading within the same SideNav group: rejected; the SideNav component has no native sub-grouping API (confirmed in UXDR-003); would require custom DOM with accessibility risks.
+
+Preuves:
+- Review pass (2026-05-31): the 6-item single section was examined against the UXDR-003 threshold. The split was identified as a valid future direction but not a current blocker.
+- UXDR-003 established the 8-item cognitive-load threshold for grouping; the current section is at 6.
+- The FR nav collision (`nav.reportDefinitions` FR = "Rapports" colliding with `nav.section.reporting` FR = "Rapports") was fixed independently by renaming `nav.reportDefinitions` FR to "Rapports personnalisés" — this does not require a structural split.
+
+Risques:
+- If a 7th item is added (e.g. Alerts, Exports, AI reports), the section will cross the threshold and the split should be revisited.
+- The current URL namespace (`/admin/reporting/workflows`, `/admin/reporting/webhooks`) conflates "reporting" with "automation"; if the URL namespace is re-architected, the nav grouping must follow.
+- The FR label fix ("Rapports personnalisés") distinguishes Reports from the Reporting section header; no further collision risk in the current 6-item scope.
+
+Decision proposee: KEEP the single "Reporting" section. NO-GO on the Reporting/Automation split.
+
+Go/No-Go: NO-GO (deferred). Reopen when: (a) a 7th item is added to the section, or (b) the `/admin/reporting/` URL namespace is re-architected to separate reporting from automation routes.

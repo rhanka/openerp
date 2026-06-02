@@ -30,6 +30,7 @@
   );
 
   let creating = $state(false);
+  let secretCopied = $state(false);
 
   function eventTypeLabel(eventType: string): string {
     const entry = data.eventTypes.find((e) => e.eventType === eventType);
@@ -58,10 +59,34 @@
     }
   }
 
+  function errorCodeMessage(code: string | undefined): string {
+    if (!code) return "";
+    if (code === "EVENT_TYPES_REQUIRED") return t(locale, "webhook.validation.eventTypesRequired");
+    return code;
+  }
+
   // Extract signingSecret from action result (shown ONCE)
   const shownSecret = $derived(
     form && "signingSecret" in form && form.signingSecret ? String(form.signingSecret) : null
   );
+
+  // Distinguish created vs rotated secret reveal
+  const secretRevealTitle = $derived(
+    form && "rotated" in form && form.rotated
+      ? t(locale, "webhook.secret.rotated")
+      : t(locale, "webhook.secret.created")
+  );
+
+  async function copySecret() {
+    if (!shownSecret) return;
+    try {
+      await navigator.clipboard.writeText(shownSecret);
+      secretCopied = true;
+      setTimeout(() => { secretCopied = false; }, 2000);
+    } catch {
+      // clipboard unavailable — user can copy manually
+    }
+  }
 </script>
 
 <section class="page">
@@ -86,14 +111,24 @@
   {/if}
 
   {#if form && "ok" in form && form.ok && shownSecret}
-    <Alert tone="success" title={"signingSecret" in form ? t(locale, "webhook.secret.created") : t(locale, "webhook.secret.rotated")}>
-      <code class="page__secret">{shownSecret}</code>
+    <Alert tone="success" title={secretRevealTitle}>
+      <div class="page__secret-reveal">
+        <code class="page__secret">{shownSecret}</code>
+        <Button
+          variant="secondary"
+          size="sm"
+          onclick={copySecret}
+          aria-label={t(locale, "webhook.action.copySecret")}
+        >
+          {secretCopied ? "✓" : t(locale, "webhook.action.copySecret")}
+        </Button>
+      </div>
     </Alert>
   {/if}
 
   {#if form && "code" in form}
     <Alert tone="warning" title={t(locale, "approval.actionError.title")}>
-      {(form as unknown as { code?: string }).code}
+      {errorCodeMessage((form as unknown as { code?: string }).code)}
     </Alert>
   {/if}
 
@@ -134,6 +169,7 @@
             name="eventTypes"
             class="page__select"
             multiple
+            required
             data-testid="event-types-select"
             size={data.eventTypes.length}
           >
@@ -187,12 +223,12 @@
               </div>
               <div class="page__item-tags">
                 {#if endpoint.isActive}
-                  <Tag tone="success">{t(locale, "webhook.field.isActive")}</Tag>
+                  <Tag tone="success">{t(locale, "webhook.tag.active")}</Tag>
                 {:else}
-                  <Tag tone="neutral">{t(locale, "webhook.field.isActive")}</Tag>
+                  <Tag tone="neutral">{t(locale, "webhook.tag.inactive")}</Tag>
                 {/if}
                 {#if endpoint.isShared}
-                  <Tag tone="info">{t(locale, "webhook.field.isShared")}</Tag>
+                  <Tag tone="info">{t(locale, "webhook.tag.shared")}</Tag>
                 {/if}
               </div>
             </header>
@@ -204,7 +240,12 @@
                   {t(locale, "webhook.action.test")}
                 </Button>
               </form>
-              <form method="POST" action="?/rotateSecret" use:enhance>
+              <form
+                method="POST"
+                action="?/rotateSecret"
+                use:enhance
+                onsubmit={(e) => { if (!confirm(t(locale, "webhook.action.rotateSecretConfirm"))) e.preventDefault(); }}
+              >
                 <input type="hidden" name="id" value={endpoint.id} />
                 <Button type="submit" variant="secondary" size="sm">
                   {t(locale, "webhook.action.rotateSecret")}
@@ -239,7 +280,7 @@
                         {delivery.eventType} &mdash; {formatDate(delivery.createdAt)}
                       </span>
                       <details class="page__payload">
-                        <summary class="page__payload-summary">Payload + signature</summary>
+                        <summary class="page__payload-summary">{t(locale, "webhook.deliveries.payload")}</summary>
                         <pre class="page__payload-body">{JSON.stringify(delivery.payload, null, 2)}</pre>
                         <code class="page__signature">{delivery.signature}</code>
                       </details>
@@ -459,6 +500,13 @@
     font-size: 0.75rem;
     color: var(--st-semantic-text-muted);
     word-break: break-all;
+  }
+
+  .page__secret-reveal {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
 
   .page__secret {

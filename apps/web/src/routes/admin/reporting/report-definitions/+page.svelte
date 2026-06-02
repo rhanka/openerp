@@ -48,12 +48,21 @@
     return t(locale, labelKey as Parameters<typeof t>[1]);
   }
 
-  function formatCellValue(value: unknown, dataType: string): string {
+  function formatCellValue(value: unknown, dataType: string, row?: Record<string, unknown>): string {
     if (value === null || value === undefined) return "-";
     if (dataType === "money") {
       const minor = Number(value);
       if (!isNaN(minor)) {
-        return (minor / 100).toFixed(2);
+        const amount = minor / 100;
+        const currency = row && typeof row["currency"] === "string" ? row["currency"] : null;
+        if (currency) {
+          try {
+            return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
+          } catch {
+            // fall through to default
+          }
+        }
+        return amount.toFixed(2);
       }
     }
     return String(value);
@@ -218,11 +227,11 @@
         </span>
       </header>
       <div class="page__table-wrap" data-testid="report-results-table">
-        <table class="page__table">
+        <table class="page__table" aria-label={t(locale, "reporting.reportRuns.results.title")}>
           <thead>
             <tr>
               {#each latestRun.resultColumns as col}
-                <th>{columnLabel(col.labelKey)}</th>
+                <th scope="col">{columnLabel(col.labelKey)}</th>
               {/each}
             </tr>
           </thead>
@@ -230,13 +239,24 @@
             {#each latestRun.resultRows as row}
               <tr>
                 {#each latestRun.resultColumns as col}
-                  <td>{formatCellValue(row[col.key], col.dataType)}</td>
+                  <td>{formatCellValue(row[col.key], col.dataType, row)}</td>
                 {/each}
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
+    </Card>
+  {:else if latestRun && latestRun.status === "failed"}
+    <Alert tone="warning" title={t(locale, "reporting.reportRuns.results.failed")}>
+      {latestRun.errorDetail ?? ""}
+    </Alert>
+  {:else if latestRun && latestRun.status === "completed" && latestRun.rowCount === 0}
+    <Card>
+      <EmptyState
+        title={t(locale, "reporting.reportRuns.results.empty")}
+        message=""
+      />
     </Card>
   {/if}
 </section>
