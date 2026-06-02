@@ -25,7 +25,8 @@ describe("foundation route registry", () => {
       "GET /notifications",
       "PATCH /notifications/:id",
       "GET /i18n/catalog",
-      "GET /system/update-state"
+      "GET /system/update-state",
+      "POST /auth/exchange-agent-token"
     ]);
   });
 
@@ -40,7 +41,8 @@ describe("foundation route registry", () => {
       "PATCH /users/:id",
       "POST /roles",
       "PATCH /roles/:id",
-      "POST /files"
+      "POST /files",
+      "POST /auth/exchange-agent-token"
     ]);
   });
 });

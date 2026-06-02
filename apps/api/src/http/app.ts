@@ -33,6 +33,7 @@ import { mountWorkflowRoutes } from "./handlers/workflow-definitions";
 import { mountWebhookRoutes } from "./handlers/webhook-endpoints";
 import { mountUsersRoutes } from "./handlers/users";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
+import { mountAgentTokenExchangeRoute } from "./handlers/auth-token-exchange";
 import { setWorkflowEvaluator, setWebhookEvaluator } from "../foundation/audit-emit";
 import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
 import { makeWebhookEvaluator } from "../webhook/webhook-evaluator";
@@ -109,6 +110,9 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
       ...(options.passkey.sessionTtlSeconds !== undefined
         ? { sessionTtlSeconds: options.passkey.sessionTtlSeconds }
         : {})
+    });
+    mountAgentTokenExchangeRoute(app, {
+      identityProvider: options.passkey.identityProvider
     });
   }
 

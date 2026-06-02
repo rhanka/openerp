@@ -23,6 +23,7 @@ export function buildFoundationRoutes(): RouteContract[] {
     { method: "GET", path: "/notifications", audited: false },
     { method: "PATCH", path: "/notifications/:id", audited: false },
     { method: "GET", path: "/i18n/catalog", audited: false },
-    { method: "GET", path: "/system/update-state", audited: false }
+    { method: "GET", path: "/system/update-state", audited: false },
+    { method: "POST", path: "/auth/exchange-agent-token", audited: true }
   ];
 }
