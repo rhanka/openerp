@@ -37,6 +37,7 @@ import { mountAgentTokenExchangeRoute } from "./handlers/auth-token-exchange";
 import { setWorkflowEvaluator, setWebhookEvaluator } from "../foundation/audit-emit";
 import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
 import { makeWebhookEvaluator } from "../webhook/webhook-evaluator";
+import { buildOpenApiDocument } from "./openapi";
 
 // Hono app builder. Aligned with @sentropic stack (hono + @hono/node-server).
 // The HTTP server itself is started by apps/api/src/server.ts via the
@@ -62,7 +63,7 @@ export interface BuildAppOptions {
   };
 }
 
-const PUBLIC_PATH_PREFIXES = ["/webauthn/"] as const;
+const PUBLIC_PATH_PREFIXES = ["/webauthn/", "/openapi.json"] as const;
 
 function isPublicPath(path: string): boolean {
   return PUBLIC_PATH_PREFIXES.some((p) => path.startsWith(p));
@@ -101,6 +102,11 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   });
 
   app.get("/healthz", (c) => c.json({ status: "ok" }));
+
+  // GET /openapi.json — public (no tenant required); returns the machine-readable
+  // OpenAPI 3.1 description of the REST surface for Sentropic chat / agent tooling.
+  // Contains only route metadata — no tenant data.
+  app.get("/openapi.json", (c) => c.json(buildOpenApiDocument()));
 
   if (options.passkey) {
     mountWebAuthnRoutes(app, {
