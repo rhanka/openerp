@@ -13,6 +13,7 @@
   import { Languages } from "@lucide/svelte";
 
   import { SUPPORTED_LOCALES, t, type LocaleCode } from "$lib/i18n";
+  import { setCanvasContext, installWindowAccessor } from "$lib/canvas-context";
 
   import type { LayoutData } from "./$types";
 
@@ -20,6 +21,16 @@
 
   const locale: LocaleCode = $derived(data.locale);
   const currentPath = $derived(page.url?.pathname ?? "/");
+
+  // Install the window getter once after hydration (browser-only, safe for SSR).
+  $effect(() => {
+    installWindowAccessor();
+  });
+
+  // Keep canvas context in sync with the current route (reactive to currentPath).
+  $effect(() => {
+    setCanvasContext(currentPath);
+  });
 
   const preAuthRoutes = ["/login", "/register-passkey"];
   const isPreAuth = $derived(preAuthRoutes.some((r) => currentPath === r || currentPath.startsWith(r + "/")));
