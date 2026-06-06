@@ -7,6 +7,12 @@ import type {
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
 
+/** Minimal interface required by claimAndProcessNextDueSchedule.
+ *  PgPoolHandle satisfies this; test fakes may optionally implement it. */
+export interface QueryablePool extends Queryable {
+  withClient<T>(fn: (client: Queryable) => Promise<T>): Promise<T>;
+}
+
 // Repository for RecurringBillingSchedule entities.
 // Supports soft-delete via deleted_at.
 
@@ -117,6 +123,86 @@ export async function listDueRecurringSchedules(
     [context.organizationId, asOfDate]
   );
   return result.rows;
+}
+
+/**
+ * Atomically claim ONE due, active, non-deleted schedule for the tenant using
+ * SELECT ... FOR UPDATE SKIP LOCKED, execute the callback inside the same
+ * transaction (so the lock is held throughout), advance next_run_at, and commit.
+ *
+ * Returns true if a schedule was claimed and processed; false when none are due.
+ * On callback error the transaction is rolled back and the error is re-thrown.
+ *
+ * Concurrent callers will each see a different row (SKIP LOCKED) so the same
+ * schedule can never be processed twice in parallel.
+ */
+export async function claimAndProcessNextDueSchedule(
+  pool: QueryablePool,
+  context: TenantContext,
+  asOfDate: string,
+  callback: (
+    schedule: RecurringBillingSchedule,
+    db: Queryable
+  ) => Promise<{ lastInvoiceId: string; lastRunAt: string; nextRunAt: string }>
+): Promise<boolean> {
+  assertTenantContext(context);
+
+  return pool.withClient(async (client) => {
+    await client.query("begin");
+    try {
+      // Set tenant RLS scope for this transaction (is_local = true keeps it transaction-scoped).
+      await client.query(
+        "select set_config('app.current_organization_id', $1, true)",
+        [context.organizationId]
+      );
+
+      // Claim one due row with a row-level lock; concurrent callers skip locked rows.
+      const claimResult = await client.query<RecurringBillingSchedule>(
+        `select ${SCHEDULE_RETURN_COLUMNS}
+           from recurring_billing_schedules
+          where organization_id = $1
+            and deleted_at is null
+            and active = true
+            and next_run_at <= $2::date
+          order by next_run_at asc, created_at asc
+          for update skip locked
+          limit 1`,
+        [context.organizationId, asOfDate]
+      );
+
+      const schedule = claimResult.rows[0] ?? null;
+      if (!schedule) {
+        await client.query("commit");
+        return false;
+      }
+
+      // Invoke the caller's work (invoice generation, audit emit, etc.).
+      const advance = await callback(schedule, client);
+
+      // Advance the schedule inside the same transaction.
+      await client.query(
+        `update recurring_billing_schedules
+            set last_invoice_id = $3,
+                last_run_at = $4,
+                next_run_at = $5::date,
+                updated_at = now()
+          where id = $1 and organization_id = $2 and deleted_at is null`,
+        [
+          schedule.id,
+          context.organizationId,
+          advance.lastInvoiceId,
+          advance.lastRunAt,
+          advance.nextRunAt
+        ]
+      );
+
+      await client.query("commit");
+      return true;
+    } catch (err) {
+      await client.query("rollback");
+      throw err;
+    }
+  });
 }
 
 export async function updateRecurringSchedule(
