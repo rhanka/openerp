@@ -10,13 +10,15 @@ import { assertTenantContext } from "../db/client";
 import { recordAuditEvent } from "../foundation/audit-emit";
 import { emitBillingTimelineEntry } from "./billing-timeline";
 import {
+  claimAndProcessNextDueSchedule,
   findRecurringScheduleById,
   insertRecurringSchedule,
   listDueRecurringSchedules,
   listRecurringSchedules,
   markScheduleRan,
   softDeleteRecurringSchedule,
-  updateRecurringSchedule
+  updateRecurringSchedule,
+  type QueryablePool
 } from "./recurring-schedules";
 import { insertInvoice, insertInvoiceLine, countInvoicesForOrg } from "./invoices";
 
@@ -233,8 +235,14 @@ export interface RunDueRecurringBillingResult {
  *  1. Create a single-line draft Invoice via the standard invoice path.
  *  2. Advance next_run_at by one cadence step.
  *  3. Update last_invoice_id + last_run_at + next_run_at on the schedule.
- *  4. Emit billing.recurring_schedule.scheduled + billing.invoice.created (invoice
- *     creation emits billing.invoice.created automatically via createInvoice).
+ *  4. Emit billing.recurring_schedule.scheduled + billing.invoice.created.
+ *
+ * When the underlying db supports withClient (i.e. a real PgPoolHandle), each
+ * schedule is claimed atomically via SELECT … FOR UPDATE SKIP LOCKED so that
+ * concurrent callers cannot process the same schedule twice.
+ *
+ * When withClient is absent (unit-test fakes), the function falls back to the
+ * plain list-and-iterate path so fake Queryable implementations keep working.
  *
  * Returns { generated, invoiceIds }.
  */
@@ -245,6 +253,137 @@ export async function runDueRecurringBilling(
 ): Promise<RunDueRecurringBillingResult> {
   assertTenantContext(context);
 
+  // Detect whether the db supports withClient (production PgPoolHandle path).
+  const hasPool =
+    "withClient" in db &&
+    typeof (db as unknown as QueryablePool).withClient === "function";
+
+  if (hasPool) {
+    // ---------------------------------------------------------------------------
+    // Concurrency-safe path: per-row claim with SELECT … FOR UPDATE SKIP LOCKED.
+    // Each iteration claims at most one schedule; the loop continues until none
+    // remain. Concurrent callers skip locked rows and find 0 due when the last
+    // schedule has been taken.
+    // ---------------------------------------------------------------------------
+    const pool = db as unknown as QueryablePool;
+    const invoiceIds: string[] = [];
+
+    let claimed = true;
+    while (claimed) {
+      claimed = await claimAndProcessNextDueSchedule(
+        pool,
+        context,
+        asOfDate,
+        async (schedule, txDb) => {
+          const currency = schedule.currency;
+          const amount: BillingMoney = schedule.amount;
+          const zero: BillingMoney = { amountMinor: 0, currency, scale: amount.scale };
+          const lineDescription =
+            schedule.description ?? `Recurring billing (${schedule.cadence})`;
+
+          const count = await countInvoicesForOrg(txDb, context);
+          const invoiceNumber = `INV-${String(count + 1).padStart(6, "0")}`;
+
+          const invoice = await insertInvoice(txDb, context, {
+            companyId: schedule.companyId,
+            projectId: null,
+            invoiceProposalId: null,
+            invoiceNumber,
+            status: "draft",
+            currency,
+            subtotal: amount,
+            taxTotal: zero,
+            total: amount,
+            taxCategoryId: null,
+            issueDate: null,
+            dueDate: null
+          });
+
+          const line = await insertInvoiceLine(txDb, context, {
+            invoiceId: invoice.id,
+            sourceType: "recurring_schedule",
+            sourceId: schedule.id,
+            description: lineDescription,
+            quantity: 1,
+            unitPrice: amount,
+            amount
+          });
+
+          const invoiceWithLines = { ...invoice, lines: [line] };
+
+          await recordAuditEvent(txDb, context, {
+            action: "billing.invoice.created",
+            resourceType: "invoice",
+            resourceId: invoice.id,
+            beforeSummary: null,
+            afterSummary: {
+              invoiceNumber: invoice.invoiceNumber,
+              status: invoice.status,
+              recurringScheduleId: schedule.id,
+              lineCount: 1,
+              totalMinor: amount.amountMinor,
+              currency
+            }
+          });
+          await emitBillingTimelineEntry(txDb, context, {
+            resourceType: "invoice",
+            resourceId: invoice.id,
+            entryType: "billing.invoice.created",
+            payloadSummary: {
+              invoiceNumber: invoice.invoiceNumber,
+              recurringScheduleId: schedule.id,
+              lineCount: 1,
+              totalMinor: amount.amountMinor,
+              currency
+            }
+          });
+
+          const nextRunAt = advanceNextRunAt(schedule.nextRunAt, schedule.cadence);
+          const lastRunAt = new Date().toISOString();
+
+          await recordAuditEvent(txDb, context, {
+            action: "billing.recurring_schedule.scheduled",
+            resourceType: "recurring_schedule",
+            resourceId: schedule.id,
+            beforeSummary: { nextRunAt: schedule.nextRunAt, lastInvoiceId: schedule.lastInvoiceId },
+            afterSummary: {
+              invoiceId: invoiceWithLines.id,
+              invoiceNumber: invoiceWithLines.invoiceNumber,
+              nextRunAt,
+              lastRunAt,
+              amountMinor: schedule.amount.amountMinor,
+              currency: schedule.currency
+            }
+          });
+
+          await emitBillingTimelineEntry(txDb, context, {
+            resourceType: "recurring_schedule",
+            resourceId: schedule.id,
+            entryType: "billing.recurring_schedule.scheduled",
+            payloadSummary: {
+              invoiceId: invoiceWithLines.id,
+              invoiceNumber: invoiceWithLines.invoiceNumber,
+              nextRunAt,
+              amountMinor: schedule.amount.amountMinor,
+              currency: schedule.currency
+            }
+          });
+
+          invoiceIds.push(invoiceWithLines.id);
+
+          return { lastInvoiceId: invoiceWithLines.id, lastRunAt, nextRunAt };
+        }
+      );
+    }
+
+    return { generated: invoiceIds.length, invoiceIds };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fallback path: plain list-and-iterate (used by unit-test fakes that do not
+  // implement withClient). No row-level lock; not safe for concurrent callers,
+  // but correct for single-caller unit tests.
+  // ---------------------------------------------------------------------------
   const dueSchedules = await listDueRecurringSchedules(db, context, asOfDate);
 
   const invoiceIds: string[] = [];
@@ -255,7 +394,6 @@ export async function runDueRecurringBilling(
     const zero: BillingMoney = { amountMinor: 0, currency, scale: amount.scale };
     const lineDescription = schedule.description ?? `Recurring billing (${schedule.cadence})`;
 
-    // Generate invoice number (same pattern as invoice-service).
     const count = await countInvoicesForOrg(db, context);
     const invoiceNumber = `INV-${String(count + 1).padStart(6, "0")}`;
 
@@ -286,7 +424,6 @@ export async function runDueRecurringBilling(
 
     const invoiceWithLines = { ...invoice, lines: [line] };
 
-    // Emit billing.invoice.created audit + timeline.
     await recordAuditEvent(db, context, {
       action: "billing.invoice.created",
       resourceType: "invoice",
@@ -323,7 +460,6 @@ export async function runDueRecurringBilling(
       nextRunAt
     });
 
-    // Emit scheduled event for this run.
     await recordAuditEvent(db, context, {
       action: "billing.recurring_schedule.scheduled",
       resourceType: "recurring_schedule",

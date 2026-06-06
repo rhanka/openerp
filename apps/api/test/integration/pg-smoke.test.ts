@@ -3721,4 +3721,110 @@ describeOrSkip("pg-client + migrate (integration)", () => {
       await ephemeralDs55.drop();
     }
   }, 60000);
+
+  it("RecurringBilling concurrent-fire regression: two concurrent runDueRecurringBilling calls on one due schedule produce exactly one invoice", async () => {
+    const { runDueRecurringBilling } = await import(
+      "../../src/billing/recurring-schedule-service"
+    );
+
+    // Use a dedicated ephemeral DB so data is committed and visible across connections.
+    const ephemeralConc = await createEphemeralDb("pgsmoke-recbill-conc");
+    const poolConc = createPgPool({ connectionString: ephemeralConc.connectionString });
+
+    try {
+      await runMigrations(poolConc, {
+        directory: new URL("../../src/db/migrations", import.meta.url).pathname
+      });
+
+      // Seed org + user + company + one due schedule (all committed so both concurrent connections see them).
+      const orgRes = await poolConc.query<{ id: string }>(
+        `insert into organizations (
+           legal_name, display_name, slug, status, default_locale, default_currency,
+           default_timezone, country, province_state
+         ) values ('ConcBill Co', 'ConcBill Co', 'concbill-co', 'active', 'fr', 'CAD',
+           'America/Toronto', 'CA', 'QC')
+         returning id`,
+        []
+      );
+      const orgId = orgRes.rows[0]!.id;
+
+      const userRes = await poolConc.query<{ id: string }>(
+        `with uid as (
+           insert into user_identities (email, display_name, preferred_locale, mfa_state, status, actor_type)
+           values ('conc-bill-id@concbill.local', 'Conc Bill', 'fr', 'passkey', 'active', 'human')
+           returning id
+         )
+         insert into users (id, organization_id, email, display_name, preferred_locale, status)
+         select uid.id, $1, 'conc-bill@concbill.local', 'Conc Bill', 'fr', 'active' from uid
+         returning id`,
+        [orgId]
+      );
+      const userId = userRes.rows[0]!.id;
+      const tenant = { organizationId: orgId, actorUserId: userId };
+
+      const companyRes = await poolConc.query<{ id: string }>(
+        `insert into companies (organization_id, display_name, status)
+         values ($1, 'Conc Client', 'active')
+         returning id`,
+        [orgId]
+      );
+      const companyId = companyRes.rows[0]!.id;
+
+      // Insert one due schedule directly (committed; visible to all connections).
+      await poolConc.query(
+        `insert into recurring_billing_schedules
+           (organization_id, company_id, description, cadence, amount, currency, next_run_at, active)
+         values ($1, $2, 'Conc monthly retainer', 'monthly',
+                 '{"amountMinor":300000,"currency":"CAD","scale":2}'::jsonb,
+                 'CAD', '2026-04-01'::date, true)`,
+        [orgId, companyId]
+      );
+
+      // Fire two concurrent runDueRecurringBilling calls.
+      // asOfDate = 2026-04-30: the schedule (next_run_at=2026-04-01) is due, but
+      // once advanced to 2026-05-01 it will NOT be due any more on that same date.
+      // This guarantees exactly one claim fires and the other returns 0.
+      const [result1, result2] = await Promise.all([
+        runDueRecurringBilling(poolConc, tenant, "2026-04-30"),
+        runDueRecurringBilling(poolConc, tenant, "2026-04-30")
+      ]);
+
+      const totalGenerated = result1.generated + result2.generated;
+      const allInvoiceIds = [...result1.invoiceIds, ...result2.invoiceIds];
+
+      // Exactly one invoice must have been created across both concurrent runs.
+      expect(totalGenerated).toBe(1);
+      expect(allInvoiceIds).toHaveLength(1);
+
+      // Confirm in the DB: exactly one invoice row for this org.
+      const invoiceCount = await poolConc.query<{ cnt: string }>(
+        `select count(*)::text as cnt from invoices where organization_id = $1`,
+        [orgId]
+      );
+      expect(invoiceCount.rows[0]!.cnt).toBe("1");
+
+      // Confirm next_run_at was advanced exactly once.
+      const scheduleRow = await poolConc.query<{ next_run_at: string; last_invoice_id: string }>(
+        `select next_run_at::text as next_run_at, last_invoice_id
+           from recurring_billing_schedules
+          where organization_id = $1`,
+        [orgId]
+      );
+      expect(scheduleRow.rows).toHaveLength(1);
+      // Advanced from 2026-04-01 by one month → 2026-05-01.
+      expect(scheduleRow.rows[0]!.next_run_at).toBe("2026-05-01");
+      expect(scheduleRow.rows[0]!.last_invoice_id).toBe(allInvoiceIds[0]);
+
+      // Confirm exactly one billing.recurring_schedule.scheduled audit event.
+      const auditRows = await poolConc.query<{ action: string }>(
+        `select action from audit_events
+          where organization_id = $1 and action = 'billing.recurring_schedule.scheduled'`,
+        [orgId]
+      );
+      expect(auditRows.rows).toHaveLength(1);
+    } finally {
+      await poolConc.end();
+      await ephemeralConc.drop();
+    }
+  }, 60000);
 });
