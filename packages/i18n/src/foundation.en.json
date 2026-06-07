@@ -674,5 +674,7 @@
   "webhook.eventType.project_task_completed.label": "Project: Task completed",
   "update.between12And24": "Guided catch-up required",
   "update.over24": "Outside standard support",
-  "update.under12": "Supported"
+  "update.under12": "Supported",
+  "chat.dock.title": "Assistant",
+  "chat.dock.toggle": "Open assistant"
 }
