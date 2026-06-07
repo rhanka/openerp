@@ -15,12 +15,49 @@
   import { SUPPORTED_LOCALES, t, type LocaleCode } from "$lib/i18n";
   import { setCanvasContext, installWindowAccessor } from "$lib/canvas-context";
 
+  // Chat dock — feature-flagged (chatEnabled from server load).
+  import { browser } from "$app/environment";
+  import ChatDock from "@sentropic/chat-ui/components/ChatDock.svelte";
+  import ChatPanel from "@sentropic/chat-ui/components/ChatPanel.svelte";
+  import {
+    createDefaultTransport,
+    createStreamHub,
+    createWebHost,
+    createRendererRegistry,
+  } from "@sentropic/chat-ui";
+
   import type { LayoutData } from "./$types";
 
   let { data, children }: { data: LayoutData; children?: import("svelte").Snippet } = $props();
 
   const locale: LocaleCode = $derived(data.locale);
+  const chatEnabled: boolean = $derived(data.chatEnabled ?? false);
   const currentPath = $derived(page.url?.pathname ?? "/");
+
+  // Chat host — created lazily in the browser when the feature flag is ON.
+  // We keep it in a $derived so it recreates if page.url.origin changes.
+  const chatHost = $derived.by(() => {
+    if (!browser || !chatEnabled) return null;
+    const baseUrl = `${page.url.origin}/chat-transport`;
+    const transport = createDefaultTransport(baseUrl);
+    const streamClient = createStreamHub({
+      getBaseUrl: () => baseUrl,
+      getAuthState: () => true,
+    });
+    const renderers = createRendererRegistry();
+    return createWebHost({
+      transport,
+      streamClient,
+      renderers,
+      labels: (key) => {
+        try {
+          return t(locale, key as Parameters<typeof t>[1]);
+        } catch {
+          return key;
+        }
+      },
+    });
+  });
 
   // Install the window getter once after hydration (browser-only, safe for SSR).
   $effect(() => {
@@ -173,4 +210,31 @@
       {@render children?.()}
     </main>
   </div>
+
+  {#if chatEnabled}
+    <div data-testid="chat-dock" class="chat-dock-root">
+      {#if browser && chatHost}
+        <ChatDock isBrowser={true} hostMode="overlay">
+          {#snippet renderBubble({ toggle, isOpen })}
+            <button
+              class="chat-dock-bubble"
+              aria-label={t(locale, "chat.dock.toggle")}
+              aria-expanded={isOpen}
+              onclick={toggle}
+            >
+              <span aria-hidden="true">💬</span>
+            </button>
+          {/snippet}
+          {#snippet renderContent()}
+            <div class="chat-dock-panel">
+              <div class="chat-dock-panel__header">
+                <span class="chat-dock-panel__title">{t(locale, "chat.dock.title")}</span>
+              </div>
+              <ChatPanel host={chatHost} />
+            </div>
+          {/snippet}
+        </ChatDock>
+      {/if}
+    </div>
+  {/if}
 </ThemeProvider>

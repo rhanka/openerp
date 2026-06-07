@@ -211,6 +211,72 @@ select {
   gap: 1rem;
 }
 
+/* Chat dock — only rendered when feature flag is ON; zero layout impact otherwise. */
+.chat-dock-root {
+  bottom: 0;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: var(--st-z-overlay, 200);
+}
+
+.chat-dock-root > * {
+  pointer-events: auto;
+}
+
+.chat-dock-bubble {
+  align-items: center;
+  background: var(--st-semantic-surface-interactive, #0f62fe);
+  border: none;
+  border-radius: 50%;
+  bottom: 1.5rem;
+  box-shadow: var(--st-shadow-md, 0 4px 12px rgb(0 0 0 / 0.15));
+  color: var(--st-semantic-text-on-interactive, #fff);
+  cursor: pointer;
+  display: flex;
+  font-size: 1.25rem;
+  height: 3rem;
+  justify-content: center;
+  position: fixed;
+  right: 1.5rem;
+  width: 3rem;
+}
+
+.chat-dock-bubble:hover {
+  background: var(--st-semantic-surface-interactive-hover, #0353e9);
+}
+
+.chat-dock-bubble:focus-visible {
+  outline: 2px solid var(--st-semantic-border-interactive, #0f62fe);
+  outline-offset: 2px;
+}
+
+.chat-dock-panel {
+  background: var(--st-semantic-surface-default);
+  border-left: 1px solid var(--st-semantic-border-subtle);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 24rem;
+}
+
+.chat-dock-panel__header {
+  align-items: center;
+  border-bottom: 1px solid var(--st-semantic-border-subtle);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  min-height: var(--st-component-header-height, 3.5rem);
+  padding: 0 1rem;
+}
+
+.chat-dock-panel__title {
+  color: var(--st-semantic-text-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
 @media (max-width: 760px) {
   .shell {
     grid-template-columns: 1fr;
