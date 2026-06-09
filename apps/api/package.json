@@ -20,7 +20,7 @@
     "@types/pg": "^8.20.0",
     "hono": "^4.12.18",
     "intl-messageformat": "^10.7.18",
-    "jose": "^6.2.3",
+    "jose": "^5.10.0",
     "pg": "^8.20.0"
   },
   "devDependencies": {
