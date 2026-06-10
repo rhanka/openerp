@@ -13,6 +13,8 @@
   "dependencies": {
     "@hono/node-server": "^1.19.14",
     "@hono/zod-validator": "^0.7.6",
+    "@sentropic/auth-client": "^0.1.0",
+    "@sentropic/auth-hono": "^0.4.0",
     "@sentropic/h2a": "^0.1.7",
     "@sentropic/openerp-domain": "*",
     "@sentropic/openerp-i18n": "*",
