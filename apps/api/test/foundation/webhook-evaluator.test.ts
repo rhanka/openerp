@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { WebhookEndpoint, WebhookDelivery } from "@sentropic/openerp-domain/webhook";
 import type { Queryable } from "../../src/db/client";
@@ -275,5 +275,110 @@ describe("webhook evaluator (DS 5.5)", () => {
 
     // Reset
     setWebhookEvaluator(makeWebhookEvaluator());
+  });
+
+  // ---------------------------------------------------------------------------
+  // onDeliveryRecorded callback (W0-evaluator-enqueue)
+  // ---------------------------------------------------------------------------
+
+  it("callback: no match → no insert, callback never fires", async () => {
+    const { db } = makeFakeDb({
+      activeEndpoints: [{ id: "ep_cb1", eventTypes: ["billing.invoice.issued"], secret: "s_cb1" }]
+    });
+    const cb = vi.fn();
+    const evaluate = makeWebhookEvaluator({ onDeliveryRecorded: cb });
+
+    await evaluate(db, context, {
+      auditEventId: "audit_cb_nomatch",
+      action: "crm.opportunity.won",
+      resourceType: "opportunity",
+      resourceId: "opp_cb1"
+    });
+
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it("callback: matching endpoint → callback fires with deliveryId and organizationId", async () => {
+    const { db, deliveries } = makeFakeDb({
+      activeEndpoints: [{ id: "ep_cb2", eventTypes: ["crm.opportunity.won"], secret: "s_cb2" }]
+    });
+    const cb = vi.fn();
+    const evaluate = makeWebhookEvaluator({ onDeliveryRecorded: cb });
+
+    await evaluate(db, context, {
+      auditEventId: "audit_cb_match",
+      action: "crm.opportunity.won",
+      resourceType: "opportunity",
+      resourceId: "opp_cb2"
+    });
+
+    expect(deliveries.length).toBe(1);
+    expect(cb).toHaveBeenCalledOnce();
+    const [deliveryId, ctx] = cb.mock.calls[0] as [string, { organizationId: string }];
+    expect(deliveryId).toBe(deliveries[0]!.id);
+    expect(ctx.organizationId).toBe(context.organizationId);
+  });
+
+  it("callback: multiple matching endpoints → callback fires once per delivery", async () => {
+    const { db, deliveries } = makeFakeDb({
+      activeEndpoints: [
+        { id: "ep_cb3a", eventTypes: ["crm.opportunity.won"], secret: "s_cb3a" },
+        { id: "ep_cb3b", eventTypes: ["crm.opportunity.won"], secret: "s_cb3b" }
+      ]
+    });
+    const cb = vi.fn();
+    const evaluate = makeWebhookEvaluator({ onDeliveryRecorded: cb });
+
+    await evaluate(db, context, {
+      auditEventId: "audit_cb_multi",
+      action: "crm.opportunity.won",
+      resourceType: "opportunity",
+      resourceId: "opp_cb3"
+    });
+
+    expect(deliveries.length).toBe(2);
+    expect(cb).toHaveBeenCalledTimes(2);
+    const deliveryIds = (cb.mock.calls as Array<[string, unknown]>).map((c) => c[0]);
+    expect(deliveryIds).toContain(deliveries[0]!.id);
+    expect(deliveryIds).toContain(deliveries[1]!.id);
+  });
+
+  it("callback: throws → evaluator does NOT propagate, audit pipeline stays green", async () => {
+    const { db, deliveries } = makeFakeDb({
+      activeEndpoints: [{ id: "ep_cb4", eventTypes: ["crm.opportunity.won"], secret: "s_cb4" }]
+    });
+    const cb = vi.fn().mockRejectedValue(new Error("callback boom"));
+    const evaluate = makeWebhookEvaluator({ onDeliveryRecorded: cb });
+
+    await expect(
+      evaluate(db, context, {
+        auditEventId: "audit_cb_throw",
+        action: "crm.opportunity.won",
+        resourceType: "opportunity",
+        resourceId: "opp_cb4"
+      })
+    ).resolves.toBeUndefined();
+
+    // Delivery was still recorded despite callback failure
+    expect(deliveries.length).toBe(1);
+    expect(cb).toHaveBeenCalledOnce();
+  });
+
+  it("callback omitted: evaluator still works (smoke)", async () => {
+    const { db, deliveries } = makeFakeDb({
+      activeEndpoints: [{ id: "ep_cb5", eventTypes: ["crm.opportunity.won"], secret: "s_cb5" }]
+    });
+    // No callback — should behave exactly as before
+    const evaluate = makeWebhookEvaluator();
+
+    await evaluate(db, context, {
+      auditEventId: "audit_cb_smoke",
+      action: "crm.opportunity.won",
+      resourceType: "opportunity",
+      resourceId: "opp_cb5"
+    });
+
+    expect(deliveries.length).toBe(1);
+    expect(deliveries[0]!.status).toBe("pending_egress");
   });
 });

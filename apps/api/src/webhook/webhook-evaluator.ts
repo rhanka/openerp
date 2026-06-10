@@ -23,7 +23,21 @@ import { signPayload, buildDeliveryPayload, canonicalizePayload } from "./webhoo
 // 4. NO EGRESS — status is always 'pending_egress'; no fetch/HTTP calls.
 // ---------------------------------------------------------------------------
 
-export function makeWebhookEvaluator(): WebhookEvaluatorFn {
+export interface WebhookEvaluatorOptions {
+  /**
+   * Called after each successful insertWebhookDelivery. Best-effort: errors
+   * thrown by the callback are swallowed and never propagated to the caller.
+   *
+   * Production wiring: pass `runDueWebhookDeliveries` (or an enqueue helper)
+   * here to trigger eager egress immediately after a delivery row is recorded.
+   */
+  onDeliveryRecorded?: (
+    deliveryId: string,
+    ctx: { organizationId: string }
+  ) => void | Promise<void>;
+}
+
+export function makeWebhookEvaluator(options?: WebhookEvaluatorOptions): WebhookEvaluatorFn {
   return async function evaluate(
     db: Queryable,
     context: TenantContext,
@@ -70,7 +84,7 @@ export function makeWebhookEvaluator(): WebhookEvaluatorFn {
           );
 
           // Insert — idempotent on (webhook_endpoint_id, trigger_audit_event_id).
-          await insertWebhookDelivery(db, context, {
+          const delivery = await insertWebhookDelivery(db, context, {
             webhookEndpointId: endpoint.id,
             eventType: payload.action,
             triggerAuditEventId: payload.auditEventId,
@@ -79,6 +93,19 @@ export function makeWebhookEvaluator(): WebhookEvaluatorFn {
             signedAt: now.toISOString()
           });
           // NO egress — record-only.
+
+          // Fire the callback (best-effort) when a delivery row was obtained.
+          // insertWebhookDelivery always returns a row (new or existing on conflict),
+          // so we call the callback whenever we have an id back.
+          if (options?.onDeliveryRecorded && delivery?.id) {
+            try {
+              await options.onDeliveryRecorded(delivery.id, {
+                organizationId: context.organizationId
+              });
+            } catch {
+              // Best-effort: callback errors must not affect the audit pipeline.
+            }
+          }
         } catch {
           // Per-endpoint best-effort: continue to the next endpoint.
         }
