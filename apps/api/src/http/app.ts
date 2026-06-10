@@ -34,6 +34,8 @@ import { mountWebhookRoutes } from "./handlers/webhook-endpoints";
 import { mountUsersRoutes } from "./handlers/users";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 import { mountAgentTokenExchangeRoute } from "./handlers/auth-token-exchange";
+import { mountAuthOidcRoutes } from "./handlers/auth-oidc";
+import type { OidcClient } from "../auth/oidc-client";
 import { setWorkflowEvaluator, setWebhookEvaluator } from "../foundation/audit-emit";
 import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
 import { makeWebhookEvaluator } from "../webhook/webhook-evaluator";
@@ -61,9 +63,30 @@ export interface BuildAppOptions {
     identityProvider: IdentityProvider;
     sessionTtlSeconds?: number;
   };
+  /**
+   * OIDC RP routes (AUTH-39-A). When `enabled === true` the four /auth/* routes
+   * (GET /auth/login, GET /auth/oauth/callback, POST /auth/org-select,
+   * POST /auth/logout) delegate to the provided oidcClient. When `enabled` is
+   * false (default), the routes return 503 { code: "AUTH_OIDC_DISABLED" }
+   * without touching any other state.
+   *
+   * Guarded by OPENERP_OIDC_ENABLED=1 at the call site in server.ts.
+   */
+  oidc?: {
+    enabled: boolean;
+    oidcClient?: OidcClient;
+    sessionTtlSeconds?: number;
+  };
 }
 
-const PUBLIC_PATH_PREFIXES = ["/webauthn/", "/openapi.json"] as const;
+const PUBLIC_PATH_PREFIXES = [
+  "/webauthn/",
+  "/openapi.json",
+  "/auth/login",
+  "/auth/oauth/callback",
+  "/auth/org-select",
+  "/auth/logout",
+] as const;
 
 function isPublicPath(path: string): boolean {
   return PUBLIC_PATH_PREFIXES.some((p) => path.startsWith(p));
@@ -121,6 +144,15 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
       identityProvider: options.passkey.identityProvider
     });
   }
+
+  // OIDC RP routes (AUTH-39-A). Routes are always mounted; when disabled they
+  // return 503 so callers get a clear signal rather than a 404/405.
+  mountAuthOidcRoutes(app, {
+    enabled: options.oidc?.enabled ?? false,
+    oidcClient: options.oidc?.oidcClient,
+    sessionTtlSeconds: options.oidc?.sessionTtlSeconds,
+    db: options.db,
+  });
 
   mountUsersRoutes(app);
   mountApprovalRequestRoutes(app);
