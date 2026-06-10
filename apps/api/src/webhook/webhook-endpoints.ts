@@ -351,3 +351,69 @@ export async function listDeliveriesByEndpoint(
   );
   return result.rows;
 }
+
+// ---------------------------------------------------------------------------
+// Delivery attempt mutation helpers (W0-delivery-attempt)
+// ---------------------------------------------------------------------------
+
+export async function markDeliveryAttempt(
+  db: Queryable,
+  context: TenantContext,
+  input: {
+    deliveryId: string;
+    status: "succeeded" | "failed";
+    httpStatus: number | null;
+    errorDetail: string | null;
+  }
+): Promise<void> {
+  assertTenantContext(context);
+  await db.query(
+    `update webhook_deliveries
+        set status       = $1,
+            http_status  = $2,
+            attempt_count = attempt_count + 1,
+            error_detail  = $3,
+            delivered_at  = case when $1 = 'succeeded' then now() else delivered_at end
+      where id = $4
+        and organization_id = $5`,
+    [
+      input.status,
+      input.httpStatus ?? null,
+      input.errorDetail ?? null,
+      input.deliveryId,
+      context.organizationId,
+    ]
+  );
+}
+
+export async function incrementEndpointFailureCounter(
+  db: Queryable,
+  context: TenantContext,
+  endpointId: string
+): Promise<void> {
+  assertTenantContext(context);
+  await db.query(
+    `update webhook_endpoints
+        set consecutive_failures = consecutive_failures + 1,
+            updated_at = now()
+      where id = $1
+        and organization_id = $2`,
+    [endpointId, context.organizationId]
+  );
+}
+
+export async function resetEndpointFailureCounter(
+  db: Queryable,
+  context: TenantContext,
+  endpointId: string
+): Promise<void> {
+  assertTenantContext(context);
+  await db.query(
+    `update webhook_endpoints
+        set consecutive_failures = 0,
+            updated_at = now()
+      where id = $1
+        and organization_id = $2`,
+    [endpointId, context.organizationId]
+  );
+}
