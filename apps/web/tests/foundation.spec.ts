@@ -211,10 +211,17 @@ test("locale switcher toggles nav labels between FR and EN", async ({ page, cont
   await expect(page.getByRole("group", { name: "Langue" })).toBeVisible();
   await expect(switcher.getByRole("button", { name: "FR" })).toHaveAttribute("aria-pressed", "true");
 
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: "load" }),
-    switcher.getByRole("button", { name: "EN" }).click()
-  ]);
+  const switchResponse = page.waitForResponse(
+    (resp) => resp.url().endsWith("/api/locale") && resp.request().method() === "POST"
+  );
+  await switcher.getByRole("button", { name: "EN" }).click();
+  const response = await switchResponse;
+  // 303 redirect → confirm Set-Cookie header
+  expect(response.status()).toBeGreaterThanOrEqual(300);
+  expect(response.status()).toBeLessThan(400);
+  // Wait for the SvelteKit-followed GET to fully render with the new locale
+  await page.waitForURL((url) => !url.pathname.startsWith("/api/locale"), { timeout: 10_000 });
+  await page.waitForLoadState("networkidle");
   await expect(page.getByRole("link", { name: "Users" })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("group", { name: "Language" })).toBeVisible();
   await expect(page.getByTestId("locale-switcher").getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
