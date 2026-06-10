@@ -14,6 +14,12 @@ export function mountWebhookAdminRoutes(
   options: { port?: WebhookEgressPort } = {}
 ): void {
   app.post("/webhook/_admin/tick", async (c) => {
+    if (process.env.OPENERP_DISABLE_ADMIN_TICKS === "true") {
+      return c.json({
+        code: "ADMIN_TICK_DEPRECATED",
+        message: "This endpoint is disabled. Use the openerp-worker process. See docs/ops/automation-runtime.md.",
+      }, 410);
+    }
     const db = c.get("db");
     const tenant = c.get("tenant");
 

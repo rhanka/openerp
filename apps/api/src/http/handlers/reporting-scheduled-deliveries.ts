@@ -55,6 +55,12 @@ export function mountReportingScheduledDeliveryRoutes(app: Hono<AppBindings>): v
 
   // POST /reporting/scheduled-deliveries/run — MUST be before /:id routes
   app.post("/reporting/scheduled-deliveries/run", async (c) => {
+    if (process.env.OPENERP_DISABLE_ADMIN_TICKS === "true") {
+      return c.json({
+        code: "ADMIN_TICK_DEPRECATED",
+        message: "This endpoint is disabled. Use the openerp-worker process. See docs/ops/automation-runtime.md.",
+      }, 410);
+    }
     const db = c.get("db");
     const tenant = c.get("tenant");
 

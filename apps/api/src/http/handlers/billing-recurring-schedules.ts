@@ -154,6 +154,12 @@ export function mountBillingRecurringScheduleRoutes(app: Hono<AppBindings>): voi
 
   // POST /billing/recurring-schedules/run
   app.post("/billing/recurring-schedules/run", async (ctx) => {
+    if (process.env.OPENERP_DISABLE_ADMIN_TICKS === "true") {
+      return ctx.json({
+        code: "ADMIN_TICK_DEPRECATED",
+        message: "This endpoint is disabled. Use the openerp-worker process. See docs/ops/automation-runtime.md.",
+      }, 410);
+    }
     const db = ctx.get("db");
     const tenant = ctx.get("tenant");
 
