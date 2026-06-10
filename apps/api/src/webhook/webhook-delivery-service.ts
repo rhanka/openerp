@@ -6,6 +6,7 @@ import {
   incrementEndpointFailureCounter,
   resetEndpointFailureCounter,
 } from "./webhook-endpoints";
+import { tripEndpointIfNeeded } from "./webhook-circuit-breaker";
 import type { WebhookEgressPort } from "./webhook-egress-port";
 
 export interface AttemptWebhookDeliveryDeps {
@@ -107,6 +108,7 @@ export async function attemptWebhookDelivery(
       errorDetail: `http_${result.httpStatus}`,
     });
     await incrementEndpointFailureCounter(db, ctx, endpoint.id);
+    await tripEndpointIfNeeded(db, ctx, endpoint.id);
     return {
       deliveryId,
       outcome: "failed",
@@ -124,6 +126,7 @@ export async function attemptWebhookDelivery(
     errorDetail: result.kind,
   });
   await incrementEndpointFailureCounter(db, ctx, endpoint.id);
+  await tripEndpointIfNeeded(db, ctx, endpoint.id);
   return {
     deliveryId,
     outcome: "failed",

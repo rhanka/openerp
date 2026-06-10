@@ -21,7 +21,8 @@ import {
   rotateWebhookEndpointSecret,
   insertWebhookDelivery,
   listDeliveriesByEndpoint as listDeliveriesByEndpointRepo,
-  findWebhookDeliveryById as findWebhookDeliveryByIdRepo
+  findWebhookDeliveryById as findWebhookDeliveryByIdRepo,
+  clearEndpointCircuitBreakerState,
 } from "./webhook-endpoints";
 import { signPayload, buildDeliveryPayload, canonicalizePayload } from "./webhook-signer";
 import { findWebhookEndpointByIdWithSecret } from "./webhook-endpoints";
@@ -157,6 +158,13 @@ export async function updateWebhookEndpoint(
 
   const updated = await updateWebhookEndpointRepo(db, context, id, patch);
   if (!updated) throw new WebhookEndpointNotFoundError(id);
+
+  // Re-arm circuit breaker: when an admin explicitly re-enables a disabled
+  // endpoint, reset consecutive_failures=0 and disabled_at=null so the next
+  // delivery attempt is not immediately short-circuited by stale state.
+  if (before.isActive === false && patch.isActive === true) {
+    await clearEndpointCircuitBreakerState(db, context, id);
+  }
 
   await recordAuditEvent(db, context, {
     action: "webhook.webhook_endpoint.updated",

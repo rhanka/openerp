@@ -417,3 +417,25 @@ export async function resetEndpointFailureCounter(
     [endpointId, context.organizationId]
   );
 }
+
+/**
+ * Re-arm the circuit breaker after an admin manually re-enables an endpoint.
+ * Resets consecutive_failures=0 and clears disabled_at.
+ * Called by the PATCH update path when isActive transitions false→true.
+ */
+export async function clearEndpointCircuitBreakerState(
+  db: Queryable,
+  context: TenantContext,
+  endpointId: string
+): Promise<void> {
+  assertTenantContext(context);
+  await db.query(
+    `update webhook_endpoints
+        set consecutive_failures = 0,
+            disabled_at = null,
+            updated_at = now()
+      where id = $1
+        and organization_id = $2`,
+    [endpointId, context.organizationId]
+  );
+}
