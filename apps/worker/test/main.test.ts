@@ -12,6 +12,7 @@ import {
   type WorkerIntervals,
   type WorkerOptions
 } from "../src/main.js";
+import type { TickMetrics } from "../src/observability.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -29,10 +30,10 @@ function makePool(): Queryable & PoolHandle {
 
 function makeTicks(): WorkerTicks {
   return {
-    scheduledDelivery: vi.fn().mockResolvedValue(undefined),
-    recurringBilling: vi.fn().mockResolvedValue(undefined),
-    webhookEgress: vi.fn().mockResolvedValue(undefined),
-    workflow: vi.fn().mockResolvedValue(undefined)
+    scheduledDelivery: vi.fn().mockResolvedValue({ processed: 0, results: [] }),
+    recurringBilling: vi.fn().mockResolvedValue({ generated: 0, invoiceIds: [] }),
+    webhookEgress: vi.fn().mockResolvedValue({ processed: 0, succeeded: 0, failed: 0, skipped: 0, asOf: new Date() }),
+    workflow: vi.fn().mockResolvedValue({ processed: 0, succeeded: 0, failed: 0, skipped: 0, asOf: new Date() })
   };
 }
 
@@ -350,5 +351,105 @@ describe("runOpenERPWorker", () => {
     const firstError = errors[0];
     expect(firstError?.name).toBe("scheduled-delivery");
     expect(firstError?.err).toBe(boom);
+  });
+
+  // -------------------------------------------------------------------------
+  // A0-5: tick instrumentation — logger receives one entry per tick per org
+  // -------------------------------------------------------------------------
+  it("emits one instrumentation log entry per tick per org per cycle (A0-5)", async () => {
+    const controller = new AbortController();
+    const pool = makePool();
+    const ticks = makeTicks();
+    const orgs = ["org-a", "org-b"];
+    const listOrgs = vi.fn().mockResolvedValue(orgs);
+
+    const logEvents: Array<{ domain: string; tenantId: string; metrics?: TickMetrics }> = [];
+    const tickLogger = vi.fn((e: { domain: string; tenantId: string; metrics?: TickMetrics }) => {
+      logEvents.push(e);
+    });
+
+    const sleep = (_ms: number, signal?: AbortSignal): Promise<void> => {
+      controller.abort();
+      return signal
+        ? new Promise<void>((resolve) => {
+            if (signal.aborted) { resolve(); return; }
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          })
+        : Promise.resolve();
+    };
+
+    await runOpenERPWorker({
+      pool,
+      listOrgs,
+      ticks,
+      intervals: BASE_INTERVALS,
+      signal: controller.signal,
+      sleep,
+      tickLogger
+    });
+
+    // 4 domains × 2 orgs = 8 log events
+    expect(logEvents.length).toBe(8);
+
+    // Each domain should appear exactly 2 times (once per org)
+    const domains = logEvents.map((e) => e.domain);
+    expect(domains.filter((d) => d === "scheduled-delivery").length).toBe(2);
+    expect(domains.filter((d) => d === "recurring-billing").length).toBe(2);
+    expect(domains.filter((d) => d === "webhook-egress").length).toBe(2);
+    expect(domains.filter((d) => d === "workflow").length).toBe(2);
+
+    // Each event has metrics (success path)
+    for (const e of logEvents) {
+      expect(e.metrics).toBeDefined();
+    }
+  });
+
+  it("instrumentation logger receives error event when tick throws (A0-5)", async () => {
+    const controller = new AbortController();
+    const pool = makePool();
+
+    const logEvents: Array<{ domain: string; tenantId: string; error?: { message: string } }> = [];
+    const tickLogger = vi.fn((e: { domain: string; tenantId: string; error?: { message: string } }) => {
+      logEvents.push(e);
+    });
+
+    let cycled = false;
+    const listOrgs = vi.fn().mockResolvedValue(["org-fail"]);
+
+    const sleep = (_ms: number, signal?: AbortSignal): Promise<void> => {
+      if (!cycled) {
+        cycled = true;
+        controller.abort();
+      }
+      return signal
+        ? new Promise<void>((resolve) => {
+            if (signal.aborted) { resolve(); return; }
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          })
+        : Promise.resolve();
+    };
+
+    const ticks: WorkerTicks = {
+      scheduledDelivery: vi.fn().mockRejectedValue(new Error("tick-boom")),
+      recurringBilling: vi.fn().mockResolvedValue({ generated: 0, invoiceIds: [] }),
+      webhookEgress: vi.fn().mockResolvedValue({ processed: 0, succeeded: 0, failed: 0, skipped: 0, asOf: new Date() }),
+      workflow: vi.fn().mockResolvedValue({ processed: 0, succeeded: 0, failed: 0, skipped: 0, asOf: new Date() })
+    };
+
+    await runOpenERPWorker({
+      pool,
+      listOrgs,
+      ticks,
+      intervals: BASE_INTERVALS,
+      signal: controller.signal,
+      sleep,
+      tickLogger,
+      onError: () => {} // silence console
+    });
+
+    const errorEvents = logEvents.filter((e) => e.error !== undefined);
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents[0]!.domain).toBe("scheduled-delivery");
+    expect(errorEvents[0]!.error!.message).toBe("tick-boom");
   });
 });
