@@ -8,6 +8,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@sentropic/openerp-api": "*",
     "@sentropic/openerp-domain": "*",
     "@sentropic/openerp-i18n": "*"
   },
