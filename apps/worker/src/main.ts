@@ -15,6 +15,8 @@ import {
 import { tickRecurringBilling } from "./ticks/recurring-billing.js";
 import { tickWebhookEgress } from "./ticks/webhook-egress.js";
 import { tickWorkflow } from "./ticks/workflow.js";
+import { withTickInstrumentation, type TickInstrumentationOptions } from "./observability.js";
+import { startHealthServer } from "./health-server.js";
 
 // ---------------------------------------------------------------------------
 // Re-export Queryable so callers of this module don't need to chase down the
@@ -92,6 +94,11 @@ export interface WorkerOptions {
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   /** Custom error sink forwarded to each runTickLoop. */
   onError?: (err: unknown, name: string) => void;
+  /**
+   * Optional logger injected into each tick's instrumentation wrapper.
+   * When omitted the default logger writes JSON lines to stdout.
+   */
+  tickLogger?: TickInstrumentationOptions["logger"];
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +111,62 @@ const SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000";
 // runOpenERPWorker — DI-driven, testable
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Instrumentation helpers
+// ---------------------------------------------------------------------------
+
+/** Normalise any tick result into the shape required by withTickInstrumentation. */
+function normaliseTickResult(raw: unknown):
+  | { processed: number; succeeded: number; failed: number; asOf: Date }
+  | { processed: number; succeeded: number; failed: number } {
+  const r = raw as Record<string, unknown> | null | undefined;
+  if (!r || typeof r !== "object") {
+    return { processed: 0, succeeded: 0, failed: 0 };
+  }
+  const processed = typeof r["processed"] === "number" ? r["processed"] : 0;
+  // scheduled-delivery only has `processed`; map results array length to succeeded
+  const succeeded =
+    typeof r["succeeded"] === "number"
+      ? r["succeeded"]
+      : Array.isArray(r["results"])
+      ? (r["results"] as Array<{ status: string }>).filter((x) => x.status === "completed").length
+      : processed;
+  const failed =
+    typeof r["failed"] === "number"
+      ? r["failed"]
+      : Array.isArray(r["results"])
+      ? (r["results"] as Array<{ status: string }>).filter((x) => x.status === "failed").length
+      : 0;
+  if (r["asOf"] instanceof Date) {
+    return { processed, succeeded, failed, asOf: r["asOf"] };
+  }
+  return { processed, succeeded, failed };
+}
+
+/** Wrap a WorkerTick with instrumentation. The raw result flows through unchanged. */
+function instrumentTick<TArgs extends { organizationId: string }>(
+  fn: (args: TArgs) => Promise<unknown>,
+  domain: string,
+  logger: TickInstrumentationOptions["logger"]
+): (args: TArgs) => Promise<unknown> {
+  const instrumentOpts: TickInstrumentationOptions = { domain };
+  if (logger !== undefined) instrumentOpts.logger = logger;
+
+  const instrumented = withTickInstrumentation(
+    async (args: TArgs) => {
+      const raw = await fn(args);
+      const norm = normaliseTickResult(raw);
+      return { ...norm, _raw: raw };
+    },
+    instrumentOpts
+  );
+  // Call the instrumented wrapper (which emits metrics) then return the _raw value.
+  return async (args: TArgs) => {
+    const result = await instrumented(args);
+    return result._raw;
+  };
+}
+
 /**
  * Launch all domain loops and return once the signal aborts and all loops
  * have completed their in-flight iteration.
@@ -112,7 +175,31 @@ const SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000";
  * serially within a single cycle.
  */
 export async function runOpenERPWorker(opts: WorkerOptions): Promise<void> {
-  const { pool, listOrgs, ticks, intervals, signal } = opts;
+  const { pool, listOrgs, intervals, signal } = opts;
+
+  // Wrap each tick with observability instrumentation.
+  const ticks: WorkerTicks = {
+    scheduledDelivery: instrumentTick(
+      opts.ticks.scheduledDelivery,
+      "scheduled-delivery",
+      opts.tickLogger
+    ) as WorkerTicks["scheduledDelivery"],
+    recurringBilling: instrumentTick(
+      opts.ticks.recurringBilling,
+      "recurring-billing",
+      opts.tickLogger
+    ) as WorkerTicks["recurringBilling"],
+    webhookEgress: instrumentTick(
+      opts.ticks.webhookEgress,
+      "webhook-egress",
+      opts.tickLogger
+    ) as WorkerTicks["webhookEgress"],
+    workflow: instrumentTick(
+      opts.ticks.workflow,
+      "workflow",
+      opts.tickLogger
+    ) as WorkerTicks["workflow"],
+  };
 
   // Per-tenant error handler: forwards to opts.onError (if any) then continues.
   // A single tenant failure must not abort the remaining tenants in the cycle.
@@ -261,9 +348,30 @@ export async function main(): Promise<void> {
 
   const controller = new AbortController();
 
+  // Optional health server.
+  // Set OPENERP_WORKER_HEALTH_PORT to a port number to enable (e.g. 3001).
+  // Default is 0 (disabled).
+  const healthPort = Number(process.env["OPENERP_WORKER_HEALTH_PORT"] ?? 0);
+  const healthHandle =
+    healthPort > 0
+      ? startHealthServer({
+          port: healthPort,
+          dbPing: async () => {
+            try {
+              await (pool as unknown as { query: (sql: string) => Promise<unknown> }).query("select 1");
+              return true;
+            } catch {
+              return false;
+            }
+          },
+          signal: controller.signal,
+        })
+      : null;
+
   const shutdown = (): void => {
     controller.abort();
     pool.end().catch(() => {});
+    healthHandle?.close().catch(() => {});
   };
 
   process.on("SIGTERM", shutdown);
@@ -338,6 +446,9 @@ export async function main(): Promise<void> {
     process.removeListener("SIGTERM", shutdown);
     process.removeListener("SIGINT", shutdown);
     await pool.end().catch(() => {});
+    if (healthHandle) {
+      await healthHandle.close().catch(() => {});
+    }
     // eslint-disable-next-line no-console
     console.info("[openerp-worker] stopped");
   }
