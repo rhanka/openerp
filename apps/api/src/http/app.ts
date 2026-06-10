@@ -31,6 +31,7 @@ import { mountReportingDashboardRoutes } from "./handlers/reporting-dashboards";
 import { mountReportingScheduledDeliveryRoutes } from "./handlers/reporting-scheduled-deliveries";
 import { mountWorkflowRoutes } from "./handlers/workflow-definitions";
 import { mountWebhookRoutes } from "./handlers/webhook-endpoints";
+import { mountWebhookAdminRoutes } from "./handlers/webhook-admin";
 import { mountUsersRoutes } from "./handlers/users";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 import { mountAgentTokenExchangeRoute } from "./handlers/auth-token-exchange";
@@ -182,6 +183,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountReportingScheduledDeliveryRoutes(app);
   mountWorkflowRoutes(app);
   mountWebhookRoutes(app);
+  mountWebhookAdminRoutes(app);
 
   return app;
 }
