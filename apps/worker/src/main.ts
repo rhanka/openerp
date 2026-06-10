@@ -14,6 +14,7 @@ import {
 } from "./ticks/scheduled-delivery.js";
 import { tickRecurringBilling } from "./ticks/recurring-billing.js";
 import { tickWebhookEgress } from "./ticks/webhook-egress.js";
+import { tickWorkflow } from "./ticks/workflow.js";
 
 // ---------------------------------------------------------------------------
 // Re-export Queryable so callers of this module don't need to chase down the
@@ -46,16 +47,25 @@ export type WebhookEgressTick = (opts: {
   actorUserId: string;
 }) => Promise<unknown>;
 
+/** A tickFor-shaped function for workflow scheduling. */
+export type WorkflowTick = (opts: {
+  db: Queryable;
+  organizationId: string;
+  actorUserId: string;
+}) => Promise<unknown>;
+
 export interface WorkerTicks {
   scheduledDelivery: ScheduledDeliveryTick;
   recurringBilling: RecurringBillingTick;
   webhookEgress: WebhookEgressTick;
+  workflow: WorkflowTick;
 }
 
 export interface WorkerIntervals {
   scheduledDeliveryMs: number;
   recurringBillingMs: number;
   webhookEgressMs: number;
+  workflowMs: number;
 }
 
 /** Minimal pool surface required by runOpenERPWorker. */
@@ -186,7 +196,22 @@ export async function runOpenERPWorker(opts: WorkerOptions): Promise<void> {
     })
   );
 
-  await Promise.all([scheduledDeliveryLoop, recurringBillingLoop, webhookEgressLoop]);
+  const workflowLoop = runTickLoop(
+    makeLoopBase("workflow", intervals.workflowMs, async () => {
+      const orgIds = await listOrgs(pool);
+      // eslint-disable-next-line no-console
+      console.info(`[workflow] processing ${orgIds.length} tenant(s)`);
+      for (const organizationId of orgIds) {
+        try {
+          await ticks.workflow({ db: pool, organizationId, actorUserId: SYSTEM_ACTOR_ID });
+        } catch (err) {
+          handleTenantError(err, "workflow");
+        }
+      }
+    })
+  );
+
+  await Promise.all([scheduledDeliveryLoop, recurringBillingLoop, webhookEgressLoop, workflowLoop]);
 }
 
 // ---------------------------------------------------------------------------
@@ -214,6 +239,9 @@ export async function main(): Promise<void> {
     ),
     webhookEgressMs: Number(
       process.env["OPENERP_WORKER_INTERVAL_MS_WEBHOOK_EGRESS"] ?? 10_000
+    ),
+    workflowMs: Number(
+      process.env["OPENERP_WORKER_INTERVAL_MS_WORKFLOW"] ?? 30_000
     )
   };
 
@@ -267,6 +295,20 @@ export async function main(): Promise<void> {
     },
     webhookEgress: async ({ db, organizationId, actorUserId }) => {
       return tickWebhookEgress({
+        db,
+        organizationId,
+        actorUserId,
+        runDue: async () => ({
+          processed: 0,
+          succeeded: 0,
+          failed: 0,
+          skipped: 0,
+          asOf: new Date()
+        })
+      });
+    },
+    workflow: async ({ db, organizationId, actorUserId }) => {
+      return tickWorkflow({
         db,
         organizationId,
         actorUserId,

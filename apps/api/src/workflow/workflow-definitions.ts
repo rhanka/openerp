@@ -247,7 +247,7 @@ export interface InsertWorkflowRunInput {
   triggerEventType: string;
   triggerResourceType: string | null;
   triggerResourceId: string | null;
-  triggeredBy: "event" | "manual";
+  triggeredBy: "event" | "manual" | "schedule";
   status: "completed" | "failed" | "skipped";
   createdResourceType: string | null;
   createdResourceId: string | null;

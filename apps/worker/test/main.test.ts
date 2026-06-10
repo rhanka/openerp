@@ -31,14 +31,16 @@ function makeTicks(): WorkerTicks {
   return {
     scheduledDelivery: vi.fn().mockResolvedValue(undefined),
     recurringBilling: vi.fn().mockResolvedValue(undefined),
-    webhookEgress: vi.fn().mockResolvedValue(undefined)
+    webhookEgress: vi.fn().mockResolvedValue(undefined),
+    workflow: vi.fn().mockResolvedValue(undefined)
   };
 }
 
 const BASE_INTERVALS: WorkerIntervals = {
   scheduledDeliveryMs: 100,
   recurringBillingMs: 100,
-  webhookEgressMs: 100
+  webhookEgressMs: 100,
+  workflowMs: 100
 };
 
 function makeOptions(overrides: Partial<WorkerOptions> = {}): WorkerOptions {
@@ -93,6 +95,7 @@ describe("runOpenERPWorker", () => {
     expect(ticks.scheduledDelivery).toHaveBeenCalledTimes(3);
     expect(ticks.recurringBilling).toHaveBeenCalledTimes(3);
     expect(ticks.webhookEgress).toHaveBeenCalledTimes(3);
+    expect(ticks.workflow).toHaveBeenCalledTimes(3);
 
     // Verify it was called with the right db and orgId for each org
     for (const org of orgs) {
@@ -103,6 +106,9 @@ describe("runOpenERPWorker", () => {
         expect.objectContaining({ db: pool, organizationId: org })
       );
       expect(ticks.webhookEgress).toHaveBeenCalledWith(
+        expect.objectContaining({ db: pool, organizationId: org })
+      );
+      expect(ticks.workflow).toHaveBeenCalledWith(
         expect.objectContaining({ db: pool, organizationId: org })
       );
     }
@@ -134,6 +140,7 @@ describe("runOpenERPWorker", () => {
     expect(ticks.scheduledDelivery).not.toHaveBeenCalled();
     expect(ticks.recurringBilling).not.toHaveBeenCalled();
     expect(ticks.webhookEgress).not.toHaveBeenCalled();
+    expect(ticks.workflow).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------
@@ -183,7 +190,8 @@ describe("runOpenERPWorker", () => {
         callOrder.push(`sd:${organizationId}`);
       }),
       recurringBilling: vi.fn().mockResolvedValue(undefined),
-      webhookEgress: vi.fn().mockResolvedValue(undefined)
+      webhookEgress: vi.fn().mockResolvedValue(undefined),
+      workflow: vi.fn().mockResolvedValue(undefined)
     };
 
     await runOpenERPWorker({
@@ -230,7 +238,8 @@ describe("runOpenERPWorker", () => {
         }
       }),
       recurringBilling: vi.fn().mockResolvedValue(undefined),
-      webhookEgress: vi.fn().mockResolvedValue(undefined)
+      webhookEgress: vi.fn().mockResolvedValue(undefined),
+      workflow: vi.fn().mockResolvedValue(undefined)
     };
 
     // Should resolve, not reject
@@ -253,6 +262,43 @@ describe("runOpenERPWorker", () => {
     expect(ticks.scheduledDelivery).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: "org-ok2" })
     );
+  });
+
+  // -------------------------------------------------------------------------
+  // Test A0-4: the workflow tick is wired and called once per org per cycle
+  // -------------------------------------------------------------------------
+  it("calls the workflow tick once per org in the first cycle (A0-4)", async () => {
+    const controller = new AbortController();
+    const pool = makePool();
+    const ticks = makeTicks();
+    const orgs = ["org-x", "org-y"];
+    const listOrgs = vi.fn().mockResolvedValue(orgs);
+
+    const sleep = (_ms: number, signal?: AbortSignal): Promise<void> => {
+      controller.abort();
+      return signal
+        ? new Promise<void>((resolve) => {
+            if (signal.aborted) { resolve(); return; }
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          })
+        : Promise.resolve();
+    };
+
+    await runOpenERPWorker({
+      pool,
+      listOrgs,
+      ticks,
+      intervals: BASE_INTERVALS,
+      signal: controller.signal,
+      sleep
+    });
+
+    expect(ticks.workflow).toHaveBeenCalledTimes(orgs.length);
+    for (const org of orgs) {
+      expect(ticks.workflow).toHaveBeenCalledWith(
+        expect.objectContaining({ db: pool, organizationId: org })
+      );
+    }
   });
 
   // -------------------------------------------------------------------------
@@ -283,7 +329,8 @@ describe("runOpenERPWorker", () => {
     const ticks: WorkerTicks = {
       scheduledDelivery: vi.fn().mockRejectedValue(boom),
       recurringBilling: vi.fn().mockResolvedValue(undefined),
-      webhookEgress: vi.fn().mockResolvedValue(undefined)
+      webhookEgress: vi.fn().mockResolvedValue(undefined),
+      workflow: vi.fn().mockResolvedValue(undefined)
     };
 
     await runOpenERPWorker({

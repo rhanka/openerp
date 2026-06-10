@@ -214,6 +214,147 @@ export async function listWorkflowRuns(
 }
 
 // ---------------------------------------------------------------------------
+// Scheduled run — worker tick entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * Run all due scheduled workflow definitions for a tenant.
+ *
+ * Selects workflow_definitions rows where cadence IS NOT NULL and
+ * next_run_at <= asOf, locks them with FOR UPDATE SKIP LOCKED (up to 100
+ * at a time) so concurrent workers never double-fire the same workflow.
+ *
+ * Cadence formula: after a successful execution, next_run_at is advanced by
+ * 1 day as a safe placeholder. A future slice (A0-5) will replace this with
+ * proper cron/calendar arithmetic matching the cadence field value. Using
+ * a fixed +1 day means overdue workflows are retried at most once per day
+ * rather than spinning indefinitely, which is the safe failure mode.
+ *
+ * Returns { processed, succeeded, failed, skipped, asOf }.
+ */
+export async function runDueScheduledWorkflows(
+  db: Queryable,
+  tenant: TenantContext,
+  asOf?: Date
+): Promise<{ processed: number; succeeded: number; failed: number; skipped: number; asOf: Date }> {
+  assertTenantContext(tenant);
+  const now = asOf ?? new Date();
+
+  // SELECT due workflows with advisory row lock — skip any locked by peer workers.
+  const dueResult = await db.query<{
+    id: string;
+    triggerType: string;
+    actionType: string;
+    actionConfig: Record<string, unknown>;
+  }>(
+    `select id,
+            trigger_type  as "triggerType",
+            action_type   as "actionType",
+            action_config as "actionConfig"
+       from workflow_definitions
+      where organization_id = $1
+        and cadence is not null
+        and next_run_at <= $2
+        and is_active = true
+        and deleted_at is null
+      order by next_run_at asc
+      limit 100
+      for update skip locked`,
+    [tenant.organizationId, now.toISOString()]
+  );
+
+  const defs = dueResult.rows;
+  let processed = 0;
+  let succeeded = 0;
+  let failed = 0;
+  const skipped = 0;
+
+  for (const def of defs) {
+    processed += 1;
+    const startedAt = new Date().toISOString();
+
+    const actionEntry = getActionEntry(def.actionType);
+    if (!actionEntry) {
+      // Unknown action — mark failed and advance schedule so it doesn't block.
+      failed += 1;
+      await db.query(
+        `update workflow_definitions
+            set last_run_at  = $1,
+                next_run_at  = $1::timestamptz + interval '1 day',
+                updated_at   = now()
+          where id = $2
+            and organization_id = $3`,
+        [now.toISOString(), def.id, tenant.organizationId]
+      );
+      continue;
+    }
+
+    try {
+      const result = await actionEntry.execute(db, tenant, {
+        eventType: def.triggerType,
+        resourceType: null,
+        resourceId: null
+      }, def.actionConfig);
+      const completedAt = new Date().toISOString();
+      await insertWorkflowRun(db, tenant, {
+        workflowDefinitionId: def.id,
+        triggerAuditEventId: null,
+        triggerEventType: def.triggerType,
+        triggerResourceType: null,
+        triggerResourceId: null,
+        triggeredBy: "schedule",
+        status: "completed",
+        createdResourceType: result.createdResourceType,
+        createdResourceId: result.createdResourceId,
+        actionResult: result.result,
+        errorDetail: null,
+        startedAt,
+        completedAt
+      });
+      succeeded += 1;
+    } catch (err) {
+      const completedAt = new Date().toISOString();
+      const errorDetail = err instanceof Error ? err.message : String(err);
+      // eslint-disable-next-line no-console
+      console.error(`[workflow-scheduler] def ${def.id} failed: ${errorDetail}`);
+      try {
+        await insertWorkflowRun(db, tenant, {
+          workflowDefinitionId: def.id,
+          triggerAuditEventId: null,
+          triggerEventType: def.triggerType,
+          triggerResourceType: null,
+          triggerResourceId: null,
+          triggeredBy: "schedule",
+          status: "failed",
+          createdResourceType: null,
+          createdResourceId: null,
+          actionResult: {},
+          errorDetail,
+          startedAt,
+          completedAt
+        });
+      } catch {
+        // best-effort insert
+      }
+      failed += 1;
+    }
+
+    // Advance schedule: placeholder +1 day. A0-5 will implement proper cadence math.
+    await db.query(
+      `update workflow_definitions
+          set last_run_at  = $1,
+              next_run_at  = $1::timestamptz + interval '1 day',
+              updated_at   = now()
+        where id = $2
+          and organization_id = $3`,
+      [now.toISOString(), def.id, tenant.organizationId]
+    );
+  }
+
+  return { processed, succeeded, failed, skipped, asOf: now };
+}
+
+// ---------------------------------------------------------------------------
 // Manual run
 // ---------------------------------------------------------------------------
 
