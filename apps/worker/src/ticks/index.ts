@@ -19,3 +19,9 @@ export type {
   WebhookEgressTickContext
 } from "./webhook-egress.js";
 export { tickWebhookEgress } from "./webhook-egress.js";
+
+export type {
+  RunDueScheduledWorkflowsResult,
+  WorkflowTickContext
+} from "./workflow.js";
+export { tickWorkflow } from "./workflow.js";
