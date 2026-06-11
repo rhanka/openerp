@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openerp
+  labels:
+    app.kubernetes.io/name: openerp
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging  # overlay overrides for prod
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - openerp.example.com  # overlay overrides
+    secretName: openerp-tls
+  rules:
+  - host: openerp.example.com  # overlay overrides
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: openerp-api
+            port:
+              number: 3000
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: openerp-api
+            port:
+              number: 3000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: openerp-web
+            port:
+              number: 8080
