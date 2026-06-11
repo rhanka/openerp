@@ -2,6 +2,10 @@ export interface RouteContract {
   method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
   audited: boolean;
+  /** $ref name (without '#/components/schemas/') for the request body. POST/PATCH only. */
+  requestSchema?: string;
+  /** $ref name for the 200/201 response body. */
+  responseSchema?: string;
 }
 
 export function buildFoundationRoutes(): RouteContract[] {

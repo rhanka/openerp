@@ -17,6 +17,7 @@ import { buildProjectRoutes } from "./routes/project";
 import { buildReportingRoutes } from "./routes/reporting";
 import { buildWebhookRoutes } from "./routes/webhook";
 import { buildWorkflowRoutes } from "./routes/workflow";
+import { ENTITY_SCHEMAS } from "./openapi-entity-schemas";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,7 +37,12 @@ interface OpenApiTag {
 }
 
 interface OpenApiSchemaObject {
-  type: string;
+  type?: string;
+  $ref?: string;
+  properties?: Record<string, unknown>;
+  required?: string[];
+  additionalProperties?: boolean;
+  description?: string;
 }
 
 interface OpenApiRequestBody {
@@ -50,6 +56,11 @@ interface OpenApiRequestBody {
 
 interface OpenApiResponse {
   description: string;
+  content?: {
+    "application/json": {
+      schema: OpenApiSchemaObject;
+    };
+  };
 }
 
 interface OpenApiParameter {
@@ -81,6 +92,7 @@ interface OpenApiComponents {
   securitySchemes: {
     bearerAuth: SecurityScheme;
   };
+  schemas: Record<string, OpenApiSchemaObject>;
 }
 
 export interface OpenApiDoc {
@@ -149,6 +161,14 @@ function sanitizeForOperationId(path: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
+/**
+ * Returns the map of entity name → JSON Schema for components.schemas.
+ * Populated in OA-2..OA-5 sub-slices with concrete entity schemas from packages/domain.
+ */
+function getEntitySchemas(): Record<string, OpenApiSchemaObject> {
+  return ENTITY_SCHEMAS;
+}
+
 // ── Module tag catalogue ─────────────────────────────────────────────────────
 
 /** One tag entry per distinct module, in stable order. */
@@ -206,12 +226,27 @@ export function buildOpenApiDocument(): OpenApiDoc {
       ? []
       : [{ bearerAuth: [] }];
 
+    // Schema refs: use $ref if the route declares a schema name, else fall back to placeholder.
+    const requestSchema: OpenApiSchemaObject = route.requestSchema
+      ? { $ref: `#/components/schemas/${route.requestSchema}` }
+      : { type: "object" as const };
+
+    const responseSchema: OpenApiSchemaObject = route.responseSchema
+      ? { $ref: `#/components/schemas/${route.responseSchema}` }
+      : { type: "object" as const };
+
     // Responses: all operations return 200/201 + common error codes.
     const responses: Record<string, OpenApiResponse> = {};
     if (route.method === "POST") {
-      responses["201"] = { description: "Created" };
+      responses["201"] = {
+        description: "Created",
+        content: { "application/json": { schema: responseSchema } }
+      };
     } else {
-      responses["200"] = { description: "OK" };
+      responses["200"] = {
+        description: "OK",
+        content: { "application/json": { schema: responseSchema } }
+      };
     }
     responses["400"] = { description: "Bad request" };
     if (!isPublicPath(openApiPath)) {
@@ -231,8 +266,7 @@ export function buildOpenApiDocument(): OpenApiDoc {
               required: true,
               content: {
                 "application/json": {
-                  // v1 placeholder — per-entity schemas are epic 4-A refinement / 4-B
-                  schema: { type: "object" }
+                  schema: requestSchema
                 }
               }
             }
@@ -274,7 +308,8 @@ export function buildOpenApiDocument(): OpenApiDoc {
           scheme: "bearer",
           bearerFormat: "JWT"
         }
-      }
+      },
+      schemas: getEntitySchemas()
     }
   };
 }
