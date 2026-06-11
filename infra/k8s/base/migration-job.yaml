@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openerp-migrate
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openerp
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: openerp/api:latest
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "npm run migrate -w @sentropic/openerp-api"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: openerp-runtime
+                  key: databaseUrl
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: openerp-runtime
+                  key: sessionSecret
