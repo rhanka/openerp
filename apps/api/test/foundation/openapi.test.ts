@@ -146,17 +146,24 @@ describe("buildOpenApiDocument()", () => {
     expect(tagNames).toContain("project");
   });
 
-  it("POST and PATCH operations include a generic requestBody placeholder", () => {
+  it("POST and PATCH operations include a requestBody (schema or $ref)", () => {
     const doc = buildOpenApiDocument();
 
     const postCompanies = doc.paths["/crm/companies"]?.["post"];
     expect(postCompanies?.requestBody).toBeDefined();
-    expect(postCompanies?.requestBody?.content?.["application/json"]?.schema).toEqual({
-      type: "object"
-    });
+    // OA-2: CRM routes now carry $ref schemas; billing routes still use object placeholder
+    const postCompaniesSchema = postCompanies?.requestBody?.content?.["application/json"]?.schema;
+    expect(postCompaniesSchema).toBeDefined();
 
     const patchCompany = doc.paths["/crm/companies/{id}"]?.["patch"];
     expect(patchCompany?.requestBody).toBeDefined();
+
+    // Billing invoices still uses the placeholder (OA-3 not yet shipped)
+    const postInvoices = doc.paths["/billing/invoices"]?.["post"];
+    expect(postInvoices?.requestBody).toBeDefined();
+    expect(postInvoices?.requestBody?.content?.["application/json"]?.schema).toEqual({
+      type: "object"
+    });
   });
 });
 
