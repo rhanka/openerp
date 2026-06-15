@@ -12,8 +12,12 @@ describe("components.schemas infrastructure (OA-1)", () => {
     expect(doc.components.schemas).not.toBeNull();
   });
 
-  it("ENTITY_SCHEMAS is empty at the OA-1 slice boundary", () => {
-    expect(Object.keys(ENTITY_SCHEMAS).length).toBe(0);
+  it("ENTITY_SCHEMAS includes CRM entities (OA-2)", () => {
+    expect(Object.keys(ENTITY_SCHEMAS).length).toBeGreaterThan(0);
+    expect(ENTITY_SCHEMAS).toHaveProperty("Company");
+    expect(ENTITY_SCHEMAS).toHaveProperty("Contact");
+    expect(ENTITY_SCHEMAS).toHaveProperty("Lead");
+    expect(ENTITY_SCHEMAS).toHaveProperty("Opportunity");
   });
 
   it("components.securitySchemes is still present alongside schemas", () => {
@@ -25,46 +29,46 @@ describe("components.schemas infrastructure (OA-1)", () => {
     });
   });
 
+  // Placeholder contract tests — kept alive on billing routes (no schema wired yet).
+
   it("POST route without requestSchema emits {type:'object'} placeholder", () => {
     const doc = buildOpenApiDocument();
-    const postCompanies = doc.paths["/crm/companies"]?.["post"];
-    expect(postCompanies?.requestBody).toBeDefined();
-    const schema = postCompanies?.requestBody?.content?.["application/json"]?.schema;
+    const postInvoices = doc.paths["/billing/invoices"]?.["post"];
+    expect(postInvoices?.requestBody).toBeDefined();
+    const schema = postInvoices?.requestBody?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("PATCH route without requestSchema emits {type:'object'} placeholder", () => {
     const doc = buildOpenApiDocument();
-    const patchCompany = doc.paths["/crm/companies/{id}"]?.["patch"];
-    expect(patchCompany?.requestBody).toBeDefined();
-    const schema = patchCompany?.requestBody?.content?.["application/json"]?.schema;
+    const patchTaxCategory = doc.paths["/billing/tax-categories/{id}"]?.["patch"];
+    expect(patchTaxCategory?.requestBody).toBeDefined();
+    const schema = patchTaxCategory?.requestBody?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("GET route without responseSchema emits {type:'object'} placeholder in 200 content", () => {
     const doc = buildOpenApiDocument();
-    const getCompanies = doc.paths["/crm/companies"]?.["get"];
-    expect(getCompanies).toBeDefined();
-    const schema = getCompanies?.responses?.["200"]?.content?.["application/json"]?.schema;
+    const getInvoices = doc.paths["/billing/invoices"]?.["get"];
+    expect(getInvoices).toBeDefined();
+    const schema = getInvoices?.responses?.["200"]?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("POST route without responseSchema emits {type:'object'} placeholder in 201 content", () => {
     const doc = buildOpenApiDocument();
-    const postCompanies = doc.paths["/crm/companies"]?.["post"];
-    expect(postCompanies).toBeDefined();
-    const schema = postCompanies?.responses?.["201"]?.content?.["application/json"]?.schema;
+    const postInvoices = doc.paths["/billing/invoices"]?.["post"];
+    expect(postInvoices).toBeDefined();
+    const schema = postInvoices?.responses?.["201"]?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
-  it("route with requestSchema uses $ref in requestBody", () => {
-    // Synthesise a minimal doc using the existing buildOpenApiDocument surface.
-    // We verify the $ref wiring by checking a route from the document that has
-    // no requestSchema (all routes in OA-1) still produces no $ref.
+  it("CRM POST route with requestSchema uses $ref in requestBody (OA-2)", () => {
     const doc = buildOpenApiDocument();
     const postCompanies = doc.paths["/crm/companies"]?.["post"];
     const schema = postCompanies?.requestBody?.content?.["application/json"]?.schema;
-    // No requestSchema set → no $ref
-    expect(schema).not.toHaveProperty("$ref");
+    // requestSchema now set → $ref present
+    expect(schema).toHaveProperty("$ref");
+    expect(schema?.$ref).toBe("#/components/schemas/CreateCompanyInput");
   });
 });
