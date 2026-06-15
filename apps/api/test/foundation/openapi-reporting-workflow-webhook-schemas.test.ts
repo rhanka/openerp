@@ -578,14 +578,14 @@ describe("Webhook entity schemas (OA-4)", () => {
     });
 
     it("first allOf entry is $ref to WebhookEndpoint", () => {
-      const schema = ENTITY_SCHEMAS.CreateWebhookEndpointResult as {
+      const schema = ENTITY_SCHEMAS.CreateWebhookEndpointResult as unknown as {
         allOf: [{ $ref: string }, unknown];
       };
       expect(schema.allOf[0].$ref).toBe("#/components/schemas/WebhookEndpoint");
     });
 
     it("second allOf entry has signingSecret as required string", () => {
-      const schema = ENTITY_SCHEMAS.CreateWebhookEndpointResult as {
+      const schema = ENTITY_SCHEMAS.CreateWebhookEndpointResult as unknown as {
         allOf: [
           unknown,
           { type: string; properties: { signingSecret: { type: string } }; required: string[] }

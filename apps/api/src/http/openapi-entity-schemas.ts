@@ -21,11 +21,14 @@ export type EntitySchema = {
 };
 
 /**
- * Map of entity name → JSON Schema. Declared with `satisfies` (not `:`) so the
- * inferred literal key set narrows away `noUncheckedIndexedAccess` undefined on
- * dot-access — tests can write `ENTITY_SCHEMAS.Company.required` directly.
+ * Map of entity name → JSON Schema. Two-step typing: a literal inner constant
+ * with `satisfies` validates each entry conforms to EntitySchema, then a
+ * narrow-keyed-but-widened-value re-export so tests can write
+ * `ENTITY_SCHEMAS.Company.required` without `noUncheckedIndexedAccess`
+ * undefined AND still index `properties[someStringKey]` dynamically (the
+ * literal properties shape would otherwise reject string indexing).
  */
-export const ENTITY_SCHEMAS = {
+const ENTITY_SCHEMAS_INNER = {
   // ── Helper sub-schemas ───────────────────────────────────────────────────
 
   AddressPayload: {
@@ -1632,3 +1635,6 @@ export const ENTITY_SCHEMAS = {
     additionalProperties: false
   }
 } satisfies Record<string, EntitySchema>;
+
+export const ENTITY_SCHEMAS: Record<keyof typeof ENTITY_SCHEMAS_INNER, EntitySchema> =
+  ENTITY_SCHEMAS_INNER;
