@@ -151,18 +151,18 @@ describe("buildOpenApiDocument()", () => {
 
     const postCompanies = doc.paths["/crm/companies"]?.["post"];
     expect(postCompanies?.requestBody).toBeDefined();
-    // OA-2: CRM routes now carry $ref schemas; billing routes still use object placeholder
+    // OA-2: CRM routes now carry $ref schemas
     const postCompaniesSchema = postCompanies?.requestBody?.content?.["application/json"]?.schema;
     expect(postCompaniesSchema).toBeDefined();
 
     const patchCompany = doc.paths["/crm/companies/{id}"]?.["patch"];
     expect(patchCompany?.requestBody).toBeDefined();
 
-    // Project routes use the placeholder (OA-5 not yet shipped)
+    // OA-5: Project routes now carry $ref schemas
     const postProjects = doc.paths["/project/projects"]?.["post"];
     expect(postProjects?.requestBody).toBeDefined();
     expect(postProjects?.requestBody?.content?.["application/json"]?.schema).toEqual({
-      type: "object"
+      $ref: "#/components/schemas/CreateProjectInput"
     });
   });
 });
