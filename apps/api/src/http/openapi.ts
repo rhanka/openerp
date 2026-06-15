@@ -43,6 +43,7 @@ interface OpenApiSchemaObject {
   required?: string[];
   additionalProperties?: boolean;
   description?: string;
+  allOf?: Array<Record<string, unknown>>;
 }
 
 interface OpenApiRequestBody {

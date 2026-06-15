@@ -186,12 +186,17 @@ describe("GET /openapi.json HTTP endpoint", () => {
     expect(Object.keys(body.paths).length).toBeGreaterThan(0);
   });
 
-  it("response contains no tenant-specific data fields", async () => {
+  it("response contains no tenant-specific sample data", async () => {
     const app = buildApp({ db: fakeDb, resolveTenant: headerTenantResolver });
     const res = await app.request("/openapi.json");
     const text = await res.text();
 
-    // The document is pure route metadata — no organizational or user identifiers
-    expect(text).not.toMatch(/organization_id|organizationId|user_identity_id|actorUserId/);
+    // The document is pure route + schema metadata — no concrete tenant values
+    // should leak in (UUIDs, demo emails, real organisation IDs). Schema field
+    // *names* like `organizationId` are legitimate — they describe the response
+    // shape, not data. We assert there are no UUID literals or demo email
+    // domains anywhere in the document.
+    expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    expect(text).not.toMatch(/@(example|demo|test)\.(com|org)/i);
   });
 });

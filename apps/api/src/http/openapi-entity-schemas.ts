@@ -16,10 +16,16 @@ export type EntitySchema = {
   additionalProperties?: boolean;
   description?: string;
   $ref?: string;
+  /** Used for composite schemas that extend another (e.g. InvoiceWithLines, CreateWebhookEndpointResult). */
+  allOf?: Array<Record<string, unknown>>;
 };
 
-/** Map of entity name → JSON Schema. */
-export const ENTITY_SCHEMAS: Record<string, EntitySchema> = {
+/**
+ * Map of entity name → JSON Schema. Declared with `satisfies` (not `:`) so the
+ * inferred literal key set narrows away `noUncheckedIndexedAccess` undefined on
+ * dot-access — tests can write `ENTITY_SCHEMAS.Company.required` directly.
+ */
+export const ENTITY_SCHEMAS = {
   // ── Helper sub-schemas ───────────────────────────────────────────────────
 
   AddressPayload: {
@@ -1625,4 +1631,4 @@ export const ENTITY_SCHEMAS: Record<string, EntitySchema> = {
     ],
     additionalProperties: false
   }
-};
+} satisfies Record<string, EntitySchema>;
