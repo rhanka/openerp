@@ -1633,6 +1633,1010 @@ const ENTITY_SCHEMAS_INNER = {
       "createdAt"
     ],
     additionalProperties: false
+  },
+
+  // ── Foundation helper sub-schemas ─────────────────────────────────────────
+
+  Money: {
+    type: "object",
+    description: "Canonical money value (amountMinor + currency ISO-4217 + scale).",
+    properties: {
+      amountMinor: { type: "integer" },
+      currency: { type: "string" },
+      scale: { type: "integer" }
+    },
+    required: ["amountMinor", "currency", "scale"],
+    additionalProperties: false
+  },
+
+  FxRateSnapshot: {
+    type: "object",
+    description: "Point-in-time foreign-exchange rate returned by currency.resolve().",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      sourceCurrency: { type: "string" },
+      targetCurrency: { type: "string" },
+      rate: { type: "string" },
+      effectiveAt: { type: "string", format: "date-time" },
+      source: { type: "string" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "sourceCurrency",
+      "targetCurrency",
+      "rate",
+      "effectiveAt",
+      "source"
+    ],
+    additionalProperties: false
+  },
+
+  PayloadSummary: {
+    type: "object",
+    description: "Free-form JSON bag (Record<string, JsonValue>) for audit/event payloads.",
+    additionalProperties: true
+  },
+
+  // ── Organization ─────────────────────────────────────────────────────────
+
+  Organization: {
+    type: "object",
+    description: "Top-level tenant organisation entity.",
+    properties: {
+      id: { type: "string" },
+      legalName: { type: "string" },
+      displayName: { type: "string" },
+      slug: { type: "string" },
+      status: { type: "string", enum: ["active", "suspended"] },
+      defaultLocale: { type: "string", enum: ["en", "fr"] },
+      defaultCurrency: { type: "string" },
+      defaultTimezone: { type: "string" },
+      country: { type: "string" },
+      provinceState: { type: "string" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "legalName",
+      "displayName",
+      "slug",
+      "status",
+      "defaultLocale",
+      "defaultCurrency",
+      "defaultTimezone",
+      "country",
+      "provinceState",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── TenantSettings ────────────────────────────────────────────────────────
+
+  TenantSettingsSelfHostedUpdateState: {
+    type: "object",
+    description: "Self-hosted update state embedded in TenantSettings.",
+    properties: {
+      currentVersion: { type: "string" },
+      latestSupportedVersion: { type: "string" },
+      supportWindow: {
+        type: "string",
+        enum: ["under_12_months", "between_12_and_24_months", "over_24_months"]
+      },
+      preflightRequired: { type: "boolean" }
+    },
+    required: [
+      "currentVersion",
+      "latestSupportedVersion",
+      "supportWindow",
+      "preflightRequired"
+    ],
+    additionalProperties: false
+  },
+
+  TenantSettings: {
+    type: "object",
+    description: "Per-tenant configuration settings (locale, tax, fiscal year, numbering).",
+    properties: {
+      organizationId: { type: "string" },
+      supportedLocales: { type: "array", items: { type: "string", enum: ["en", "fr"] } },
+      primaryLocale: { type: "string", enum: ["en", "fr"] },
+      taxRegion: { type: "string" },
+      fiscalYearStart: { type: "string" },
+      documentNumberingPolicy: { type: "string" },
+      retentionPolicy: { type: "string" },
+      selfHostedUpdateState: {
+        $ref: "#/components/schemas/TenantSettingsSelfHostedUpdateState"
+      }
+    },
+    required: [
+      "organizationId",
+      "supportedLocales",
+      "primaryLocale",
+      "taxRegion",
+      "fiscalYearStart",
+      "documentNumberingPolicy",
+      "retentionPolicy",
+      "selfHostedUpdateState"
+    ],
+    additionalProperties: false
+  },
+
+  // ── User ──────────────────────────────────────────────────────────────────
+
+  User: {
+    type: "object",
+    description: "Tenant-scoped user — member of one organisation with a locale preference.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      email: { type: "string" },
+      displayName: { type: "string" },
+      preferredLocale: { type: "string", enum: ["en", "fr"] },
+      status: { type: "string", enum: ["invited", "active", "deactivated"] },
+      mfaState: { type: "string", enum: ["not_configured", "configured"] },
+      lastLoginAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "email",
+      "displayName",
+      "preferredLocale",
+      "status",
+      "mfaState",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── Team ──────────────────────────────────────────────────────────────────
+
+  Team: {
+    type: "object",
+    description: "Tenant team — hierarchical grouping of users with an optional manager.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      name: { type: "string" },
+      parentTeamId: { type: ["string", "null"] },
+      managerUserId: { type: ["string", "null"] },
+      status: { type: "string", enum: ["active", "inactive"] }
+    },
+    required: ["id", "organizationId", "name", "status"],
+    additionalProperties: false
+  },
+
+  // ── RoleDefinition ────────────────────────────────────────────────────────
+
+  RoleDefinition: {
+    type: "object",
+    description: "Curated system role descriptor (key + i18n label key + system flag).",
+    properties: {
+      key: { type: "string" },
+      labelKey: { type: "string" },
+      systemRole: { type: "boolean" }
+    },
+    required: ["key", "labelKey", "systemRole"],
+    additionalProperties: false
+  },
+
+  // ── Role ──────────────────────────────────────────────────────────────────
+
+  Role: {
+    type: "object",
+    description: "Tenant role — may be a system role or a custom tenant-defined role.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      name: { type: "string" },
+      description: { type: "string" },
+      systemRole: { type: "boolean" },
+      status: { type: "string", enum: ["active", "inactive"] }
+    },
+    required: ["id", "organizationId", "name", "description", "systemRole", "status"],
+    additionalProperties: false
+  },
+
+  // ── PermissionGrant ───────────────────────────────────────────────────────
+
+  PermissionGrant: {
+    type: "object",
+    description: "Explicit permission grant binding a role or user to a resource action and scope.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      roleId: { type: ["string", "null"] },
+      userId: { type: ["string", "null"] },
+      resource: { type: "string" },
+      action: {
+        type: "string",
+        enum: ["read", "write", "delete", "approve", "post", "export", "manage"]
+      },
+      scope: {
+        type: "string",
+        enum: ["own", "team", "organization", "external", "system"]
+      },
+      conditions: { $ref: "#/components/schemas/PayloadSummary" },
+      createdByUserId: { type: "string" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "resource",
+      "action",
+      "scope",
+      "conditions",
+      "createdByUserId",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── AuditEvent ────────────────────────────────────────────────────────────
+
+  AuditEvent: {
+    type: "object",
+    description: "Immutable compliance audit event — records every mutating action with context.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      actorUserId: { type: ["string", "null"] },
+      actorType: { type: "string", enum: ["user", "system", "operator"] },
+      action: { type: "string" },
+      resourceType: { type: "string" },
+      resourceId: { type: "string" },
+      beforeSummary: {
+        oneOf: [{ $ref: "#/components/schemas/PayloadSummary" }, { type: "null" }]
+      },
+      afterSummary: {
+        oneOf: [{ $ref: "#/components/schemas/PayloadSummary" }, { type: "null" }]
+      },
+      ipHash: { type: ["string", "null"] },
+      userAgentHash: { type: ["string", "null"] },
+      createdAt: { type: "string", format: "date-time" },
+      source: { type: ["string", "null"], enum: ["human", "agent", "system", null] },
+      agentId: { type: ["string", "null"] },
+      toolCallId: { type: ["string", "null"] },
+      policyDecisionId: { type: ["string", "null"] },
+      delegationId: { type: ["string", "null"] },
+      approvalRequestId: { type: ["string", "null"] }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "actorType",
+      "action",
+      "resourceType",
+      "resourceId",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── FileObject ────────────────────────────────────────────────────────────
+
+  FileObject: {
+    type: "object",
+    description: "Uploaded file object — stored blob with content-type, checksum, and visibility.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      storageKey: { type: "string" },
+      filename: { type: "string" },
+      contentType: { type: "string" },
+      sizeBytes: { type: "integer" },
+      checksum: { type: "string" },
+      visibilityScope: {
+        type: "string",
+        enum: ["own", "team", "organization", "external", "system"]
+      },
+      createdByUserId: { type: "string" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "storageKey",
+      "filename",
+      "contentType",
+      "sizeBytes",
+      "checksum",
+      "visibilityScope",
+      "createdByUserId",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── Comment ───────────────────────────────────────────────────────────────
+
+  Comment: {
+    type: "object",
+    description: "Thread comment attached to any resource — internal or external visibility.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      resourceType: { type: "string" },
+      resourceId: { type: "string" },
+      body: { type: "string" },
+      visibility: { type: "string", enum: ["internal", "external"] },
+      createdByUserId: { type: "string" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "resourceType",
+      "resourceId",
+      "body",
+      "visibility",
+      "createdByUserId",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── Notification ──────────────────────────────────────────────────────────
+
+  Notification: {
+    type: "object",
+    description: "In-app or email notification routed to a recipient user.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      recipientUserId: { type: "string" },
+      channel: { type: "string", enum: ["in_app", "email"] },
+      subjectKey: { type: "string" },
+      bodyKey: { type: "string" },
+      payload: { $ref: "#/components/schemas/PayloadSummary" },
+      status: { type: "string", enum: ["queued", "sent", "read", "failed"] },
+      createdAt: { type: "string", format: "date-time" },
+      readAt: { type: ["string", "null"], format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "recipientUserId",
+      "channel",
+      "subjectKey",
+      "bodyKey",
+      "payload",
+      "status",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── TranslationKey ────────────────────────────────────────────────────────
+
+  TranslationKey: {
+    type: "object",
+    description: "Bilingual translation key with EN/FR text, namespace, and lifecycle status.",
+    properties: {
+      key: { type: "string" },
+      namespace: { type: "string" },
+      enText: { type: "string" },
+      frText: { type: "string" },
+      description: { type: "string" },
+      status: { type: "string", enum: ["draft", "active"] },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["key", "namespace", "enText", "frText", "description", "status", "updatedAt"],
+    additionalProperties: false
+  },
+
+  // ── DomainEvent ───────────────────────────────────────────────────────────
+
+  DomainEvent: {
+    type: "object",
+    description: "Integration domain event — emitted on mutating operations for downstream consumers.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      eventType: { type: "string" },
+      resourceType: { type: "string" },
+      resourceId: { type: "string" },
+      payloadSummary: { $ref: "#/components/schemas/PayloadSummary" },
+      emittedAt: { type: "string", format: "date-time" },
+      consumedAt: { type: ["string", "null"], format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "eventType",
+      "resourceType",
+      "resourceId",
+      "payloadSummary",
+      "emittedAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── Canon entities (PG-02, PG-06, PG-07, PG-08) ──────────────────────────
+
+  UserIdentity: {
+    type: "object",
+    description: "Global identity record — auth, email, MFA state, independent of tenant membership.",
+    properties: {
+      id: { type: "string" },
+      email: { type: "string" },
+      displayName: { type: "string" },
+      preferredLocale: { type: "string", enum: ["en", "fr"] },
+      mfaState: { type: "string", enum: ["not_configured", "passkey", "totp"] },
+      status: { type: "string", enum: ["invited", "active", "deactivated"] },
+      actorType: { type: "string", enum: ["human", "agent", "system"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+      lastLoginAt: { type: ["string", "null"], format: "date-time" }
+    },
+    required: [
+      "id",
+      "email",
+      "displayName",
+      "preferredLocale",
+      "mfaState",
+      "status",
+      "actorType",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  OrganizationMember: {
+    type: "object",
+    description: "Per-tenant membership linking a UserIdentity to an organisation with status and locale.",
+    properties: {
+      id: { type: "string" },
+      userIdentityId: { type: "string" },
+      organizationId: { type: "string" },
+      status: { type: "string", enum: ["invited", "active", "deactivated"] },
+      preferredLocale: { type: ["string", "null"], enum: ["en", "fr", null] },
+      joinedAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "userIdentityId",
+      "organizationId",
+      "status",
+      "joinedAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  TimelineEntry: {
+    type: "object",
+    description: "Human-readable timeline projection for a resource — distinct from audit compliance log.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      resourceType: { type: "string" },
+      resourceId: { type: "string" },
+      actorUserIdentityId: { type: ["string", "null"] },
+      entryType: { type: "string" },
+      payloadSummary: { $ref: "#/components/schemas/PayloadSummary" },
+      occurredAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "resourceType",
+      "resourceId",
+      "entryType",
+      "payloadSummary",
+      "occurredAt"
+    ],
+    additionalProperties: false
+  },
+
+  ApprovalRequest: {
+    type: "object",
+    description: "Approval request entity — canon PG-07, used across foundation, project, and agentic flows.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      requesterUserIdentityId: { type: "string" },
+      approverUserIdentityId: { type: ["string", "null"] },
+      approverRoleId: { type: ["string", "null"] },
+      subjectType: { type: "string" },
+      subjectId: { type: "string" },
+      reason: { type: "string" },
+      urgency: { type: "string", enum: ["low", "normal", "high"] },
+      status: {
+        type: "string",
+        enum: ["pending", "approved", "rejected", "escalated", "expired"]
+      },
+      decisionReason: { type: ["string", "null"] },
+      decidedAt: { type: ["string", "null"], format: "date-time" },
+      expiresAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "requesterUserIdentityId",
+      "subjectType",
+      "subjectId",
+      "reason",
+      "urgency",
+      "status",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  IdempotencyRecord: {
+    type: "object",
+    description: "Idempotency record — deduplication key for POST/DELETE side-effects, TTL 24 h.",
+    properties: {
+      organizationId: { type: "string" },
+      key: { type: "string" },
+      requestHash: { type: "string" },
+      responseBodyHash: { type: "string" },
+      statusCode: { type: "integer" },
+      createdAt: { type: "string", format: "date-time" },
+      expiresAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "organizationId",
+      "key",
+      "requestHash",
+      "responseBodyHash",
+      "statusCode",
+      "createdAt",
+      "expiresAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── Project helper sub-schemas ────────────────────────────────────────────
+
+  RateMoney: {
+    type: "object",
+    description: "Money snapshot used by Rate entities (amountMinor + currency + scale).",
+    properties: {
+      amountMinor: { type: "integer" },
+      currency: { type: "string" },
+      scale: { type: "integer" }
+    },
+    required: ["amountMinor", "currency", "scale"],
+    additionalProperties: false
+  },
+
+  ProposalMoney: {
+    type: "object",
+    description: "Money snapshot used by InvoiceProposal entities (amountMinor + currency + scale).",
+    properties: {
+      amountMinor: { type: "integer" },
+      currency: { type: "string" },
+      scale: { type: "integer" }
+    },
+    required: ["amountMinor", "currency", "scale"],
+    additionalProperties: false
+  },
+
+  // ── Project ───────────────────────────────────────────────────────────────
+
+  Project: {
+    type: "object",
+    description: "Delivery project entity — top-level container for tasks, time entries, and proposals.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      status: {
+        type: "string",
+        enum: ["draft", "active", "on_hold", "completed", "cancelled"]
+      },
+      code: { type: ["string", "null"] },
+      companyId: { type: ["string", "null"] },
+      ownerUserId: { type: ["string", "null"] },
+      startDate: { type: ["string", "null"] },
+      endDate: { type: ["string", "null"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "organizationId", "name", "status", "createdAt", "updatedAt"],
+    additionalProperties: false
+  },
+
+  CreateProjectInput: {
+    type: "object",
+    description: "Payload for creating a new delivery project.",
+    properties: {
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      code: { type: ["string", "null"] },
+      companyId: { type: ["string", "null"] },
+      ownerUserId: { type: ["string", "null"] },
+      startDate: { type: ["string", "null"] },
+      endDate: { type: ["string", "null"] }
+    },
+    required: ["name"],
+    additionalProperties: false
+  },
+
+  UpdateProjectInput: {
+    type: "object",
+    description: "Partial update payload for an existing delivery project.",
+    properties: {
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      status: {
+        type: "string",
+        enum: ["draft", "active", "on_hold", "completed", "cancelled"]
+      },
+      code: { type: ["string", "null"] },
+      companyId: { type: ["string", "null"] },
+      ownerUserId: { type: ["string", "null"] },
+      startDate: { type: ["string", "null"] },
+      endDate: { type: ["string", "null"] }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  // ── ProjectTask ───────────────────────────────────────────────────────────
+
+  ProjectTask: {
+    type: "object",
+    description: "Task within a delivery project — may be nested under a parent task.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      projectId: { type: "string" },
+      title: { type: "string" },
+      description: { type: ["string", "null"] },
+      status: {
+        type: "string",
+        enum: ["todo", "in_progress", "blocked", "done", "cancelled"]
+      },
+      assigneeUserId: { type: ["string", "null"] },
+      dueDate: { type: ["string", "null"] },
+      completedAt: { type: ["string", "null"], format: "date-time" },
+      parentTaskId: { type: ["string", "null"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "projectId",
+      "title",
+      "status",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateProjectTaskInput: {
+    type: "object",
+    description: "Payload for creating a new project task.",
+    properties: {
+      projectId: { type: "string" },
+      title: { type: "string" },
+      description: { type: ["string", "null"] },
+      status: {
+        type: "string",
+        enum: ["todo", "in_progress", "blocked", "done", "cancelled"]
+      },
+      assigneeUserId: { type: ["string", "null"] },
+      dueDate: { type: ["string", "null"] },
+      parentTaskId: { type: ["string", "null"] }
+    },
+    required: ["projectId", "title"],
+    additionalProperties: false
+  },
+
+  UpdateProjectTaskInput: {
+    type: "object",
+    description: "Partial update payload for an existing project task.",
+    properties: {
+      title: { type: "string" },
+      description: { type: ["string", "null"] },
+      status: {
+        type: "string",
+        enum: ["todo", "in_progress", "blocked", "done", "cancelled"]
+      },
+      assigneeUserId: { type: ["string", "null"] },
+      dueDate: { type: ["string", "null"] },
+      completedAt: { type: ["string", "null"], format: "date-time" },
+      parentTaskId: { type: ["string", "null"] }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  // ── TimeEntry ─────────────────────────────────────────────────────────────
+
+  TimeEntry: {
+    type: "object",
+    description: "Time entry recorded by a user against a project task or project directly.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      projectId: { type: "string" },
+      projectTaskId: { type: ["string", "null"] },
+      userId: { type: "string" },
+      entryDate: { type: "string" },
+      minutes: { type: "integer" },
+      description: { type: ["string", "null"] },
+      billable: { type: "boolean" },
+      status: { type: "string", enum: ["draft", "submitted", "approved", "rejected"] },
+      approvalRequestId: { type: ["string", "null"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "projectId",
+      "userId",
+      "entryDate",
+      "minutes",
+      "billable",
+      "status",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateTimeEntryInput: {
+    type: "object",
+    description: "Payload for creating a new time entry.",
+    properties: {
+      projectId: { type: "string" },
+      userId: { type: "string" },
+      entryDate: { type: "string" },
+      minutes: { type: "integer" },
+      projectTaskId: { type: ["string", "null"] },
+      description: { type: ["string", "null"] },
+      billable: { type: "boolean" },
+      status: { type: "string", enum: ["draft", "submitted", "approved", "rejected"] }
+    },
+    required: ["projectId", "userId", "entryDate", "minutes"],
+    additionalProperties: false
+  },
+
+  UpdateTimeEntryInput: {
+    type: "object",
+    description: "Partial update payload for an existing time entry.",
+    properties: {
+      projectTaskId: { type: ["string", "null"] },
+      entryDate: { type: "string" },
+      minutes: { type: "integer" },
+      description: { type: ["string", "null"] },
+      billable: { type: "boolean" },
+      status: { type: "string", enum: ["draft", "submitted", "approved", "rejected"] }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  // ── Rate ──────────────────────────────────────────────────────────────────
+
+  Rate: {
+    type: "object",
+    description: "Billable hourly rate — versioned with effectiveFrom/effectiveTo date range.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      name: { type: "string" },
+      amount: { $ref: "#/components/schemas/RateMoney" },
+      effectiveFrom: { type: "string" },
+      effectiveTo: { type: ["string", "null"] },
+      active: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "name",
+      "amount",
+      "effectiveFrom",
+      "active",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateRateInput: {
+    type: "object",
+    description: "Payload for creating a new billable rate.",
+    properties: {
+      name: { type: "string" },
+      amount: { $ref: "#/components/schemas/RateMoney" },
+      effectiveFrom: { type: "string" },
+      effectiveTo: { type: ["string", "null"] },
+      active: { type: "boolean" }
+    },
+    required: ["name", "amount", "effectiveFrom"],
+    additionalProperties: false
+  },
+
+  UpdateRateInput: {
+    type: "object",
+    description: "Partial update payload for an existing billable rate.",
+    properties: {
+      name: { type: "string" },
+      amount: { $ref: "#/components/schemas/RateMoney" },
+      effectiveFrom: { type: "string" },
+      effectiveTo: { type: ["string", "null"] },
+      active: { type: "boolean" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  // ── Assignment ────────────────────────────────────────────────────────────
+
+  Assignment: {
+    type: "object",
+    description: "Resource assignment — links a user to a project with optional allocation and rate.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      projectId: { type: "string" },
+      userId: { type: "string" },
+      roleLabel: { type: ["string", "null"] },
+      allocationPercent: { type: ["number", "null"] },
+      startDate: { type: ["string", "null"] },
+      endDate: { type: ["string", "null"] },
+      billableRateId: { type: ["string", "null"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "projectId",
+      "userId",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateAssignmentInput: {
+    type: "object",
+    description: "Payload for creating a new resource assignment.",
+    properties: {
+      projectId: { type: "string" },
+      userId: { type: "string" },
+      roleLabel: { type: ["string", "null"] },
+      allocationPercent: { type: ["number", "null"] },
+      startDate: { type: ["string", "null"] },
+      endDate: { type: ["string", "null"] },
+      billableRateId: { type: ["string", "null"] }
+    },
+    required: ["projectId", "userId"],
+    additionalProperties: false
+  },
+
+  UpdateAssignmentInput: {
+    type: "object",
+    description: "Partial update payload for an existing resource assignment.",
+    properties: {
+      roleLabel: { type: ["string", "null"] },
+      allocationPercent: { type: ["number", "null"] },
+      startDate: { type: ["string", "null"] },
+      endDate: { type: ["string", "null"] },
+      billableRateId: { type: ["string", "null"] }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  // ── InvoiceProposal ───────────────────────────────────────────────────────
+
+  InvoiceProposal: {
+    type: "object",
+    description: "Invoice proposal generated from project time entries — pending approval before billing.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      projectId: { type: "string" },
+      companyId: { type: ["string", "null"] },
+      status: {
+        type: "string",
+        enum: ["draft", "submitted", "approved", "rejected"]
+      },
+      periodStart: { type: ["string", "null"] },
+      periodEnd: { type: ["string", "null"] },
+      total: { $ref: "#/components/schemas/ProposalMoney" },
+      currency: { type: "string" },
+      submittedAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "projectId",
+      "status",
+      "total",
+      "currency",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  InvoiceProposalLine: {
+    type: "object",
+    description: "One line item on an invoice proposal — linked to a time entry source.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      invoiceProposalId: { type: "string" },
+      sourceType: { type: "string" },
+      sourceId: { type: ["string", "null"] },
+      description: { type: ["string", "null"] },
+      quantityMinutes: { type: "integer" },
+      unitRate: { $ref: "#/components/schemas/ProposalMoney" },
+      amount: { $ref: "#/components/schemas/ProposalMoney" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "invoiceProposalId",
+      "sourceType",
+      "quantityMinutes",
+      "unitRate",
+      "amount",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  InvoiceProposalWithLines: {
+    description: "Invoice proposal with its associated line items.",
+    allOf: [
+      { $ref: "#/components/schemas/InvoiceProposal" },
+      {
+        type: "object",
+        properties: {
+          lines: {
+            type: "array",
+            items: { $ref: "#/components/schemas/InvoiceProposalLine" }
+          }
+        },
+        required: ["lines"],
+        additionalProperties: false
+      }
+    ]
+  },
+
+  CreateInvoiceProposalInput: {
+    type: "object",
+    description: "Payload for generating a new invoice proposal from project time entries.",
+    properties: {
+      projectId: { type: "string" },
+      periodStart: { type: ["string", "null"] },
+      periodEnd: { type: ["string", "null"] },
+      currency: { type: "string" }
+    },
+    required: ["projectId"],
+    additionalProperties: false
   }
 } satisfies Record<string, EntitySchema>;
 

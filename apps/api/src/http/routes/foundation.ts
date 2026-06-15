@@ -10,22 +10,37 @@ export interface RouteContract {
 
 export function buildFoundationRoutes(): RouteContract[] {
   return [
-    { method: "GET", path: "/me", audited: false },
-    { method: "GET", path: "/organizations/current", audited: false },
+    { method: "GET", path: "/me", audited: false, responseSchema: "User" },
+    {
+      method: "GET",
+      path: "/organizations/current",
+      audited: false,
+      responseSchema: "Organization"
+    },
     { method: "PATCH", path: "/organizations/current/settings", audited: true },
-    { method: "GET", path: "/users", audited: false },
+    { method: "GET", path: "/users", audited: false, responseSchema: "User" },
     { method: "POST", path: "/users/invitations", audited: true },
-    { method: "PATCH", path: "/users/:id", audited: true },
-    { method: "GET", path: "/roles", audited: false },
-    { method: "POST", path: "/roles", audited: true },
-    { method: "PATCH", path: "/roles/:id", audited: true },
-    { method: "GET", path: "/permissions/effective", audited: false },
-    { method: "GET", path: "/audit-events", audited: false },
-    { method: "POST", path: "/files", audited: true },
-    { method: "GET", path: "/files/:id", audited: false },
-    { method: "POST", path: "/comments", audited: false },
-    { method: "GET", path: "/notifications", audited: false },
-    { method: "PATCH", path: "/notifications/:id", audited: false },
+    { method: "PATCH", path: "/users/:id", audited: true, responseSchema: "User" },
+    { method: "GET", path: "/roles", audited: false, responseSchema: "Role" },
+    { method: "POST", path: "/roles", audited: true, responseSchema: "Role" },
+    { method: "PATCH", path: "/roles/:id", audited: true, responseSchema: "Role" },
+    {
+      method: "GET",
+      path: "/permissions/effective",
+      audited: false,
+      responseSchema: "PermissionGrant"
+    },
+    { method: "GET", path: "/audit-events", audited: false, responseSchema: "AuditEvent" },
+    { method: "POST", path: "/files", audited: true, responseSchema: "FileObject" },
+    { method: "GET", path: "/files/:id", audited: false, responseSchema: "FileObject" },
+    { method: "POST", path: "/comments", audited: false, responseSchema: "Comment" },
+    { method: "GET", path: "/notifications", audited: false, responseSchema: "Notification" },
+    {
+      method: "PATCH",
+      path: "/notifications/:id",
+      audited: false,
+      responseSchema: "Notification"
+    },
     { method: "GET", path: "/i18n/catalog", audited: false },
     { method: "GET", path: "/system/update-state", audited: false },
     { method: "POST", path: "/auth/exchange-agent-token", audited: true }

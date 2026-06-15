@@ -37,38 +37,38 @@ describe("components.schemas infrastructure (OA-1)", () => {
     });
   });
 
-  // Placeholder contract tests — kept alive on project routes (OA-5 not yet shipped).
+  // Placeholder contract tests — kept alive on /system/update-state (GET, no responseSchema set).
 
-  it("POST route without requestSchema emits {type:'object'} placeholder", () => {
+  it("GET route without requestSchema has no requestBody", () => {
     const doc = buildOpenApiDocument();
-    const postProjects = doc.paths["/project/projects"]?.["post"];
-    expect(postProjects?.requestBody).toBeDefined();
-    const schema = postProjects?.requestBody?.content?.["application/json"]?.schema;
-    expect(schema).toEqual({ type: "object" });
-  });
-
-  it("PATCH route without requestSchema emits {type:'object'} placeholder", () => {
-    const doc = buildOpenApiDocument();
-    const patchProject = doc.paths["/project/projects/{id}"]?.["patch"];
-    expect(patchProject?.requestBody).toBeDefined();
-    const schema = patchProject?.requestBody?.content?.["application/json"]?.schema;
-    expect(schema).toEqual({ type: "object" });
+    const getUpdateState = doc.paths["/system/update-state"]?.["get"];
+    expect(getUpdateState).toBeDefined();
+    // GET routes never have a requestBody
+    expect(getUpdateState?.requestBody).toBeUndefined();
   });
 
   it("GET route without responseSchema emits {type:'object'} placeholder in 200 content", () => {
     const doc = buildOpenApiDocument();
-    const getProjects = doc.paths["/project/projects"]?.["get"];
-    expect(getProjects).toBeDefined();
-    const schema = getProjects?.responses?.["200"]?.content?.["application/json"]?.schema;
+    const getUpdateState = doc.paths["/system/update-state"]?.["get"];
+    expect(getUpdateState).toBeDefined();
+    const schema = getUpdateState?.responses?.["200"]?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
-  it("POST route without responseSchema emits {type:'object'} placeholder in 201 content", () => {
+  it("POST route with requestSchema uses $ref in requestBody (OA-5 project)", () => {
     const doc = buildOpenApiDocument();
     const postProjects = doc.paths["/project/projects"]?.["post"];
-    expect(postProjects).toBeDefined();
-    const schema = postProjects?.responses?.["201"]?.content?.["application/json"]?.schema;
-    expect(schema).toEqual({ type: "object" });
+    const schema = postProjects?.requestBody?.content?.["application/json"]?.schema;
+    expect(schema).toHaveProperty("$ref");
+    expect(schema?.$ref).toBe("#/components/schemas/CreateProjectInput");
+  });
+
+  it("PATCH route with requestSchema uses $ref in requestBody (OA-5 project)", () => {
+    const doc = buildOpenApiDocument();
+    const patchProject = doc.paths["/project/projects/{id}"]?.["patch"];
+    const schema = patchProject?.requestBody?.content?.["application/json"]?.schema;
+    expect(schema).toHaveProperty("$ref");
+    expect(schema?.$ref).toBe("#/components/schemas/UpdateProjectInput");
   });
 
   it("CRM POST route with requestSchema uses $ref in requestBody (OA-2)", () => {
