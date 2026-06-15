@@ -20,6 +20,14 @@ describe("components.schemas infrastructure (OA-1)", () => {
     expect(ENTITY_SCHEMAS).toHaveProperty("Opportunity");
   });
 
+  it("ENTITY_SCHEMAS includes Billing entities (OA-3)", () => {
+    expect(ENTITY_SCHEMAS).toHaveProperty("Invoice");
+    expect(ENTITY_SCHEMAS).toHaveProperty("Payment");
+    expect(ENTITY_SCHEMAS).toHaveProperty("Account");
+    expect(ENTITY_SCHEMAS).toHaveProperty("JournalEntry");
+    expect(ENTITY_SCHEMAS).toHaveProperty("RecurringBillingSchedule");
+  });
+
   it("components.securitySchemes is still present alongside schemas", () => {
     const doc = buildOpenApiDocument();
     expect(doc.components.securitySchemes.bearerAuth).toEqual({
@@ -29,37 +37,37 @@ describe("components.schemas infrastructure (OA-1)", () => {
     });
   });
 
-  // Placeholder contract tests — kept alive on billing routes (no schema wired yet).
+  // Placeholder contract tests — kept alive on reporting routes (OA-4 not yet shipped).
 
   it("POST route without requestSchema emits {type:'object'} placeholder", () => {
     const doc = buildOpenApiDocument();
-    const postInvoices = doc.paths["/billing/invoices"]?.["post"];
-    expect(postInvoices?.requestBody).toBeDefined();
-    const schema = postInvoices?.requestBody?.content?.["application/json"]?.schema;
+    const postSavedViews = doc.paths["/reporting/saved-views"]?.["post"];
+    expect(postSavedViews?.requestBody).toBeDefined();
+    const schema = postSavedViews?.requestBody?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("PATCH route without requestSchema emits {type:'object'} placeholder", () => {
     const doc = buildOpenApiDocument();
-    const patchTaxCategory = doc.paths["/billing/tax-categories/{id}"]?.["patch"];
-    expect(patchTaxCategory?.requestBody).toBeDefined();
-    const schema = patchTaxCategory?.requestBody?.content?.["application/json"]?.schema;
+    const patchSavedView = doc.paths["/reporting/saved-views/{id}"]?.["patch"];
+    expect(patchSavedView?.requestBody).toBeDefined();
+    const schema = patchSavedView?.requestBody?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("GET route without responseSchema emits {type:'object'} placeholder in 200 content", () => {
     const doc = buildOpenApiDocument();
-    const getInvoices = doc.paths["/billing/invoices"]?.["get"];
-    expect(getInvoices).toBeDefined();
-    const schema = getInvoices?.responses?.["200"]?.content?.["application/json"]?.schema;
+    const getSavedViews = doc.paths["/reporting/saved-views"]?.["get"];
+    expect(getSavedViews).toBeDefined();
+    const schema = getSavedViews?.responses?.["200"]?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("POST route without responseSchema emits {type:'object'} placeholder in 201 content", () => {
     const doc = buildOpenApiDocument();
-    const postInvoices = doc.paths["/billing/invoices"]?.["post"];
-    expect(postInvoices).toBeDefined();
-    const schema = postInvoices?.responses?.["201"]?.content?.["application/json"]?.schema;
+    const postSavedViews = doc.paths["/reporting/saved-views"]?.["post"];
+    expect(postSavedViews).toBeDefined();
+    const schema = postSavedViews?.responses?.["201"]?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
