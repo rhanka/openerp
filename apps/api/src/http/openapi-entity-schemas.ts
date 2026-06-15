@@ -1018,5 +1018,611 @@ export const ENTITY_SCHEMAS: Record<string, EntitySchema> = {
     },
     required: [],
     additionalProperties: false
+  },
+
+  // ── Reporting helper sub-schemas ──────────────────────────────────────────
+
+  ReportColumn: {
+    type: "object",
+    description: "Column descriptor for a report definition result set.",
+    properties: {
+      key: { type: "string" },
+      labelKey: { type: "string" },
+      dataType: { type: "string", enum: ["string", "number", "money", "date"] }
+    },
+    required: ["key", "labelKey", "dataType"],
+    additionalProperties: false
+  },
+
+  // ── SavedView ─────────────────────────────────────────────────────────────
+
+  SavedView: {
+    type: "object",
+    description: "Persisted per-resource filter/column/sort set, owner-scoped or org-shared.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      ownerUserId: { type: ["string", "null"] },
+      resourceType: { type: "string" },
+      name: { type: "string" },
+      filters: { type: "object" },
+      columns: { type: "array", items: { type: "string" } },
+      sortBy: { type: ["string", "null"] },
+      isShared: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "resourceType",
+      "name",
+      "filters",
+      "columns",
+      "isShared",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateSavedViewInput: {
+    type: "object",
+    description: "Payload for creating a new saved view.",
+    properties: {
+      ownerUserId: { type: ["string", "null"] },
+      resourceType: { type: "string" },
+      name: { type: "string" },
+      filters: { type: "object" },
+      columns: { type: "array", items: { type: "string" } },
+      sortBy: { type: ["string", "null"] },
+      isShared: { type: "boolean" }
+    },
+    required: ["resourceType", "name"],
+    additionalProperties: false
+  },
+
+  UpdateSavedViewInput: {
+    type: "object",
+    description: "Partial update payload for an existing saved view.",
+    properties: {
+      name: { type: "string" },
+      filters: { type: "object" },
+      columns: { type: "array", items: { type: "string" } },
+      sortBy: { type: ["string", "null"] },
+      isShared: { type: "boolean" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  // ── ReportDefinition + ReportRun ──────────────────────────────────────────
+
+  ReportDefinition: {
+    type: "object",
+    description: "Curated report definition — binds a report type to a set of parameters.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      ownerUserId: { type: ["string", "null"] },
+      reportType: { type: "string" },
+      name: { type: "string" },
+      parameters: { type: "object" },
+      isShared: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "reportType",
+      "name",
+      "parameters",
+      "isShared",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateReportDefinitionInput: {
+    type: "object",
+    description: "Payload for creating a new report definition.",
+    properties: {
+      ownerUserId: { type: ["string", "null"] },
+      reportType: { type: "string" },
+      name: { type: "string" },
+      parameters: { type: "object" },
+      isShared: { type: "boolean" }
+    },
+    required: ["reportType", "name"],
+    additionalProperties: false
+  },
+
+  UpdateReportDefinitionInput: {
+    type: "object",
+    description: "Partial update payload for an existing report definition.",
+    properties: {
+      name: { type: "string" },
+      parameters: { type: "object" },
+      isShared: { type: "boolean" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  ReportRun: {
+    type: "object",
+    description: "Execution record for a report definition run — frozen result snapshot.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      reportDefinitionId: { type: "string" },
+      triggeredByUserId: { type: ["string", "null"] },
+      status: { type: "string", enum: ["completed", "failed"] },
+      parametersSnapshot: { type: "object" },
+      resultColumns: {
+        type: "array",
+        items: { $ref: "#/components/schemas/ReportColumn" }
+      },
+      resultRows: { type: "array", items: { type: "object" } },
+      rowCount: { type: "integer" },
+      errorDetail: { type: ["string", "null"] },
+      startedAt: { type: ["string", "null"], format: "date-time" },
+      completedAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "reportDefinitionId",
+      "status",
+      "parametersSnapshot",
+      "resultColumns",
+      "resultRows",
+      "rowCount",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── Dashboard + DashboardWidget ───────────────────────────────────────────
+
+  Dashboard: {
+    type: "object",
+    description: "Dashboard composing report definitions as ordered widgets.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      isShared: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "organizationId", "name", "isShared", "createdAt", "updatedAt"],
+    additionalProperties: false
+  },
+
+  CreateDashboardInput: {
+    type: "object",
+    description: "Payload for creating a new dashboard.",
+    properties: {
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      isShared: { type: "boolean" }
+    },
+    required: ["name"],
+    additionalProperties: false
+  },
+
+  UpdateDashboardInput: {
+    type: "object",
+    description: "Partial update payload for an existing dashboard.",
+    properties: {
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      isShared: { type: "boolean" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  DashboardWidget: {
+    type: "object",
+    description: "Ordered widget binding a report definition to a dashboard.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      dashboardId: { type: "string" },
+      reportDefinitionId: { type: "string" },
+      title: { type: ["string", "null"] },
+      position: { type: "integer" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "dashboardId",
+      "reportDefinitionId",
+      "position",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateDashboardWidgetInput: {
+    type: "object",
+    description: "Payload for adding a widget to a dashboard.",
+    properties: {
+      reportDefinitionId: { type: "string" },
+      title: { type: ["string", "null"] },
+      position: { type: "integer" }
+    },
+    required: ["reportDefinitionId"],
+    additionalProperties: false
+  },
+
+  UpdateDashboardWidgetInput: {
+    type: "object",
+    description: "Partial update payload for an existing dashboard widget.",
+    properties: {
+      title: { type: ["string", "null"] },
+      position: { type: "integer" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  // ── ScheduledDelivery + DeliveryRun ──────────────────────────────────────
+
+  ScheduledDelivery: {
+    type: "object",
+    description:
+      "Scheduled delivery targeting a report definition on a cadence — in-app channel.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      targetType: { type: "string", enum: ["report_definition"] },
+      targetId: { type: "string" },
+      cadence: {
+        type: "string",
+        enum: ["daily", "weekly", "monthly", "quarterly", "annual"]
+      },
+      timezone: { type: "string" },
+      nextRunAt: { type: "string", format: "date-time" },
+      lastRunAt: { type: ["string", "null"], format: "date-time" },
+      channel: { type: "string", enum: ["in_app"] },
+      recipientUserIds: { type: "array", items: { type: "string" } },
+      isShared: { type: "boolean" },
+      active: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "name",
+      "targetType",
+      "targetId",
+      "cadence",
+      "timezone",
+      "nextRunAt",
+      "channel",
+      "recipientUserIds",
+      "isShared",
+      "active",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateScheduledDeliveryInput: {
+    type: "object",
+    description: "Payload for creating a new scheduled delivery.",
+    properties: {
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      targetType: { type: "string", enum: ["report_definition"] },
+      targetId: { type: "string" },
+      cadence: {
+        type: "string",
+        enum: ["daily", "weekly", "monthly", "quarterly", "annual"]
+      },
+      timezone: { type: "string" },
+      recipientUserIds: { type: "array", items: { type: "string" } },
+      isShared: { type: "boolean" },
+      active: { type: "boolean" }
+    },
+    required: ["name", "targetType", "targetId", "cadence"],
+    additionalProperties: false
+  },
+
+  UpdateScheduledDeliveryInput: {
+    type: "object",
+    description: "Partial update payload for an existing scheduled delivery.",
+    properties: {
+      name: { type: "string" },
+      cadence: {
+        type: "string",
+        enum: ["daily", "weekly", "monthly", "quarterly", "annual"]
+      },
+      timezone: { type: "string" },
+      recipientUserIds: { type: "array", items: { type: "string" } },
+      isShared: { type: "boolean" },
+      active: { type: "boolean" },
+      nextRunAt: { type: "string", format: "date-time" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  DeliveryRun: {
+    type: "object",
+    description: "Execution record for a scheduled delivery run — audited result snapshot.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      scheduledDeliveryId: { type: "string" },
+      reportRunId: { type: ["string", "null"] },
+      triggeredBy: { type: "string", enum: ["schedule", "manual"] },
+      status: { type: "string", enum: ["completed", "failed", "skipped"] },
+      errorDetail: { type: ["string", "null"] },
+      snapshotSummary: { type: "object" },
+      startedAt: { type: ["string", "null"], format: "date-time" },
+      completedAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "scheduledDeliveryId",
+      "triggeredBy",
+      "status",
+      "snapshotSummary",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── WorkflowDefinition + WorkflowRun ─────────────────────────────────────
+
+  WorkflowDefinition: {
+    type: "object",
+    description:
+      "Workflow definition — binds a curated trigger event to a curated action.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      triggerType: { type: "string" },
+      triggerConfig: { type: "object" },
+      actionType: { type: "string" },
+      actionConfig: { type: "object" },
+      isActive: { type: "boolean" },
+      isShared: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "name",
+      "triggerType",
+      "triggerConfig",
+      "actionType",
+      "actionConfig",
+      "isActive",
+      "isShared",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateWorkflowDefinitionInput: {
+    type: "object",
+    description: "Payload for creating a new workflow definition.",
+    properties: {
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      triggerType: { type: "string" },
+      triggerConfig: { type: "object" },
+      actionType: { type: "string" },
+      actionConfig: { type: "object" },
+      isActive: { type: "boolean" },
+      isShared: { type: "boolean" }
+    },
+    required: ["name", "triggerType", "actionType", "actionConfig"],
+    additionalProperties: false
+  },
+
+  UpdateWorkflowDefinitionInput: {
+    type: "object",
+    description: "Partial update payload for an existing workflow definition.",
+    properties: {
+      name: { type: "string" },
+      description: { type: ["string", "null"] },
+      triggerConfig: { type: "object" },
+      actionConfig: { type: "object" },
+      isActive: { type: "boolean" },
+      isShared: { type: "boolean" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  WorkflowRun: {
+    type: "object",
+    description: "Execution record for a workflow definition run — synchronous best-effort.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      workflowDefinitionId: { type: "string" },
+      triggerAuditEventId: { type: ["string", "null"] },
+      triggerEventType: { type: "string" },
+      triggerResourceType: { type: ["string", "null"] },
+      triggerResourceId: { type: ["string", "null"] },
+      triggeredBy: { type: "string", enum: ["event", "manual"] },
+      status: { type: "string", enum: ["completed", "failed", "skipped"] },
+      createdResourceType: { type: ["string", "null"] },
+      createdResourceId: { type: ["string", "null"] },
+      actionResult: { type: "object" },
+      errorDetail: { type: ["string", "null"] },
+      startedAt: { type: ["string", "null"], format: "date-time" },
+      completedAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "workflowDefinitionId",
+      "triggerEventType",
+      "triggeredBy",
+      "status",
+      "actionResult",
+      "createdAt"
+    ],
+    additionalProperties: false
+  },
+
+  // ── Webhook helper sub-schemas ────────────────────────────────────────────
+
+  WebhookEventTypeEntry: {
+    type: "object",
+    description: "Curated subscribable webhook event type entry.",
+    properties: {
+      eventType: { type: "string" },
+      labelKey: { type: "string" }
+    },
+    required: ["eventType", "labelKey"],
+    additionalProperties: false
+  },
+
+  // ── WebhookEndpoint + WebhookDelivery ─────────────────────────────────────
+
+  WebhookEndpoint: {
+    type: "object",
+    description: "Registered HTTPS webhook endpoint with subscribed event types.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      targetUrl: { type: "string" },
+      eventTypes: { type: "array", items: { type: "string" } },
+      isActive: { type: "boolean" },
+      isShared: { type: "boolean" },
+      consecutiveFailures: { type: "integer" },
+      disabledAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "name",
+      "targetUrl",
+      "eventTypes",
+      "isActive",
+      "isShared",
+      "consecutiveFailures",
+      "createdAt",
+      "updatedAt"
+    ],
+    additionalProperties: false
+  },
+
+  CreateWebhookEndpointResult: {
+    description:
+      "WebhookEndpoint with the signing secret — returned once on create or rotate-secret.",
+    allOf: [
+      { $ref: "#/components/schemas/WebhookEndpoint" },
+      {
+        type: "object",
+        properties: {
+          signingSecret: { type: "string" }
+        },
+        required: ["signingSecret"],
+        additionalProperties: false
+      }
+    ]
+  },
+
+  CreateWebhookEndpointInput: {
+    type: "object",
+    description: "Payload for creating a new webhook endpoint.",
+    properties: {
+      ownerUserId: { type: ["string", "null"] },
+      name: { type: "string" },
+      targetUrl: { type: "string" },
+      eventTypes: { type: "array", items: { type: "string" } },
+      isActive: { type: "boolean" },
+      isShared: { type: "boolean" }
+    },
+    required: ["name", "targetUrl", "eventTypes"],
+    additionalProperties: false
+  },
+
+  UpdateWebhookEndpointInput: {
+    type: "object",
+    description: "Partial update payload for an existing webhook endpoint.",
+    properties: {
+      name: { type: "string" },
+      targetUrl: { type: "string" },
+      eventTypes: { type: "array", items: { type: "string" } },
+      isActive: { type: "boolean" },
+      isShared: { type: "boolean" }
+    },
+    required: [],
+    additionalProperties: false
+  },
+
+  WebhookDelivery: {
+    type: "object",
+    description: "Delivery record for a webhook event dispatch attempt.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      webhookEndpointId: { type: "string" },
+      eventType: { type: "string" },
+      triggerAuditEventId: { type: ["string", "null"] },
+      payload: { type: "object" },
+      signature: { type: "string" },
+      status: {
+        type: "string",
+        enum: ["pending_egress", "succeeded", "failed"]
+      },
+      httpStatus: { type: ["integer", "null"] },
+      attemptCount: { type: "integer" },
+      nextRetryAt: { type: ["string", "null"], format: "date-time" },
+      errorDetail: { type: ["string", "null"] },
+      signedAt: { type: "string", format: "date-time" },
+      deliveredAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "organizationId",
+      "webhookEndpointId",
+      "eventType",
+      "payload",
+      "signature",
+      "status",
+      "attemptCount",
+      "signedAt",
+      "createdAt"
+    ],
+    additionalProperties: false
   }
 };

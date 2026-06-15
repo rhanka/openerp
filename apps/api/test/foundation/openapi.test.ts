@@ -158,10 +158,10 @@ describe("buildOpenApiDocument()", () => {
     const patchCompany = doc.paths["/crm/companies/{id}"]?.["patch"];
     expect(patchCompany?.requestBody).toBeDefined();
 
-    // Reporting saved-views uses the placeholder (OA-4 not yet shipped)
-    const postSavedViews = doc.paths["/reporting/saved-views"]?.["post"];
-    expect(postSavedViews?.requestBody).toBeDefined();
-    expect(postSavedViews?.requestBody?.content?.["application/json"]?.schema).toEqual({
+    // Project routes use the placeholder (OA-5 not yet shipped)
+    const postProjects = doc.paths["/project/projects"]?.["post"];
+    expect(postProjects?.requestBody).toBeDefined();
+    expect(postProjects?.requestBody?.content?.["application/json"]?.schema).toEqual({
       type: "object"
     });
   });
