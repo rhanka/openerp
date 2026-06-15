@@ -37,37 +37,37 @@ describe("components.schemas infrastructure (OA-1)", () => {
     });
   });
 
-  // Placeholder contract tests — kept alive on reporting routes (OA-4 not yet shipped).
+  // Placeholder contract tests — kept alive on project routes (OA-5 not yet shipped).
 
   it("POST route without requestSchema emits {type:'object'} placeholder", () => {
     const doc = buildOpenApiDocument();
-    const postSavedViews = doc.paths["/reporting/saved-views"]?.["post"];
-    expect(postSavedViews?.requestBody).toBeDefined();
-    const schema = postSavedViews?.requestBody?.content?.["application/json"]?.schema;
+    const postProjects = doc.paths["/project/projects"]?.["post"];
+    expect(postProjects?.requestBody).toBeDefined();
+    const schema = postProjects?.requestBody?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("PATCH route without requestSchema emits {type:'object'} placeholder", () => {
     const doc = buildOpenApiDocument();
-    const patchSavedView = doc.paths["/reporting/saved-views/{id}"]?.["patch"];
-    expect(patchSavedView?.requestBody).toBeDefined();
-    const schema = patchSavedView?.requestBody?.content?.["application/json"]?.schema;
+    const patchProject = doc.paths["/project/projects/{id}"]?.["patch"];
+    expect(patchProject?.requestBody).toBeDefined();
+    const schema = patchProject?.requestBody?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("GET route without responseSchema emits {type:'object'} placeholder in 200 content", () => {
     const doc = buildOpenApiDocument();
-    const getSavedViews = doc.paths["/reporting/saved-views"]?.["get"];
-    expect(getSavedViews).toBeDefined();
-    const schema = getSavedViews?.responses?.["200"]?.content?.["application/json"]?.schema;
+    const getProjects = doc.paths["/project/projects"]?.["get"];
+    expect(getProjects).toBeDefined();
+    const schema = getProjects?.responses?.["200"]?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
   it("POST route without responseSchema emits {type:'object'} placeholder in 201 content", () => {
     const doc = buildOpenApiDocument();
-    const postSavedViews = doc.paths["/reporting/saved-views"]?.["post"];
-    expect(postSavedViews).toBeDefined();
-    const schema = postSavedViews?.responses?.["201"]?.content?.["application/json"]?.schema;
+    const postProjects = doc.paths["/project/projects"]?.["post"];
+    expect(postProjects).toBeDefined();
+    const schema = postProjects?.responses?.["201"]?.content?.["application/json"]?.schema;
     expect(schema).toEqual({ type: "object" });
   });
 
