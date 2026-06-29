@@ -98,7 +98,7 @@ function makeDb(
     // All update/insert queries (markDeliveryAttempt, increment, reset, trip, audit)
     return { rows: [] };
   });
-  return { query };
+  return { query } as unknown as Queryable;
 }
 
 function queryCallTexts(db: Queryable): string[] {
@@ -147,7 +147,7 @@ describe("tripEndpointIfNeeded", () => {
     const auditCallIndex = texts.findIndex(
       (t) => t.includes("insert into audit_events")
     );
-    const auditValues = (db.query as ReturnType<typeof vi.fn>).mock.calls[auditCallIndex][1] as unknown[];
+    const auditValues = (db.query as ReturnType<typeof vi.fn>).mock.calls[auditCallIndex]![1] as unknown[];
     // afterSummary is serialized as JSON in audit-emit — check that disabledReason appears
     const afterSummaryArg = auditValues.find(
       (v) =>
@@ -225,7 +225,7 @@ describe("attemptWebhookDelivery + circuit-breaker integration", () => {
       }
       return { rows: [] };
     });
-    const db: Queryable = { query };
+    const db = { query } as unknown as Queryable;
 
     const port = makeInMemoryEgressPort(
       async (_req): Promise<WebhookEgressResult> => ({
@@ -266,7 +266,7 @@ describe("attemptWebhookDelivery + circuit-breaker integration", () => {
       }
       return { rows: [] };
     });
-    const db: Queryable = { query };
+    const db = { query } as unknown as Queryable;
 
     const port = makeInMemoryEgressPort(
       async (_req): Promise<WebhookEgressResult> => ({
@@ -380,7 +380,7 @@ describe("clearEndpointCircuitBreakerState", () => {
     const callIdx = texts.findIndex(
       (t) => t.includes("update webhook_endpoints") && t.includes("consecutive_failures = 0")
     );
-    const values = (db.query as ReturnType<typeof vi.fn>).mock.calls[callIdx][1] as unknown[];
+    const values = (db.query as ReturnType<typeof vi.fn>).mock.calls[callIdx]![1] as unknown[];
     expect(values).toContain(ENDPOINT_ID);
     expect(values).toContain(CTX.organizationId);
   });

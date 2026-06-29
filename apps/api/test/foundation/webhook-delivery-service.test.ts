@@ -89,7 +89,7 @@ function makeDb(deliveryRow: unknown | null, endpointRow: unknown | null): Query
     // update queries (markDeliveryAttempt, incrementEndpointFailureCounter, resetEndpointFailureCounter)
     return { rows: [] };
   });
-  return { query };
+  return { query } as unknown as Queryable;
 }
 
 // ---------------------------------------------------------------------------
@@ -327,7 +327,7 @@ describe("attemptWebhookDelivery", () => {
     await attemptWebhookDelivery(db, CTX, DELIVERY_ID, { port, timeoutMs: 5_000 });
 
     expect(sendSpy).toHaveBeenCalledOnce();
-    const req = sendSpy.mock.calls[0][0] as {
+    const req = sendSpy.mock.calls[0]![0] as {
       url: string;
       body: string;
       headers: Record<string, string>;

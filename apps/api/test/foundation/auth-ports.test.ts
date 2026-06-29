@@ -24,7 +24,7 @@ function spyQueryable(rowFactory: (text: string, values: unknown[]) => unknown[]
   const query = vi.fn(async (text: string, values: unknown[] = []) => ({
     rows: rowFactory(text, values),
   }));
-  const db: Queryable = { query };
+  const db = { query } as unknown as Queryable;
   return { db, query };
 }
 
