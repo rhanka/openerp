@@ -143,7 +143,7 @@ function makeDb(opts: {
     return { rows: [] };
   });
 
-  return { query };
+  return { query } as unknown as Queryable;
 }
 
 function queryCallTexts(db: Queryable): string[] {

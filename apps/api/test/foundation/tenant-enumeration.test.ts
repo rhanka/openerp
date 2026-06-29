@@ -36,7 +36,7 @@ describe("listActiveOrganizationIds", () => {
     await listActiveOrganizationIds(db);
     const querySpy = db.query as ReturnType<typeof vi.fn>;
     expect(querySpy).toHaveBeenCalledOnce();
-    const sql: string = querySpy.mock.calls[0][0];
+    const sql: string = querySpy.mock.calls[0]![0];
     expect(sql).toContain("where deleted_at is null");
     expect(sql).toContain("order by created_at asc");
   });

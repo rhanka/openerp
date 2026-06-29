@@ -150,9 +150,12 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   // return 503 so callers get a clear signal rather than a 404/405.
   mountAuthOidcRoutes(app, {
     enabled: options.oidc?.enabled ?? false,
-    oidcClient: options.oidc?.oidcClient,
-    sessionTtlSeconds: options.oidc?.sessionTtlSeconds,
     db: options.db,
+    // exactOptionalPropertyTypes: only pass optional props when defined.
+    ...(options.oidc?.oidcClient !== undefined ? { oidcClient: options.oidc.oidcClient } : {}),
+    ...(options.oidc?.sessionTtlSeconds !== undefined
+      ? { sessionTtlSeconds: options.oidc.sessionTtlSeconds }
+      : {}),
   });
 
   mountUsersRoutes(app);

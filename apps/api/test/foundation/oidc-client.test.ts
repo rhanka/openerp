@@ -61,7 +61,7 @@ function makeDb(options: {
     return { rows: [] };
   });
 
-  const db: Queryable = { query };
+  const db = { query } as unknown as Queryable;
   return { db, query, insertedValues, deletedStates };
 }
 
