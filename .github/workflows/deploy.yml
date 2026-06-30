@@ -147,8 +147,11 @@ jobs:
       - name: Apply Kustomize
         run: kubectl apply -k infra/k8s/overlays/dev
 
+      - name: Roll Postgres onto the latest spec (StatefulSet won't update a CrashLooping pod)
+        run: kubectl -n openerp-dev delete pod openerp-postgres-0 --ignore-not-found
+
       - name: Wait for migration Job
-        run: kubectl -n openerp-dev wait --for=condition=complete job/openerp-migrate --timeout=180s
+        run: kubectl -n openerp-dev wait --for=condition=complete job/openerp-migrate --timeout=300s
 
       - name: Wait for rollouts
         run: |
@@ -207,6 +210,9 @@ jobs:
 
       - name: Apply Kustomize
         run: kubectl apply -k infra/k8s/overlays/prod
+
+      - name: Roll Postgres onto the latest spec (StatefulSet won't update a CrashLooping pod)
+        run: kubectl -n openerp-prod delete pod openerp-postgres-0 --ignore-not-found
 
       - name: Wait for migration Job
         run: kubectl -n openerp-prod wait --for=condition=complete job/openerp-migrate --timeout=300s

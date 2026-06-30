@@ -19,6 +19,10 @@ spec:
         app.kubernetes.io/name: openerp
         app.kubernetes.io/component: api
     spec:
+      # Disable Docker-link-style service env injection: the openerp-api Service
+      # otherwise sets OPENERP_API_PORT=tcp://<ip>:3000, which the server reads
+      # as its listen port (NaN -> crash).
+      enableServiceLinks: false
       imagePullSecrets:
         - name: openerp-registry
       containers:
