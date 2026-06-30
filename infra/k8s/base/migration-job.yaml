@@ -33,3 +33,10 @@ spec:
                 secretKeyRef:
                   name: openerp-runtime
                   key: sessionSecret
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
