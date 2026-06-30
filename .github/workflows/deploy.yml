@@ -136,7 +136,8 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Pin image tags to this commit
-        run: sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" infra/k8s/overlays/dev/kustomization.yaml
+        run: |
+          sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" infra/k8s/overlays/dev/kustomization.yaml
 
       - name: Apply Kustomize
         run: kubectl apply -k infra/k8s/overlays/dev
@@ -184,7 +185,8 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Pin image tags to this commit
-        run: sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" infra/k8s/overlays/prod/kustomization.yaml
+        run: |
+          sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" infra/k8s/overlays/prod/kustomization.yaml
 
       - name: Apply Kustomize
         run: kubectl apply -k infra/k8s/overlays/prod
