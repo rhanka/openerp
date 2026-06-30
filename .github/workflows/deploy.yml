@@ -169,7 +169,7 @@ jobs:
           kubectl -n openerp-dev get jobs || true
           kubectl -n openerp-dev describe job/openerp-migrate || true
           kubectl -n openerp-dev describe pod -l app.kubernetes.io/component=migrate || true
-          kubectl -n openerp-dev logs -l app.kubernetes.io/component=migrate --tail=120 --all-containers || true
+          kubectl -n openerp-dev logs -l app.kubernetes.io/name=openerp --tail=80 --all-containers --prefix || true
           kubectl -n openerp-dev get events --sort-by=.lastTimestamp | tail -50 || true
 
   deploy-prod:
@@ -231,5 +231,5 @@ jobs:
           kubectl -n openerp-prod get jobs || true
           kubectl -n openerp-prod describe job/openerp-migrate || true
           kubectl -n openerp-prod describe pod -l app.kubernetes.io/component=migrate || true
-          kubectl -n openerp-prod logs -l app.kubernetes.io/component=migrate --tail=120 --all-containers || true
+          kubectl -n openerp-prod logs -l app.kubernetes.io/name=openerp --tail=80 --all-containers --prefix || true
           kubectl -n openerp-prod get events --sort-by=.lastTimestamp | tail -50 || true
