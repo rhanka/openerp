@@ -7,6 +7,8 @@ on:
       - 'apps/**'
       - 'packages/**'
       - 'infra/k8s/**'
+      - 'infra/docker/**'
+      - '.dockerignore'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
     inputs:
