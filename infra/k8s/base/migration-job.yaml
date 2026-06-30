@@ -15,8 +15,23 @@ spec:
         app.kubernetes.io/component: migrate
     spec:
       restartPolicy: OnFailure
+      enableServiceLinks: false
       imagePullSecrets:
         - name: openerp-registry
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - "until pg_isready -h openerp-postgres -p 5432 -U openerp; do echo waiting for postgres; sleep 2; done"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
       containers:
         - name: migrate
           image: openerp/api:latest
