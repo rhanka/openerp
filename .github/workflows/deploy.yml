@@ -159,6 +159,14 @@ jobs:
           kubectl -n openerp-dev rollout status deploy/openerp-worker --timeout=120s
           kubectl -n openerp-dev rollout status deploy/openerp-web --timeout=120s
 
+      - name: Wait for TLS certificate
+        run: |
+          for i in $(seq 1 30); do
+            test "$(kubectl -n openerp-dev get certificate -o name 2>/dev/null | wc -l)" -gt 0 && break
+            echo "waiting for the certificate resource to appear..."; sleep 4
+          done
+          kubectl -n openerp-dev wait --for=condition=Ready certificate --all --timeout=240s
+
       - name: Smoke checks
         run: |
           curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/readyz
@@ -222,6 +230,14 @@ jobs:
           kubectl -n openerp-prod rollout status deploy/openerp-api --timeout=180s
           kubectl -n openerp-prod rollout status deploy/openerp-worker --timeout=180s
           kubectl -n openerp-prod rollout status deploy/openerp-web --timeout=180s
+
+      - name: Wait for TLS certificate
+        run: |
+          for i in $(seq 1 30); do
+            test "$(kubectl -n openerp-prod get certificate -o name 2>/dev/null | wc -l)" -gt 0 && break
+            echo "waiting for the certificate resource to appear..."; sleep 4
+          done
+          kubectl -n openerp-prod wait --for=condition=Ready certificate --all --timeout=240s
 
       - name: Smoke checks
         run: |
