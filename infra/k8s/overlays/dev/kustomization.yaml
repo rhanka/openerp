@@ -10,3 +10,13 @@ patches:
   path: ingress-patch.yaml
 commonLabels:
   openerp.env: dev
+images:
+- name: openerp/api
+  newName: rg.fr-par.scw.cloud/openerp/openerp-api
+  newTag: latest # CI rewrites to the commit SHA before apply (deploy.yml "Pin image tags")
+- name: openerp/web
+  newName: rg.fr-par.scw.cloud/openerp/openerp-web
+  newTag: latest
+- name: openerp/worker
+  newName: rg.fr-par.scw.cloud/openerp/openerp-worker
+  newTag: latest
