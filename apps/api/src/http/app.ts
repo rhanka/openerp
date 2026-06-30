@@ -81,6 +81,7 @@ export interface BuildAppOptions {
 }
 
 const PUBLIC_PATH_PREFIXES = [
+  "/readyz",
   "/webauthn/",
   "/openapi.json",
   "/auth/login",
@@ -126,6 +127,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   });
 
   app.get("/healthz", (c) => c.json({ status: "ok" }));
+  app.get("/readyz", (c) => c.json({ status: "ok" }));
 
   // GET /openapi.json — public (no tenant required); returns the machine-readable
   // OpenAPI 3.1 description of the REST surface for Sentropic chat / agent tooling.

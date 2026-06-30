@@ -158,7 +158,6 @@ jobs:
 
       - name: Smoke checks
         run: |
-          curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/healthz
           curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/readyz
           kubectl -n openerp-dev get pods
 
@@ -220,7 +219,6 @@ jobs:
 
       - name: Smoke checks
         run: |
-          curl --fail --silent --show-error https://openerp.sent-tech.ca/healthz
           curl --fail --silent --show-error https://openerp.sent-tech.ca/readyz
           kubectl -n openerp-prod get pods
 

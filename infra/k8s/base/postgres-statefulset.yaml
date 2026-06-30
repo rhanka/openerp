@@ -29,6 +29,10 @@ spec:
           env:
             - name: POSTGRES_DB
               value: openerp
+            # PVC mount points carry a lost+found dir; point PGDATA at a
+            # subdirectory so initdb sees an empty data directory.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_USER
               value: openerp
             - name: POSTGRES_PASSWORD

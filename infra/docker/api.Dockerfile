@@ -18,4 +18,7 @@ RUN npm run build -w @sentropic/openerp-domain \
  && npm run build -w @sentropic/openerp-api
 
 EXPOSE 3000
-CMD ["node", "apps/api/dist/src/foundation/service.js"]
+# Run via tsx (same runtime as the migrate + dev-server entrypoints): the
+# source uses extensionless relative imports that plain node ESM cannot
+# resolve, while tsx resolves them. dist is still built above as a typecheck.
+CMD ["node_modules/.bin/tsx", "apps/api/src/scripts/serve.ts"]

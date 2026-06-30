@@ -16,4 +16,8 @@ RUN npm run build -w @sentropic/openerp-domain \
  && npm run build -w @sentropic/openerp-i18n \
  && npm run build -w @sentropic/openerp-worker
 
-CMD ["node", "apps/worker/dist/src/worker.js"]
+# Run via tsx (same runtime as the migrate entrypoint): the source uses
+# extensionless relative imports that plain node ESM cannot resolve, while
+# tsx resolves them. start.ts calls main() (the runtime loop); worker.ts is
+# only a descriptor. dist is still built above as a typecheck.
+CMD ["node_modules/.bin/tsx", "apps/worker/src/start.ts"]
