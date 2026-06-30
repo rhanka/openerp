@@ -1,0 +1,45 @@
+# The per-env namespace ships a default-deny-ingress baseline (k8s-ops), so
+# every pod-to-pod and ingress-controller->pod connection must be allowed
+# explicitly. Egress is not denied.
+---
+# Intra-namespace: any OpenERP pod may reach any other (migration->postgres,
+# web->api, worker->postgres).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openerp-allow-intra-namespace
+  labels:
+    app.kubernetes.io/name: openerp
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# Ingress controller -> api/web HTTP ports, so the Ingress (and the deploy
+# smoke check) can reach the app. namespaceSelector {} covers the traefik
+# namespace regardless of its labels; tighten once its selector is confirmed.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openerp-allow-ingress-http
+  labels:
+    app.kubernetes.io/name: openerp
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values:
+          - api
+          - web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: http

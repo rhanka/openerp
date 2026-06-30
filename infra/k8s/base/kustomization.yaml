@@ -6,6 +6,7 @@ resources:
 - web-deployment.yaml
 - postgres-statefulset.yaml
 - services.yaml
+- network-policy.yaml
 - update-state-configmap.yaml
 - migration-job.yaml
 - ingress.yaml
