@@ -333,15 +333,13 @@ export async function main(): Promise<void> {
   };
 
   // Lazy imports keep startup fast and avoid build-time cross-package type
-  // conflicts (the tsc rootDir constraint). In production these resolve from
-  // the compiled dist of @sentropic/openerp-api.
+  // conflicts (the tsc rootDir constraint). The worker runs under tsx, which
+  // resolves these from the @sentropic/openerp-api source (.js -> .ts).
   const { createPgPool } = await import(
-    // @ts-expect-error dynamic cross-package import in the compiled dist
-    "@sentropic/openerp-api/dist/db/pg-client.js"
+    "@sentropic/openerp-api/src/db/pg-client.js"
   );
   const { listActiveOrganizationIds } = await import(
-    // @ts-expect-error dynamic cross-package import
-    "@sentropic/openerp-api/dist/foundation/tenant-enumeration.js"
+    "@sentropic/openerp-api/src/foundation/tenant-enumeration.js"
   );
 
   const pool = createPgPool({ connectionString: databaseUrl }) as Queryable & PoolHandle;

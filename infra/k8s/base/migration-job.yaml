@@ -23,7 +23,7 @@ spec:
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c", "npm run migrate -w @sentropic/openerp-api"]
           env:
-            - name: DATABASE_URL
+            - name: OPENERP_DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: openerp-runtime

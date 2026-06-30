@@ -1,4 +1,4 @@
-import { buildFoundationWorkerHandlers } from "./handlers/foundation";
+import { buildFoundationWorkerHandlers } from "./handlers/foundation.js";
 
 export function describeWorker() {
   return {
