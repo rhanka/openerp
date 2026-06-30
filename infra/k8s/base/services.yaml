@@ -1,0 +1,51 @@
+# Services for the OpenERP workloads. The Ingress routes to openerp-api/openerp-web;
+# the Postgres StatefulSet (serviceName: openerp-postgres) needs its headless Service
+# so DATABASE_URL host `openerp-postgres` resolves in-cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: openerp-api
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: api
+spec:
+  selector:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openerp-web
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: web
+spec:
+  selector:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openerp-postgres
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: postgres
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

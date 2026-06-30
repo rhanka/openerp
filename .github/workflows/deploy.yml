@@ -81,21 +81,15 @@ jobs:
       - name: Configure kubeconfig
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
+          echo "${{ secrets.KUBE_CONFIG_DATA_DEV }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Create/refresh Secret
         run: |
           kubectl -n openerp-dev create secret generic openerp-runtime \
-            --from-literal=DATABASE_URL='${{ secrets.OPENERP_DEV_DATABASE_URL }}' \
-            --from-literal=SESSION_SECRET='${{ secrets.OPENERP_DEV_SESSION_SECRET }}' \
-            --from-literal=OPENERP_OIDC_ENABLED='${{ vars.OPENERP_DEV_OIDC_ENABLED }}' \
-            --from-literal=OAUTH_ISSUER_URL='${{ vars.OPENERP_DEV_OAUTH_ISSUER_URL }}' \
-            --from-literal=OAUTH_CLIENT_ID='${{ vars.OPENERP_DEV_OAUTH_CLIENT_ID }}' \
-            --from-literal=OAUTH_CLIENT_SECRET='${{ secrets.OPENERP_DEV_OAUTH_CLIENT_SECRET }}' \
-            --from-literal=OAUTH_REDIRECT_URI='${{ vars.OPENERP_DEV_OAUTH_REDIRECT_URI }}' \
-            --from-literal=OPENERP_DISABLE_ADMIN_TICKS='true' \
-            --from-literal=OPENERP_WORKER_HEALTH_PORT='3001' \
+            --from-literal=databaseUrl='${{ secrets.OPENERP_DEV_DATABASE_URL }}' \
+            --from-literal=sessionSecret='${{ secrets.OPENERP_DEV_SESSION_SECRET }}' \
+            --from-literal=postgresPassword='${{ secrets.OPENERP_DEV_POSTGRES_PASSWORD }}' \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply Kustomize
@@ -132,21 +126,15 @@ jobs:
       - name: Configure kubeconfig
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
+          echo "${{ secrets.KUBE_CONFIG_DATA_PROD }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Create/refresh Secret
         run: |
           kubectl -n openerp-prod create secret generic openerp-runtime \
-            --from-literal=DATABASE_URL='${{ secrets.OPENERP_PROD_DATABASE_URL }}' \
-            --from-literal=SESSION_SECRET='${{ secrets.OPENERP_PROD_SESSION_SECRET }}' \
-            --from-literal=OPENERP_OIDC_ENABLED='${{ vars.OPENERP_PROD_OIDC_ENABLED }}' \
-            --from-literal=OAUTH_ISSUER_URL='${{ vars.OPENERP_PROD_OAUTH_ISSUER_URL }}' \
-            --from-literal=OAUTH_CLIENT_ID='${{ vars.OPENERP_PROD_OAUTH_CLIENT_ID }}' \
-            --from-literal=OAUTH_CLIENT_SECRET='${{ secrets.OPENERP_PROD_OAUTH_CLIENT_SECRET }}' \
-            --from-literal=OAUTH_REDIRECT_URI='${{ vars.OPENERP_PROD_OAUTH_REDIRECT_URI }}' \
-            --from-literal=OPENERP_DISABLE_ADMIN_TICKS='true' \
-            --from-literal=OPENERP_WORKER_HEALTH_PORT='3001' \
+            --from-literal=databaseUrl='${{ secrets.OPENERP_PROD_DATABASE_URL }}' \
+            --from-literal=sessionSecret='${{ secrets.OPENERP_PROD_SESSION_SECRET }}' \
+            --from-literal=postgresPassword='${{ secrets.OPENERP_PROD_POSTGRES_PASSWORD }}' \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply Kustomize
