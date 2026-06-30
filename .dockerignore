@@ -1,0 +1,12 @@
+# Keep the build context lean and force a clean in-image build.
+**/node_modules
+node_modules
+.git
+**/dist
+**/build
+**/.svelte-kit
+tmp
+.remote
+research
+docs
+*.log
