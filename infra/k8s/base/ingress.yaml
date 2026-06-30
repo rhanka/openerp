@@ -16,6 +16,13 @@ spec:
   - host: openerp.example.com  # overlay overrides
     http:
       paths:
+      - path: /readyz
+        pathType: Prefix
+        backend:
+          service:
+            name: openerp-api
+            port:
+              number: 3000
       - path: /api
         pathType: Prefix
         backend:
