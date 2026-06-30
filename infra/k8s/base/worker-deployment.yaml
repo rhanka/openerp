@@ -17,6 +17,8 @@ spec:
         app.kubernetes.io/name: openerp
         app.kubernetes.io/component: worker
     spec:
+      imagePullSecrets:
+        - name: openerp-registry
       containers:
         - name: worker
           image: openerp/worker:latest

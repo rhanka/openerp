@@ -17,6 +17,8 @@ spec:
         app.kubernetes.io/name: openerp
         app.kubernetes.io/component: api
     spec:
+      imagePullSecrets:
+        - name: openerp-registry
       containers:
         - name: api
           image: openerp/api:latest
