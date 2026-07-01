@@ -6,6 +6,10 @@ metadata:
     app.kubernetes.io/name: openerp
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-staging  # overlay overrides for prod
+    # Bind the router to the 443 entrypoint with TLS on, or Traefik loads the
+    # cert but creates no HTTPS router and every path returns its default 404.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
   tls:
