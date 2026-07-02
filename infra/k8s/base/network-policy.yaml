@@ -38,13 +38,14 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # namespaceSelector ONLY. Kustomize commonLabels (openerp.env) is injected
+    # into a peer podSelector's matchLabels, and the traefik pods don't carry
+    # openerp.env, so an AND-ed podSelector silently blocks traefik -> 504.
+    # The traefik namespace holds only the ingress controller, so this is tight.
     - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: traefik
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: traefik
       ports:
         - protocol: TCP
           port: http
