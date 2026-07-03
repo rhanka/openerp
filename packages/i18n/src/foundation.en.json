@@ -676,5 +676,12 @@
   "update.over24": "Outside standard support",
   "update.under12": "Supported",
   "chat.dock.title": "Assistant",
-  "chat.dock.toggle": "Open assistant"
+  "chat.dock.toggle": "Open assistant",
+  "shell.skipToContent": "Skip to main content",
+  "nav.toggle.open": "Open navigation",
+  "nav.toggle.close": "Close navigation",
+  "nav.drawer.title": "Main navigation",
+  "auth.signIn": "Sign in",
+  "auth.signOut": "Sign out",
+  "auth.user.label": "My account"
 }

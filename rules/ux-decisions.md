@@ -242,3 +242,21 @@ Risques:
 Decision proposee: KEEP the single "Reporting" section. NO-GO on the Reporting/Automation split.
 
 Go/No-Go: NO-GO (deferred). Reopen when: (a) a 7th item is added to the section, or (b) the `/admin/reporting/` URL namespace is re-architected to separate reporting from automation routes.
+
+---
+
+## UXDR-008 — Shell complet : drawer mobile, header identité, skip link (GO)
+
+Ou: `apps/web/src/routes/+layout.svelte`, `apps/web/src/app.css`, `apps/web/src/routes/+layout.server.ts`, `apps/web/src/routes/auth/logout/+server.ts` (nouveau), `packages/i18n/src/foundation.{fr,en}.json`, `apps/web/tests/ui-review.spec.ts`.
+
+Orientation: Desktop (>= 769 px) : sidebar `<aside>` statique 240 px dans le CSS grid, toujours visible, pas de toggle. Mobile (<= 768 px) : nav principale via composant `Drawer` DS (`side="left"`, overlay, backdrop scrim) ouvert par un toggle hamburger (`aria-expanded` + `aria-controls`, visible mobile uniquement). Boite identite dans la zone `actions` du `Header`, a droite du locale-switcher : signed-in = icone Lucide `User` + `OverflowMenu` DS (`placement="bottom-end"`, item "Se deconnecter" `danger` -> POST `/auth/logout`) ; signed-out hors pre-auth = `<Button variant="secondary" size="sm" href="/login">Se connecter</Button>`. Routes pre-auth (`/login`, `/register-passkey`) : brand + langues uniquement (UXDR-004 conserve). Skip link WCAG 2.4.1 premier element focusable -> `#main-content`. 5 groupes SideNav conserves (UXDR-003/007). Escape et clic backdrop ferment le drawer avec retour focus hamburger ; fermeture auto sur navigation (`afterNavigate`) ; `inert` sur le contenu hors drawer en mobile ouvert (etat client `matchMedia`, jamais calcule au SSR). Identite : option (c) icone sans nom (l'API login/finish ne retourne que des UUIDs) ; migration vers profil via `GET /api/users/{id}` dans `+layout.server.ts` = attendu du workpackage suivant.
+
+Options rejetees: rail desktop 48 px (differe, cout disproportionne Demo Slice) ; toggle hamburger desktop (affordance orpheline sans rail) ; `Popover`/`role=menu` custom pour l'identite (`OverflowMenu` DS plus direct) ; initiales depuis l'UUID (opaque, confus) ; enrichir le cookie au login (l'API ne retourne pas le profil ; alourdit le chemin critique) ; duplication identite dans le drawer (anti-pattern AP-01).
+
+Preuves: `docs/reviews/2026-07-03-ux-shell-state-of-art.md` (Carbon UI Shell, Material, Odoo/Salesforce/HubSpot, WCAG 2.4.1/2.4.3) ; `docs/reviews/2026-07-03-ux-shell-implemented.md` (DOM live openerp-dev, 5 ecarts bloquants, APIs DS Drawer/OverflowMenu/Header/SideNav) ; `docs/reviews/2026-07-03-ux-shell-synthesis.md` (arbitrages zones A-D, decision identite sur code reel `login/finish/+server.ts`). Agents consultes : etat-de-l-art, revue-UI-implementee, contradiction/synthese (3 passes independantes, 2026-07-03). Directive produit utilisateur 2026-07-02 : « drawer et menus verticaux, et header classique (dont la boite id = signin, langues) ».
+
+Risques: Drawer DS sans Escape/focus-trap natifs (mitigation : `svelte:window` + `inert` + tests clavier Playwright) ; largeur Drawer `min(100vw,24rem)` plein ecran sur 375 px (mitigation : override 16rem) ; `isMobile && drawerOpen` doit etre client-only (`matchMedia`) sinon faux au SSR ; route `/auth/logout` prerequis bloquant.
+
+Decision proposee: GO orientation complete (synthese §3.1-3.5).
+
+Go/No-Go: GO si les criteres Playwright de la synthese §4 passent (desktop 1280x800 : hamburger cache, sidebar visible, identite + langues dans le banner, skip link focusable ; mobile 375x812 : hamburger visible, sidebar cachee, drawer `role=dialog` ouvre/ferme via Escape + backdrop avec retour focus ; `/login` : ni sidebar ni hamburger ni CTA connexion ; deconnexion : cookie efface + redirect `/login`).
