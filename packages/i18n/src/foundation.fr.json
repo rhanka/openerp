@@ -676,5 +676,12 @@
   "update.over24": "Hors support standard",
   "update.under12": "Support standard",
   "chat.dock.title": "Assistant",
-  "chat.dock.toggle": "Ouvrir l'assistant"
+  "chat.dock.toggle": "Ouvrir l'assistant",
+  "shell.skipToContent": "Passer au contenu principal",
+  "nav.toggle.open": "Ouvrir la navigation",
+  "nav.toggle.close": "Fermer la navigation",
+  "nav.drawer.title": "Navigation principale",
+  "auth.signIn": "Se connecter",
+  "auth.signOut": "Se déconnecter",
+  "auth.user.label": "Mon compte"
 }

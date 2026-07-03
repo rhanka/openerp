@@ -94,13 +94,13 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
 
           await page.goto(route.path);
           await page.waitForLoadState("domcontentloaded");
+          // Wait for Svelte hydration: the layout sets data-hydrated="true" in a $effect after mount
+          await page.waitForFunction(
+            () => document.documentElement.getAttribute("data-hydrated") === "true",
+            { timeout: 10_000 }
+          );
 
           await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
-          // Active nav: at least one link with aria-current="page" exists in any of the section navs
-          await expect(page.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
-            "aria-current",
-            "page"
-          );
 
           const appHeader = page.getByRole("banner", { name: "Global application header" });
           const sidebar = page.getByLabel("Primary");
@@ -109,18 +109,40 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
           const switcherIcon = page.getByTestId("locale-switcher-icon");
 
           await expect(appHeader).toBeVisible();
-          await expect(sidebar).toBeVisible();
           await expect(switcher).toBeVisible();
           await expect(switcherIcon).toBeVisible();
 
-          // Verify all five section headers are present on admin routes
           const sectionLabels = locale === "en"
             ? ["CRM", "Projects", "Billing", "Reporting", "Admin"]
             : ["CRM", "Projets", "Facturation", "Rapports", "Admin"];
-          for (const sectionLabel of sectionLabels) {
-            await expect(
-              page.locator(".shell__nav-heading", { hasText: sectionLabel })
-            ).toBeVisible();
+
+          if (viewport.name === "mobile") {
+            // UXDR-008: on mobile the sidebar is CSS-hidden; nav lives in the Drawer overlay.
+            await expect(sidebar).not.toBeVisible();
+            const openNavLabel = locale === "en" ? "Open navigation" : "Ouvrir la navigation";
+            await page.getByRole("button", { name: openNavLabel }).click();
+            const drawer = page.getByRole("dialog");
+            await expect(drawer).toBeVisible();
+            // Active nav: the current route's link carries aria-current="page" inside the drawer
+            await expect(drawer.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
+              "aria-current",
+              "page"
+            );
+            for (const sectionLabel of sectionLabels) {
+              await expect(drawer.locator(".shell__nav-heading", { hasText: sectionLabel })).toBeVisible();
+            }
+            await page.keyboard.press("Escape");
+            await expect(drawer).not.toBeVisible();
+          } else {
+            await expect(sidebar).toBeVisible();
+            // Active nav: the current route's link carries aria-current="page" in the sidebar
+            await expect(sidebar.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
+              "aria-current",
+              "page"
+            );
+            for (const sectionLabel of sectionLabels) {
+              await expect(sidebar.locator(".shell__nav-heading", { hasText: sectionLabel })).toBeVisible();
+            }
           }
 
           await expectNoHorizontalOverflow(page);
@@ -128,7 +150,11 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
           await expectContained(appHeader, switcher, "locale switcher");
           await expectWithinViewport(appHeader, page, "global header");
           await expectWithinViewport(switcher, page, "locale switcher");
-          await expectHeaderBeforeShell(appHeader, sidebar, page.locator("main"));
+
+          // On mobile, sidebar is replaced by the Drawer overlay — layout differs
+          if (viewport.name !== "mobile") {
+            await expectHeaderBeforeShell(appHeader, sidebar, page.locator("main"));
+          }
 
           const headerScreenshotPath = testInfo.outputPath(
             `ui-review-header-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
@@ -139,14 +165,16 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
             contentType: "image/png"
           });
 
-          const sidebarScreenshotPath = testInfo.outputPath(
-            `ui-review-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
-          );
-          await page.locator(".shell__sidebar").screenshot({ path: sidebarScreenshotPath });
-          await testInfo.attach(`ui-review ${viewport.name} ${locale} ${route.path}`, {
-            path: sidebarScreenshotPath,
-            contentType: "image/png"
-          });
+          if (viewport.name !== "mobile") {
+            const sidebarScreenshotPath = testInfo.outputPath(
+              `ui-review-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
+            );
+            await page.locator(".shell__sidebar").screenshot({ path: sidebarScreenshotPath });
+            await testInfo.attach(`ui-review ${viewport.name} ${locale} ${route.path}`, {
+              path: sidebarScreenshotPath,
+              contentType: "image/png"
+            });
+          }
 
           const mainScreenshotPath = testInfo.outputPath(
             `ui-review-main-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
@@ -302,7 +330,14 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
   await expect(frButton).toBeFocused();
   await expectFocusVisible(frButton);
 
-  // After locale switcher, focus moves to first nav item (Leads, first item in CRM group)
+  // After locale switcher, focus moves to the identity box. This test runs
+  // signed-out (no openerp_session cookie), so the identity box is the
+  // "Sign in" link (UXDR-008); the signed-in User-icon trigger is covered by
+  // the dedicated UXDR-008 identity tests.
+  await page.keyboard.press("Tab");
+  const signInLink = page.getByRole("banner").getByRole("link", { name: "Sign in" });
+  await expect(signInLink).toBeFocused();
+
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Leads" })).toBeFocused();
 });
@@ -324,6 +359,177 @@ test("UI review: keyboard flow on /login reaches form fields directly (no sideba
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
 });
+
+// ─── UXDR-008: Shell complet — drawer mobile, header identité, skip link ───────
+
+const SESSION_COOKIE = JSON.stringify({
+  token: "test-token-uxdr008",
+  userIdentityId: "00000000-0000-0000-0000-000000000001",
+  organizationId: "00000000-0000-0000-0000-000000000002"
+});
+
+test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible, identité, skip link", () => {
+  test.beforeEach(async ({ page, context, baseURL }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await context.clearCookies();
+    await context.addCookies([
+      { name: "openerp_locale", value: "fr", url: baseURL ?? "http://127.0.0.1:4173" },
+      { name: "openerp_session", value: SESSION_COOKIE, url: baseURL ?? "http://127.0.0.1:4173" }
+    ]);
+    await page.goto("/admin/crm/leads");
+    await page.waitForLoadState("domcontentloaded");
+    // Wait for Svelte hydration: the layout sets data-hydrated="true" in a $effect after mount
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute("data-hydrated") === "true",
+      { timeout: 10_000 }
+    );
+  });
+
+  test("hamburger est caché sur desktop", async ({ page }) => {
+    const hamburger = page.getByRole("button", { name: /navigation/i }).first();
+    await expect(hamburger).not.toBeVisible();
+  });
+
+  test("sidebar desktop est visible", async ({ page }) => {
+    await expect(page.getByLabel("Primary")).toBeVisible();
+  });
+
+  test("identité (bouton Mon compte) est visible dans le header", async ({ page }) => {
+    const banner = page.getByRole("banner", { name: "Global application header" });
+    // Our custom identity-trigger button (User icon) — the OverflowMenu's three-dot trigger is hidden via CSS
+    await expect(banner.locator(".shell__identity-trigger")).toBeVisible();
+  });
+
+  test("locale-switcher est visible (UXDR-002 maintenu)", async ({ page }) => {
+    await expect(page.getByTestId("locale-switcher")).toBeVisible();
+  });
+
+  test("skip link est focusable et visible au focus", async ({ page }) => {
+    const skipLink = page.locator(".skip-link");
+    await skipLink.focus();
+    await expect(skipLink).toBeVisible();
+    await expect(skipLink).toBeFocused();
+  });
+
+  test("menu identité : item Se déconnecter visible après clic", async ({ page }) => {
+    const banner = page.getByRole("banner", { name: "Global application header" });
+    await banner.locator(".shell__identity-trigger").click();
+    await expect(page.getByRole("menu")).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /déconnecter/i })).toBeVisible();
+  });
+});
+
+test.describe("UXDR-008: mobile 375×812 — hamburger visible, sidebar cachée, drawer", () => {
+  test.beforeEach(async ({ page, context, baseURL }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await context.clearCookies();
+    await context.addCookies([
+      { name: "openerp_locale", value: "fr", url: baseURL ?? "http://127.0.0.1:4173" },
+      { name: "openerp_session", value: SESSION_COOKIE, url: baseURL ?? "http://127.0.0.1:4173" }
+    ]);
+    await page.goto("/admin/crm/leads");
+    await page.waitForLoadState("domcontentloaded");
+    // Wait for Svelte hydration: the layout sets data-hydrated="true" in a $effect after mount
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute("data-hydrated") === "true",
+      { timeout: 10_000 }
+    );
+  });
+
+  test("hamburger visible sur mobile", async ({ page }) => {
+    await expect(page.getByRole("button", { name: /ouvrir la navigation/i })).toBeVisible();
+  });
+
+  test("sidebar desktop cachée sur mobile", async ({ page }) => {
+    await expect(page.getByLabel("Primary")).not.toBeVisible();
+  });
+
+  test("identité visible dans le header mobile", async ({ page }) => {
+    const banner = page.getByRole("banner", { name: "Global application header" });
+    await expect(banner.locator(".shell__identity-trigger")).toBeVisible();
+  });
+
+  test("ouverture drawer via hamburger — groupe CRM visible", async ({ page }) => {
+    await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText("CRM")).toBeVisible();
+  });
+
+  test("fermeture drawer via Escape + retour focus hamburger", async ({ page }) => {
+    await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(page.getByRole("button", { name: /ouvrir la navigation/i })).toBeFocused();
+  });
+
+  test("fermeture drawer via clic backdrop", async ({ page }) => {
+    await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    // Click on the right edge of the viewport (outside the 16rem = 256px drawer panel)
+    await page.mouse.click(360, 400);
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+  });
+});
+
+test.describe("UXDR-008: /login — ni sidebar ni hamburger ni CTA connexion", () => {
+  test("pré-auth : aucune sidebar, aucun hamburger, pas de bouton Se connecter dans le header", async ({
+    page, context, baseURL
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await context.clearCookies();
+    await context.addCookies([
+      { name: "openerp_locale", value: "fr", url: baseURL ?? "http://127.0.0.1:4173" }
+    ]);
+    await page.goto("/login");
+    await page.waitForLoadState("domcontentloaded");
+
+    // No sidebar
+    await expect(page.getByLabel("Primary")).not.toBeAttached();
+    // No hamburger
+    await expect(page.getByRole("button", { name: /navigation/i })).not.toBeAttached();
+    // locale switcher still present (UXDR-002)
+    await expect(page.getByTestId("locale-switcher")).toBeVisible();
+    // No "Se connecter" link in header — the page IS the login form
+    const banner = page.getByRole("banner", { name: "Global application header" });
+    await expect(banner.getByRole("link", { name: /se connecter|sign in/i })).not.toBeAttached();
+  });
+});
+
+test.describe("UXDR-008: déconnexion — cookie effacé + redirect /login", () => {
+  test("Se déconnecter efface le cookie openerp_session et redirige vers /login", async ({
+    page, context, baseURL
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await context.clearCookies();
+    await context.addCookies([
+      { name: "openerp_locale", value: "fr", url: baseURL ?? "http://127.0.0.1:4173" },
+      { name: "openerp_session", value: SESSION_COOKIE, url: baseURL ?? "http://127.0.0.1:4173" }
+    ]);
+    await page.goto("/admin/crm/leads");
+    await page.waitForLoadState("domcontentloaded");
+    // Wait for Svelte hydration before interacting
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute("data-hydrated") === "true",
+      { timeout: 10_000 }
+    );
+
+    const banner = page.getByRole("banner", { name: "Global application header" });
+    await banner.locator(".shell__identity-trigger").click();
+    await expect(page.getByRole("menuitem", { name: /déconnecter/i })).toBeVisible();
+    await page.getByRole("menuitem", { name: /déconnecter/i }).click();
+
+    await page.waitForURL(/\/login/);
+    expect(page.url()).toContain("/login");
+
+    const cookies = await context.cookies();
+    const sessionCookie = cookies.find((c) => c.name === "openerp_session");
+    expect(sessionCookie).toBeUndefined();
+  });
+});
+
+// ─── End UXDR-008 tests ───────────────────────────────────────────────────────
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const overflow = await page.evaluate(() => ({

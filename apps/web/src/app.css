@@ -22,6 +22,23 @@ a:hover {
   text-decoration: underline;
 }
 
+/* Skip link — WCAG 2.4.1: visually hidden until focused */
+.skip-link {
+  background: var(--st-semantic-action-primary, #0f62fe);
+  color: var(--st-semantic-action-primaryText, #fff);
+  font-weight: 600;
+  left: 0;
+  padding: 0.75rem 1rem;
+  position: absolute;
+  text-decoration: none;
+  top: 0;
+  transform: translateY(-100%);
+  z-index: 200;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 button,
 input,
 select {
@@ -72,7 +89,7 @@ select {
 
 .shell__nav-heading {
   color: var(--st-semantic-text-secondary);
-  font-size: 0.6875rem;
+  font-size: var(--st-font-size-xs, 0.6875rem);
   font-weight: 600;
   letter-spacing: 0.06em;
   margin: 0.75rem 0 0.25rem;
@@ -90,6 +107,26 @@ select {
   box-sizing: border-box;
   padding: 0.25rem 0 0;
   width: 100%;
+}
+
+/* Hamburger toggle: flex on mobile, hidden on desktop */
+.shell__hamburger {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--st-component-control-radius, 0.375rem);
+  color: var(--st-semantic-text-primary);
+  cursor: pointer;
+  display: none;
+  flex: 0 0 auto;
+  height: 2.5rem;
+  justify-content: center;
+  padding: 0;
+  width: 2.5rem;
+}
+.shell__hamburger:focus-visible {
+  outline: 2px solid var(--st-semantic-border-interactive, #0f62fe);
+  outline-offset: 2px;
 }
 
 .shell__brand {
@@ -211,6 +248,50 @@ select {
   gap: 1rem;
 }
 
+/* Identity box — User icon trigger + OverflowMenu DS */
+.shell__signout-form {
+  display: none;
+}
+
+.shell__identity {
+  align-items: center;
+  display: flex;
+  position: relative;
+}
+
+.shell__identity-trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--st-semantic-border-subtle);
+  border-radius: var(--st-component-control-radius, 0.375rem);
+  color: var(--st-semantic-text-primary);
+  cursor: pointer;
+  display: flex;
+  height: 2.25rem;
+  justify-content: center;
+  padding: 0;
+  width: 2.25rem;
+}
+
+.shell__identity-trigger:hover {
+  background: var(--st-semantic-surface-subtle);
+}
+
+.shell__identity-trigger:focus-visible {
+  outline: 2px solid var(--st-semantic-border-interactive, #0f62fe);
+  outline-offset: 2px;
+}
+
+/* Hide the OverflowMenu default three-dot trigger; our User icon button is the trigger */
+.shell__identity-menu .st-overflowMenu__trigger {
+  display: none !important;
+}
+
+/* Drawer width override to stay within Carbon's recommended ≤256px on mobile */
+.shell__drawer {
+  --st-component-drawer-width: 16rem;
+}
+
 /* Chat dock — only rendered when feature flag is ON; zero layout impact otherwise. */
 .chat-dock-root {
   bottom: 0;
@@ -277,34 +358,41 @@ select {
   font-weight: 600;
 }
 
-@media (max-width: 760px) {
-  .shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto minmax(0, 1fr);
+.shell__signin {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.375rem;
+}
+
+@media (max-width: 768px) {
+  /* Show hamburger on mobile */
+  .shell__hamburger {
+    display: flex;
   }
 
-  .shell__header,
-  .shell__sidebar {
-    grid-column: 1;
+  /* Sign-in collapses to its icon: the FR label overflows 390px viewports */
+  .shell__signin-label {
+    display: none;
+  }
+
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .shell__header {
+    grid-column: 1;
     grid-row: 1;
   }
 
+  /* Desktop sidebar is hidden on mobile — nav is in the Drawer overlay */
   .shell__sidebar {
-    border-bottom: 1px solid var(--st-semantic-border-subtle);
-    border-right: none;
-    grid-row: 2;
-    max-height: none;
-    min-height: auto;
-    overflow-y: visible;
-    position: static;
+    display: none;
   }
 
   .shell__main {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 2;
     padding: 1rem;
   }
 }
