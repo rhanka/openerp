@@ -9,10 +9,14 @@
     IdentityMenu,
     LanguageToggle,
     SideNav,
-    ThemeProvider,
     type SideNavItem,
   } from "@sentropic/design-system-svelte";
-  import { sentTechTheme } from "@sentropic/design-system-themes";
+  import { compileTheme, sentTechTheme } from "@sentropic/design-system-themes";
+
+  // B1 (fidélité DS) : le thème est émis à :root comme le fait l'app docs du DS,
+  // pas via le wrapper scoped du ThemeProvider — sinon les tokens --st-* sont
+  // indéfinis pour :root/body et tout le texte tombe en noir/fonte fallback.
+  const themeCss = compileTheme(sentTechTheme, { selector: ":root" });
 
   // Chat dock — feature-flagged (chatEnabled from server load).
   import ChatDock from "@sentropic/chat-ui/components/ChatDock.svelte";
@@ -172,6 +176,7 @@
 
 <svelte:head>
   <title>OpenERP</title>
+  {@html `<style data-st-base-theme>${themeCss}</style>`}
 </svelte:head>
 
 {#snippet navGroups()}
@@ -217,9 +222,8 @@
   </div>
 {/snippet}
 
-<ThemeProvider theme={sentTechTheme}>
-  <!-- Skip link: first focusable element in the page (WCAG 2.4.1) -->
-  <a class="skip-link" href="#main-content">{t(locale, "shell.skipToContent")}</a>
+<!-- Skip link: first focusable element in the page (WCAG 2.4.1) -->
+<a class="skip-link" href="#main-content">{t(locale, "shell.skipToContent")}</a>
 
   <!-- Hidden sign-out form — submitted by the IdentityMenu (header or drawer). -->
   <form
@@ -338,4 +342,3 @@
       {/if}
     </div>
   {/if}
-</ThemeProvider>
