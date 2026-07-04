@@ -102,26 +102,28 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
 
           await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
 
-          const appHeader = page.getByRole("banner", { name: "Global application header" });
-          const sidebar = page.getByLabel("Primary");
+          // DS AppHeader: unnamed <header> banner; the aside sidebar is the only
+          // role=complementary named "Primary" (AppHeader's own desktop <nav> also
+          // carries aria-label="Primary", hence the role-scoped locator).
+          const appHeader = page.getByRole("banner");
+          const sidebar = page.getByRole("complementary", { name: "Primary" });
           const brand = page.getByLabel("OpenERP home");
           const switcher = page.getByTestId("locale-switcher");
-          const switcherIcon = page.getByTestId("locale-switcher-icon");
 
           await expect(appHeader).toBeVisible();
-          await expect(switcher).toBeVisible();
-          await expect(switcherIcon).toBeVisible();
 
           const sectionLabels = locale === "en"
             ? ["CRM", "Projects", "Billing", "Reporting", "Admin"]
             : ["CRM", "Projets", "Facturation", "Rapports", "Admin"];
 
           if (viewport.name === "mobile") {
-            // UXDR-008: on mobile the sidebar is CSS-hidden; nav lives in the Drawer overlay.
+            // DS AppHeader compact (UXDR-008 addendum): sidebar CSS-hidden, header
+            // utilities move into the drawer; the bar keeps brand + burger only.
             await expect(sidebar).not.toBeVisible();
+            await expect(switcher).not.toBeVisible();
             const openNavLabel = locale === "en" ? "Open navigation" : "Ouvrir la navigation";
             await page.getByRole("button", { name: openNavLabel }).click();
-            const drawer = page.getByRole("dialog");
+            const drawer = page.locator("#primary-nav");
             await expect(drawer).toBeVisible();
             // Active nav: the current route's link carries aria-current="page" inside the drawer
             await expect(drawer.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
@@ -131,10 +133,13 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
             for (const sectionLabel of sectionLabels) {
               await expect(drawer.locator(".shell__nav-heading", { hasText: sectionLabel })).toBeVisible();
             }
+            // Language + identity live in the drawer utilities on mobile (DS canon)
+            await expect(drawer.locator(".st-languageToggle__accordionTrigger")).toBeVisible();
             await page.keyboard.press("Escape");
             await expect(drawer).not.toBeVisible();
           } else {
             await expect(sidebar).toBeVisible();
+            await expect(switcher).toBeVisible();
             // Active nav: the current route's link carries aria-current="page" in the sidebar
             await expect(sidebar.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
               "aria-current",
@@ -147,9 +152,11 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
 
           await expectNoHorizontalOverflow(page);
           await expectContained(appHeader, brand, "brand");
-          await expectContained(appHeader, switcher, "locale switcher");
           await expectWithinViewport(appHeader, page, "global header");
-          await expectWithinViewport(switcher, page, "locale switcher");
+          if (viewport.name !== "mobile") {
+            await expectContained(appHeader, switcher, "locale switcher");
+            await expectWithinViewport(switcher, page, "locale switcher");
+          }
 
           // On mobile, sidebar is replaced by the Drawer overlay — layout differs
           if (viewport.name !== "mobile") {
@@ -212,18 +219,17 @@ test.describe("UI review: shell ergonomics — pre-auth routes", () => {
 
           await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
 
-          const appHeader = page.getByRole("banner", { name: "Global application header" });
+          const appHeader = page.getByRole("banner");
           const brand = page.getByLabel("OpenERP home");
           const switcher = page.getByTestId("locale-switcher");
-          const switcherIcon = page.getByTestId("locale-switcher-icon");
 
-          // Header and locale switcher must be present
+          // Header and locale switcher must be present (pre-auth stays non-compact
+          // at every viewport: brand + language only, no burger)
           await expect(appHeader).toBeVisible();
           await expect(switcher).toBeVisible();
-          await expect(switcherIcon).toBeVisible();
 
           // Admin sidebar must NOT be present on pre-auth routes
-          await expect(page.getByLabel("Primary")).not.toBeAttached();
+          await expect(page.getByRole("complementary", { name: "Primary" })).not.toBeAttached();
 
           // No admin navigation elements
           await expect(page.getByRole("navigation", { name: "CRM" })).not.toBeAttached();
@@ -288,8 +294,8 @@ test("UI review: locale switcher preserves admin route and document language", a
     () => document.documentElement.getAttribute("data-hydrated") === "true",
     { timeout: 10_000 }
   );
-  await expect(page.getByRole("banner", { name: "Global application header" })).toBeVisible();
-  // DS LanguageToggle: wrapper div (data-testid) contains the Globe icon + select element
+  await expect(page.getByRole("banner")).toBeVisible();
+  // DS LanguageToggle: wrapper span (data-testid) contains the select element
   await expect(page.getByTestId("locale-switcher")).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
@@ -393,11 +399,11 @@ test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible
   });
 
   test("sidebar desktop est visible", async ({ page }) => {
-    await expect(page.getByLabel("Primary")).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Primary" })).toBeVisible();
   });
 
   test("identité (DS IdentityMenu compact) est visible dans le header", async ({ page }) => {
-    const banner = page.getByRole("banner", { name: "Global application header" });
+    const banner = page.getByRole("banner");
     // DS IdentityMenu compact authenticated trigger: .st-identityMenu__trigger
     await expect(banner.locator(".st-identityMenu__trigger")).toBeVisible();
   });
@@ -414,7 +420,7 @@ test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible
   });
 
   test("menu identité : item Se déconnecter visible après clic", async ({ page }) => {
-    const banner = page.getByRole("banner", { name: "Global application header" });
+    const banner = page.getByRole("banner");
     // DS IdentityMenu compact: click the trigger to open the role="menu" dropdown
     await banner.locator(".st-identityMenu__trigger").click();
     await expect(page.getByRole("menu")).toBeVisible();
@@ -444,36 +450,40 @@ test.describe("UXDR-008: mobile 375×812 — hamburger visible, sidebar cachée,
   });
 
   test("sidebar desktop cachée sur mobile", async ({ page }) => {
-    await expect(page.getByLabel("Primary")).not.toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Primary" })).not.toBeVisible();
   });
 
-  test("identité visible dans le header mobile", async ({ page }) => {
-    const banner = page.getByRole("banner", { name: "Global application header" });
-    // DS IdentityMenu compact authenticated trigger
-    await expect(banner.locator(".st-identityMenu__trigger")).toBeVisible();
+  test("identité dans le tiroir mobile (DS AppHeader compact)", async ({ page }) => {
+    // DS canon (AppChrome): in compact mode the header keeps brand + burger only;
+    // utilities (language, identity) move into the drawer.
+    await expect(page.getByRole("banner").locator(".st-identityMenu__trigger")).not.toBeVisible();
+    await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
+    const drawer = page.locator("#primary-nav");
+    await expect(drawer.locator(".st-identityMenu__trigger")).toBeVisible();
+    await expect(drawer.locator(".st-languageToggle__accordionTrigger")).toBeVisible();
   });
 
   test("ouverture drawer via hamburger — groupe CRM visible", async ({ page }) => {
     await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
-    const drawer = page.getByRole("dialog");
+    const drawer = page.locator("#primary-nav");
     await expect(drawer).toBeVisible();
     await expect(drawer.getByText("CRM")).toBeVisible();
   });
 
   test("fermeture drawer via Escape + retour focus hamburger", async ({ page }) => {
     await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator("#primary-nav")).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(page.locator("#primary-nav")).not.toBeVisible();
     await expect(page.getByRole("button", { name: /ouvrir la navigation/i })).toBeFocused();
   });
 
   test("fermeture drawer via clic backdrop", async ({ page }) => {
     await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    // Click on the right edge of the viewport (outside the 16rem = 256px drawer panel)
-    await page.mouse.click(360, 400);
-    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(page.locator("#primary-nav")).toBeVisible();
+    // Click right of the drawer panel (min(24rem, 92vw) = 345px on 375px): hits the DS scrim
+    await page.mouse.click(365, 400);
+    await expect(page.locator("#primary-nav")).not.toBeVisible();
   });
 });
 
@@ -490,13 +500,14 @@ test.describe("UXDR-008: /login — ni sidebar ni hamburger ni CTA connexion", (
     await page.waitForLoadState("domcontentloaded");
 
     // No sidebar
-    await expect(page.getByLabel("Primary")).not.toBeAttached();
-    // No hamburger (DS Header logo snippet guarded by !isPreAuth)
+    await expect(page.getByRole("complementary", { name: "Primary" })).not.toBeAttached();
+    // No hamburger (pre-auth stays non-compact: AppHeader renders no burger)
     await expect(page.getByRole("button", { name: /navigation/i })).not.toBeAttached();
     // locale switcher still present (UXDR-002)
     await expect(page.getByTestId("locale-switcher")).toBeVisible();
     // No identity box on pre-auth — IdentityMenu not rendered ({#if !isPreAuth} guard)
-    await expect(page.getByRole("banner", { name: "Global application header" }).locator(".st-identityMenu")).not.toBeAttached();
+    await expect(page.getByRole("banner").locator(".st-identityMenu__trigger")).not.toBeAttached();
+    await expect(page.getByRole("banner").locator(".st-identityMenu__loginCompact")).not.toBeAttached();
   });
 });
 
@@ -518,9 +529,12 @@ test.describe("UXDR-008: déconnexion — cookie effacé + redirect /login", () 
       { timeout: 10_000 }
     );
 
-    const banner = page.getByRole("banner", { name: "Global application header" });
-    // DS IdentityMenu compact: trigger opens role="menu" dropdown
-    await banner.locator(".st-identityMenu__trigger").click();
+    // Mobile (DS AppHeader compact): identity lives in the drawer — open it first
+    await page.getByRole("button", { name: /ouvrir la navigation/i }).click();
+    const drawer = page.locator("#primary-nav");
+    await expect(drawer).toBeVisible();
+    // DS IdentityMenu (accordion variant): trigger opens the role="menu" items
+    await drawer.locator(".st-identityMenu__trigger").click();
     await expect(page.getByRole("menuitem", { name: /déconnecter/i })).toBeVisible();
     await page.getByRole("menuitem", { name: /déconnecter/i }).click();
 
