@@ -1,6 +1,8 @@
 /* OpenERP web shell — tokens come from @sentropic/design-system-tokens.
    Never hard-code colors / spacing / font-families here ; always reach for
-   `var(--st-...)` so that ThemeProvider can override at runtime. */
+   `var(--st-...)` so that ThemeProvider can override at runtime.
+   DS 0.34 owns all shell component styles (Header, Drawer, IdentityMenu,
+   LanguageToggle, SideNav). Only layout-level and override CSS lives here. */
 
 :root {
   background: var(--st-semantic-surface-default);
@@ -45,6 +47,9 @@ select {
   font: inherit;
 }
 
+/* ── Shell layout grid ────────────────────────────────────────────────────── */
+/* Two-column on desktop (sidebar + main), full-width on pre-auth routes.     */
+
 .shell {
   align-items: start;
   display: grid;
@@ -81,6 +86,8 @@ select {
   grid-column: 1 / -1;
 }
 
+/* ── Navigation group headings ───────────────────────────────────────────── */
+
 .shell__nav-group {
   display: flex;
   flex-direction: column;
@@ -109,7 +116,10 @@ select {
   width: 100%;
 }
 
-/* Hamburger toggle: flex on mobile, hidden on desktop */
+/* ── Hamburger toggle (mobile-only) ──────────────────────────────────────── */
+/* DS Header renders the logo snippet as-is; hamburger is CSS-hidden on       */
+/* desktop and flex-displayed on mobile.                                       */
+
 .shell__hamburger {
   align-items: center;
   background: transparent;
@@ -128,6 +138,8 @@ select {
   outline: 2px solid var(--st-semantic-border-interactive, #0f62fe);
   outline-offset: 2px;
 }
+
+/* ── Brand mark ──────────────────────────────────────────────────────────── */
 
 .shell__brand {
   align-items: center;
@@ -155,37 +167,34 @@ select {
   letter-spacing: 0;
 }
 
+/* ── Locale switcher (DS LanguageToggle wrapper) ─────────────────────────── */
+/* The wrapper provides the testid and groups the Globe icon + select.        */
+
 .shell__locale {
   align-items: center;
-  background: var(--st-semantic-surface-subtle, #f1f5f9);
-  border-radius: var(--st-component-control-radius);
-  box-sizing: border-box;
   display: flex;
-  gap: 0.125rem;
-  min-height: 2.25rem;
-  padding: 0.125rem 0.25rem;
-}
-.shell__locale-form {
-  display: flex;
-  flex: 0 0 auto;
-  margin: 0;
+  gap: 0.375rem;
 }
 
-.shell__locale svg {
+.shell__locale-icon {
   color: var(--st-semantic-text-secondary);
   flex: 0 0 auto;
-  margin: 0 0.25rem;
 }
 
-.shell__locale-button {
-  font-size: 0.75rem;
-  min-width: 2.25rem;
-  padding-inline: 0.625rem;
+/* ── Sign-out form (hidden, submitted programmatically) ──────────────────── */
+
+.shell__signout-form {
+  display: none;
 }
 
-.shell__locale-button[data-active="true"] {
-  border-color: var(--st-semantic-border-interactive, #0f62fe);
+/* ── Drawer width override ───────────────────────────────────────────────── */
+/* Stay within Carbon's recommended ≤256px on mobile */
+
+.shell__drawer {
+  --st-component-drawer-width: 16rem;
 }
+
+/* ── Main content area ───────────────────────────────────────────────────── */
 
 .shell__main {
   grid-column: 2;
@@ -193,6 +202,8 @@ select {
   min-width: 0;
   padding: 1.5rem 2rem;
 }
+
+/* ── Page layout helpers ─────────────────────────────────────────────────── */
 
 .page {
   display: grid;
@@ -248,51 +259,8 @@ select {
   gap: 1rem;
 }
 
-/* Identity box — User icon trigger + OverflowMenu DS */
-.shell__signout-form {
-  display: none;
-}
+/* ── Chat dock (feature-flagged, zero layout impact when OFF) ─────────────── */
 
-.shell__identity {
-  align-items: center;
-  display: flex;
-  position: relative;
-}
-
-.shell__identity-trigger {
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--st-semantic-border-subtle);
-  border-radius: var(--st-component-control-radius, 0.375rem);
-  color: var(--st-semantic-text-primary);
-  cursor: pointer;
-  display: flex;
-  height: 2.25rem;
-  justify-content: center;
-  padding: 0;
-  width: 2.25rem;
-}
-
-.shell__identity-trigger:hover {
-  background: var(--st-semantic-surface-subtle);
-}
-
-.shell__identity-trigger:focus-visible {
-  outline: 2px solid var(--st-semantic-border-interactive, #0f62fe);
-  outline-offset: 2px;
-}
-
-/* Hide the OverflowMenu default three-dot trigger; our User icon button is the trigger */
-.shell__identity-menu .st-overflowMenu__trigger {
-  display: none !important;
-}
-
-/* Drawer width override to stay within Carbon's recommended ≤256px on mobile */
-.shell__drawer {
-  --st-component-drawer-width: 16rem;
-}
-
-/* Chat dock — only rendered when feature flag is ON; zero layout impact otherwise. */
 .chat-dock-root {
   bottom: 0;
   pointer-events: none;
@@ -358,21 +326,12 @@ select {
   font-weight: 600;
 }
 
-.shell__signin {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.375rem;
-}
+/* ── Mobile responsive ────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
   /* Show hamburger on mobile */
   .shell__hamburger {
     display: flex;
-  }
-
-  /* Sign-in collapses to its icon: the FR label overflows 390px viewports */
-  .shell__signin-label {
-    display: none;
   }
 
   .shell {
@@ -385,7 +344,7 @@ select {
     grid-row: 1;
   }
 
-  /* Desktop sidebar is hidden on mobile — nav is in the Drawer overlay */
+  /* Desktop sidebar is hidden on mobile — nav lives in the DS Drawer overlay */
   .shell__sidebar {
     display: none;
   }

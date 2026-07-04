@@ -282,30 +282,38 @@ test("UI review: locale switcher preserves admin route and document language", a
 
   await page.goto("/admin/approvals");
   await page.waitForLoadState("domcontentloaded");
+  // Wait for Svelte hydration: the DS LanguageToggle change handler only exists
+  // once the client bundle has mounted (the layout sets data-hydrated then).
+  await page.waitForFunction(
+    () => document.documentElement.getAttribute("data-hydrated") === "true",
+    { timeout: 10_000 }
+  );
   await expect(page.getByRole("banner", { name: "Global application header" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Langue" })).toBeVisible();
+  // DS LanguageToggle: wrapper div (data-testid) contains the Globe icon + select element
+  await expect(page.getByTestId("locale-switcher")).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
-  await expect(page.getByTestId("locale-switcher").getByRole("button", { name: "FR" })).toHaveAttribute("aria-pressed", "true");
+  // DS LanguageToggle select: value reflects the current locale
+  await expect(page.getByTestId("locale-switcher").locator("select")).toHaveValue("fr");
 
   await Promise.all([
     page.waitForNavigation({ waitUntil: "load" }),
-    page.getByTestId("locale-switcher").getByRole("button", { name: "EN" }).click()
+    page.getByTestId("locale-switcher").locator("select").selectOption("en")
   ]);
   expect(new URL(page.url()).pathname).toBe("/admin/approvals");
-  await expect(page.getByRole("group", { name: "Language" })).toBeVisible();
+  await expect(page.getByTestId("locale-switcher")).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("heading", { name: "Approvals", exact: true })).toBeVisible();
-  await expect(page.getByTestId("locale-switcher").getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("locale-switcher").locator("select")).toHaveValue("en");
 
   await Promise.all([
     page.waitForNavigation({ waitUntil: "load" }),
-    page.getByTestId("locale-switcher").getByRole("button", { name: "FR" }).click()
+    page.getByTestId("locale-switcher").locator("select").selectOption("fr")
   ]);
   expect(new URL(page.url()).pathname).toBe("/admin/approvals");
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
-  await expect(page.getByTestId("locale-switcher").getByRole("button", { name: "FR" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("locale-switcher").locator("select")).toHaveValue("fr");
 });
 
 test("UI review: keyboard flow reaches locale switcher and admin nav on admin routes", async ({ page, context, baseURL }) => {
@@ -320,23 +328,17 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
   await page.waitForLoadState("domcontentloaded");
 
   await tabUntilFocused(page, page.getByLabel("OpenERP home"), 3);
-  await page.keyboard.press("Tab");
-  const enButton = page.getByTestId("locale-switcher").getByRole("button", { name: "EN" });
-  await expect(enButton).toBeFocused();
-  await expectFocusVisible(enButton);
 
+  // DS LanguageToggle: one focusable <select> element (replaces the former EN/FR button pair)
   await page.keyboard.press("Tab");
-  const frButton = page.getByTestId("locale-switcher").getByRole("button", { name: "FR" });
-  await expect(frButton).toBeFocused();
-  await expectFocusVisible(frButton);
+  const localeSelect = page.getByTestId("locale-switcher").locator("select");
+  await expect(localeSelect).toBeFocused();
+  await expectFocusVisible(localeSelect);
 
-  // After locale switcher, focus moves to the identity box. This test runs
-  // signed-out (no openerp_session cookie), so the identity box is the
-  // "Sign in" link (UXDR-008); the signed-in User-icon trigger is covered by
-  // the dedicated UXDR-008 identity tests.
+  // DS IdentityMenu compact (signed-out): compact icon button with aria-label "Sign in"
   await page.keyboard.press("Tab");
-  const signInLink = page.getByRole("banner").getByRole("link", { name: "Sign in" });
-  await expect(signInLink).toBeFocused();
+  const signInButton = page.getByRole("banner").getByRole("button", { name: "Sign in" });
+  await expect(signInButton).toBeFocused();
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Leads" })).toBeFocused();
@@ -354,7 +356,7 @@ test("UI review: keyboard flow on /login reaches form fields directly (no sideba
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
 
-  // On pre-auth: header controls (brand → EN → FR) then directly to form (no sidebar)
+  // On pre-auth: header controls (brand → locale select) then directly to form (no sidebar, no identity)
   await tabUntilFocused(page, page.getByLabel("Email address"), 11);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
@@ -394,10 +396,10 @@ test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible
     await expect(page.getByLabel("Primary")).toBeVisible();
   });
 
-  test("identité (bouton Mon compte) est visible dans le header", async ({ page }) => {
+  test("identité (DS IdentityMenu compact) est visible dans le header", async ({ page }) => {
     const banner = page.getByRole("banner", { name: "Global application header" });
-    // Our custom identity-trigger button (User icon) — the OverflowMenu's three-dot trigger is hidden via CSS
-    await expect(banner.locator(".shell__identity-trigger")).toBeVisible();
+    // DS IdentityMenu compact authenticated trigger: .st-identityMenu__trigger
+    await expect(banner.locator(".st-identityMenu__trigger")).toBeVisible();
   });
 
   test("locale-switcher est visible (UXDR-002 maintenu)", async ({ page }) => {
@@ -413,7 +415,8 @@ test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible
 
   test("menu identité : item Se déconnecter visible après clic", async ({ page }) => {
     const banner = page.getByRole("banner", { name: "Global application header" });
-    await banner.locator(".shell__identity-trigger").click();
+    // DS IdentityMenu compact: click the trigger to open the role="menu" dropdown
+    await banner.locator(".st-identityMenu__trigger").click();
     await expect(page.getByRole("menu")).toBeVisible();
     await expect(page.getByRole("menuitem", { name: /déconnecter/i })).toBeVisible();
   });
@@ -446,7 +449,8 @@ test.describe("UXDR-008: mobile 375×812 — hamburger visible, sidebar cachée,
 
   test("identité visible dans le header mobile", async ({ page }) => {
     const banner = page.getByRole("banner", { name: "Global application header" });
-    await expect(banner.locator(".shell__identity-trigger")).toBeVisible();
+    // DS IdentityMenu compact authenticated trigger
+    await expect(banner.locator(".st-identityMenu__trigger")).toBeVisible();
   });
 
   test("ouverture drawer via hamburger — groupe CRM visible", async ({ page }) => {
@@ -487,13 +491,12 @@ test.describe("UXDR-008: /login — ni sidebar ni hamburger ni CTA connexion", (
 
     // No sidebar
     await expect(page.getByLabel("Primary")).not.toBeAttached();
-    // No hamburger
+    // No hamburger (DS Header logo snippet guarded by !isPreAuth)
     await expect(page.getByRole("button", { name: /navigation/i })).not.toBeAttached();
     // locale switcher still present (UXDR-002)
     await expect(page.getByTestId("locale-switcher")).toBeVisible();
-    // No "Se connecter" link in header — the page IS the login form
-    const banner = page.getByRole("banner", { name: "Global application header" });
-    await expect(banner.getByRole("link", { name: /se connecter|sign in/i })).not.toBeAttached();
+    // No identity box on pre-auth — IdentityMenu not rendered ({#if !isPreAuth} guard)
+    await expect(page.getByRole("banner", { name: "Global application header" }).locator(".st-identityMenu")).not.toBeAttached();
   });
 });
 
@@ -516,7 +519,8 @@ test.describe("UXDR-008: déconnexion — cookie effacé + redirect /login", () 
     );
 
     const banner = page.getByRole("banner", { name: "Global application header" });
-    await banner.locator(".shell__identity-trigger").click();
+    // DS IdentityMenu compact: trigger opens role="menu" dropdown
+    await banner.locator(".st-identityMenu__trigger").click();
     await expect(page.getByRole("menuitem", { name: /déconnecter/i })).toBeVisible();
     await page.getByRole("menuitem", { name: /déconnecter/i }).click();
 
