@@ -206,25 +206,27 @@ test("locale switcher toggles nav labels between FR and EN", async ({ page, cont
     url: url.toString()
   }]);
   await page.goto("/");
+  // Wait for Svelte hydration: the DS LanguageToggle change handler only exists
+  // once the client bundle has mounted (the layout sets data-hydrated then).
+  await page.waitForFunction(
+    () => document.documentElement.getAttribute("data-hydrated") === "true",
+    { timeout: 10_000 }
+  );
   const switcher = page.getByTestId("locale-switcher");
   await expect(page.getByRole("link", { name: "Utilisateurs" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Langue" })).toBeVisible();
-  await expect(switcher.getByRole("button", { name: "FR" })).toHaveAttribute("aria-pressed", "true");
+  // DS 0.34 LanguageToggle — select variant (no button group, no aria-pressed)
+  await expect(switcher).toBeVisible();
+  await expect(switcher.locator("select")).toHaveValue("fr");
 
-  const switchResponse = page.waitForResponse(
-    (resp) => resp.url().endsWith("/api/locale") && resp.request().method() === "POST"
-  );
-  await switcher.getByRole("button", { name: "EN" }).click();
-  const response = await switchResponse;
-  // 303 redirect → confirm Set-Cookie header
-  expect(response.status()).toBeGreaterThanOrEqual(300);
-  expect(response.status()).toBeLessThan(400);
-  // Wait for the SvelteKit-followed GET to fully render with the new locale
-  await page.waitForURL((url) => !url.pathname.startsWith("/api/locale"), { timeout: 10_000 });
+  // Locale switch: handleLocaleChange fires fetch POST then window.location.href (hard reload)
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "load" }),
+    switcher.locator("select").selectOption("en")
+  ]);
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("link", { name: "Users" })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole("group", { name: "Language" })).toBeVisible();
-  await expect(page.getByTestId("locale-switcher").getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
+  await expect(switcher).toBeVisible();
+  await expect(page.getByTestId("locale-switcher").locator("select")).toHaveValue("en");
 });
 
 function liveApiConfig(): {

@@ -5,17 +5,16 @@
   import { afterNavigate } from "$app/navigation";
   import { browser } from "$app/environment";
   import {
-    Button,
     Drawer,
     Header,
-    OverflowMenu,
+    IdentityMenu,
+    LanguageToggle,
     SideNav,
     ThemeProvider,
     type SideNavItem,
-    type OverflowMenuItem
   } from "@sentropic/design-system-svelte";
   import { sentTechTheme } from "@sentropic/design-system-themes";
-  import { Languages, LogIn, Menu, User, X } from "@lucide/svelte";
+  import { Globe, Menu, X } from "@lucide/svelte";
 
   // Chat dock — feature-flagged (chatEnabled from server load).
   import ChatDock from "@sentropic/chat-ui/components/ChatDock.svelte";
@@ -27,7 +26,7 @@
     createRendererRegistry,
   } from "@sentropic/chat-ui";
 
-  import { SUPPORTED_LOCALES, t, type LocaleCode } from "$lib/i18n";
+  import { t, type LocaleCode } from "$lib/i18n";
   import { setCanvasContext, installWindowAccessor } from "$lib/canvas-context";
 
   import type { LayoutData } from "./$types";
@@ -44,7 +43,6 @@
   let isMobile = $state(false);
   let hamburgerRef: HTMLButtonElement | undefined = $state();
   let signOutFormRef: HTMLFormElement | undefined = $state();
-  let identityMenuOpen = $state(false);
 
   $effect(() => {
     if (!browser) return;
@@ -74,14 +72,27 @@
     }
   }
 
-  // Backdrop click: close drawer when clicking outside the drawer panel
-  function handleWindowClick(event: MouseEvent) {
-    if (!drawerOpen) return;
-    const aside = document.querySelector(".st-drawer");
-    if (aside && !aside.contains(event.target as Node)) {
-      drawerOpen = false;
-    }
+  // Locale change: set cookie synchronously via document.cookie, then reload the page.
+  // DS LanguageToggle is controlled (locale + onLocaleChange).
+  // window.location.reload() is used instead of href-assignment: it is an explicit
+  // reload instruction that Playwright's waitForNavigation reliably detects, and it
+  // forces a full SSR round-trip so hooks.server.ts transformPageChunk updates html[lang].
+  // We bypass /api/locale and write the cookie directly — locale values (fr/en) come
+  // only from DS LanguageToggle so they are validated at the call-site.
+  function handleLocaleChange(code: LocaleCode) {
+    if (!browser) return;
+    const maxAge = 60 * 60 * 24 * 365;
+    document.cookie = `openerp_locale=${encodeURIComponent(code)}; path=/; max-age=${maxAge}; samesite=lax`;
+    window.location.reload();
   }
+
+  // Identity user for DS IdentityMenu — session carries token + IDs only (no name/email).
+  // We fall back to a generic label; displayName drives the avatar initials in the DS component.
+  const identityUser = $derived(
+    session
+      ? { displayName: t(locale, "auth.user.label"), email: undefined, id: session.userIdentityId }
+      : null
+  );
 
   // Chat host — created lazily in the browser when the feature flag is ON.
   const chatHost = $derived.by(() => {
@@ -161,19 +172,9 @@
     { label: t(locale, "nav.audit"), href: "/admin/audit" },
     { label: t(locale, "nav.settings"), href: "/admin/settings" }
   ]));
-
-  // Identity menu items — sign out via programmatic form submission
-  const identityItems = $derived<OverflowMenuItem[]>([
-    {
-      value: "signout",
-      label: t(locale, "auth.signOut"),
-      danger: true,
-      onclick: () => signOutFormRef?.requestSubmit()
-    }
-  ]);
 </script>
 
-<svelte:window onkeydown={handleKeydown} onclick={handleWindowClick} />
+<svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
   <title>OpenERP</title>
@@ -227,10 +228,15 @@
   <a class="skip-link" href="#main-content">{t(locale, "shell.skipToContent")}</a>
 
   <div class="shell" class:shell--no-sidebar={isPreAuth}>
+    <!--
+      DS Header (0.34): label prop → aria-label on <header role="banner">.
+      logo snippet: hamburger (mobile-only via CSS) + OpenERP brand mark.
+      actions snippet: DS LanguageToggle + DS IdentityMenu (compact mode).
+    -->
     <Header class="shell__header" label="Global application header">
       {#snippet logo()}
         {#if !isPreAuth}
-          <!-- Hamburger toggle: mobile-only, controls the mobile drawer -->
+          <!-- Hamburger toggle: mobile-only via CSS, controls the DS Drawer overlay -->
           <button
             bind:this={hamburgerRef}
             class="shell__hamburger"
@@ -256,85 +262,62 @@
           </span>
         </a>
       {/snippet}
+
       {#snippet actions()}
+        <!--
+          DS LanguageToggle (0.34) — select variant (compact, token-styled).
+          Globe icon: decorative visual anchor + data-testid for Playwright.
+          onLocaleChange: programmatic POST form → server redirect preserves route.
+        -->
         <div
           class="shell__locale"
           data-testid="locale-switcher"
-          role="group"
-          aria-label={t(locale, "locale.switcher.label")}
         >
-          <Languages
+          <Globe
             data-testid="locale-switcher-icon"
             size={18}
             strokeWidth={2}
             aria-hidden="true"
+            class="shell__locale-icon"
           />
-          {#each SUPPORTED_LOCALES as code}
-            <form method="POST" action="/api/locale" class="shell__locale-form">
-              <input type="hidden" name="next" value={currentPath} />
-              <input type="hidden" name="locale" value={code} />
-              <Button
-                variant={locale === code ? "secondary" : "ghost"}
-                size="sm"
-                type="submit"
-                aria-pressed={locale === code ? "true" : "false"}
-                data-locale={code}
-                class="shell__locale-button"
-                data-active={locale === code}
-              >{code.toUpperCase()}</Button>
-            </form>
-          {/each}
+          <LanguageToggle
+            locale={locale}
+            onLocaleChange={handleLocaleChange}
+            label={t(locale, "locale.switcher.label")}
+          />
         </div>
+
         {#if !isPreAuth}
-          {#if session}
-            <!-- Hidden sign-out form submitted programmatically by the identity menu -->
-            <form
-              bind:this={signOutFormRef}
-              method="POST"
-              action="/auth/logout"
-              class="shell__signout-form"
-              aria-hidden="true"
-            ></form>
-            <!-- Identity box: User icon button + OverflowMenu DS (placement="bottom-end") -->
-            <div class="shell__identity">
-              <button
-                class="shell__identity-trigger"
-                type="button"
-                aria-label={t(locale, "auth.user.label")}
-                aria-haspopup="menu"
-                aria-expanded={identityMenuOpen}
-                onpointerdown={(e) => e.stopPropagation()}
-                onclick={() => (identityMenuOpen = !identityMenuOpen)}
-              >
-                <User size={20} aria-hidden="true" />
-              </button>
-              <OverflowMenu
-                bind:open={identityMenuOpen}
-                items={identityItems}
-                placement="bottom-end"
-                label={t(locale, "auth.user.label")}
-                triggerLabel={t(locale, "auth.user.label")}
-                class="shell__identity-menu"
-              />
-            </div>
-          {:else}
-            <!-- Icon + text on desktop, icon-only on mobile (long FR label overflows
-                 390px viewports); aria-label keeps the accessible name stable. -->
-            <a
-              class="st-button st-button--secondary st-button--sm shell__signin"
-              href="/login"
-              aria-label={t(locale, "auth.signIn")}
-            >
-              <LogIn size={16} aria-hidden="true" />
-              <span class="shell__signin-label">{t(locale, "auth.signIn")}</span>
-            </a>
-          {/if}
+          <!-- Hidden sign-out form — submitted programmatically by IdentityMenu.onLogout -->
+          <form
+            bind:this={signOutFormRef}
+            method="POST"
+            action="/auth/logout"
+            class="shell__signout-form"
+            aria-hidden="true"
+          ></form>
+
+          <!--
+            DS IdentityMenu (0.34) compact mode:
+            - Authenticated: avatar initials trigger → role="menu" dropdown (Se déconnecter).
+            - Anonymous: compact icon button → navigates to /login.
+            onLogout submits the hidden form above (progressive enhancement).
+          -->
+          <IdentityMenu
+            isAuthenticated={!!session}
+            user={identityUser}
+            compact={true}
+            onLogin={() => { if (browser) window.location.href = "/login"; }}
+            onLogout={() => signOutFormRef?.requestSubmit()}
+            loginLabel={t(locale, "auth.signIn")}
+            logoutLabel={t(locale, "auth.signOut")}
+          />
         {/if}
       {/snippet}
     </Header>
 
     {#if !isPreAuth}
-      <!-- Mobile overlay drawer (Drawer DS component) -->
+      <!-- Mobile overlay drawer (DS Drawer component — renders role="dialog") -->
       <Drawer
         id="primary-nav"
         side="left"
