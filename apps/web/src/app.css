@@ -22,7 +22,7 @@ body {
 }
 
 a {
-  color: var(--st-semantic-text-link, #0f62fe);
+  color: var(--st-semantic-text-link);
   text-decoration: none;
 }
 
@@ -32,8 +32,8 @@ a:hover {
 
 /* Skip link — WCAG 2.4.1: visually hidden until focused */
 .skip-link {
-  background: var(--st-semantic-action-primary, #0f62fe);
-  color: var(--st-semantic-action-primaryText, #fff);
+  background: var(--st-semantic-action-primary);
+  color: var(--st-semantic-action-primaryText);
   font-weight: 600;
   left: 0;
   padding: 0.75rem 1rem;
@@ -114,13 +114,8 @@ select {
   margin-top: 0.25rem;
 }
 
-.shell__sidebar .st-sidenav.shell__sidenav {
-  background: transparent;
-  border-right: 0;
-  box-sizing: border-box;
-  padding: 0.25rem 0 0;
-  width: 100%;
-}
+/* B2 : aucun override CSS du composant SideNav — seul le token de largeur est
+   ajusté (mécanisme DS légitime) pour remplir la colonne de 240px. */
 
 /* ── Locale switcher wrapper (testid only, no styling of its own) ────────── */
 
@@ -186,7 +181,8 @@ select {
 }
 
 .page__header h1 {
-  font-size: 1.75rem;
+  /* Aligné sur la référence consommateur DS (h1 36px/700) */
+  font-size: 2.25rem;
   line-height: 1.15;
   margin: 0;
 }
@@ -218,7 +214,7 @@ select {
   position: fixed;
   right: 0;
   top: 0;
-  z-index: var(--st-z-overlay, 200);
+  z-index: var(--st-zindex-overlay, 200);
 }
 
 .chat-dock-root > * {
@@ -227,12 +223,12 @@ select {
 
 .chat-dock-bubble {
   align-items: center;
-  background: var(--st-semantic-surface-interactive, #0f62fe);
+  background: var(--st-semantic-action-primary);
   border: none;
   border-radius: 50%;
   bottom: 1.5rem;
   box-shadow: var(--st-shadow-md, 0 4px 12px rgb(0 0 0 / 0.15));
-  color: var(--st-semantic-text-on-interactive, #fff);
+  color: var(--st-semantic-action-primaryText);
   cursor: pointer;
   display: flex;
   font-size: 1.25rem;
@@ -244,11 +240,11 @@ select {
 }
 
 .chat-dock-bubble:hover {
-  background: var(--st-semantic-surface-interactive-hover, #0353e9);
+  background: var(--st-semantic-action-primaryHover);
 }
 
 .chat-dock-bubble:focus-visible {
-  outline: 2px solid var(--st-semantic-border-interactive, #0f62fe);
+  outline: 2px solid var(--st-semantic-border-interactive);
   outline-offset: 2px;
 }
 
