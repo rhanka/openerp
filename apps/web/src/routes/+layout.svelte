@@ -242,10 +242,10 @@
       into the drawer (per AppChrome), so language + identity render there too.
     -->
     <AppHeader
-      class="shell__header"
       brandName="OpenERP"
       productName="Foundation"
       brandMode="full"
+      logoSrc="/openerp-logo-squared.svg"
       brandHref="/"
       brandLabel="OpenERP home"
       compact={!isPreAuth && isMobile}
@@ -255,13 +255,14 @@
       drawerId="primary-nav"
     >
       {#snippet actions()}
-        <span class="shell__locale" data-testid="locale-switcher">
-          <LanguageToggle
-            locale={locale}
-            onLocaleChange={handleLocaleChange}
-            label={t(locale, "locale.switcher.label")}
-          />
-        </span>
+        <!-- Classe utilitaire PUBLIÉE par AppHeader (st-appHeader__control) :
+             donne au contrôle langue le pill canonique du header DS. -->
+        <LanguageToggle
+          locale={locale}
+          onLocaleChange={handleLocaleChange}
+          label={t(locale, "locale.switcher.label")}
+          class="st-appHeader__control"
+        />
         {#if !isPreAuth}
           <IdentityMenu
             isAuthenticated={!!session}

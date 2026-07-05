@@ -64,7 +64,7 @@ select {
   min-height: 100vh;
 }
 
-.shell__header {
+.shell > .st-appHeader {
   box-sizing: border-box;
   grid-column: 1 / -1;
   grid-row: 1;
@@ -281,7 +281,7 @@ select {
     grid-template-rows: auto minmax(0, 1fr);
   }
 
-  .shell__header {
+  .shell > .st-appHeader {
     grid-column: 1;
     grid-row: 1;
   }
