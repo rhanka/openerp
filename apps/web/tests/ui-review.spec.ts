@@ -108,7 +108,7 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
           const appHeader = page.getByRole("banner");
           const sidebar = page.getByRole("complementary", { name: "Primary" });
           const brand = page.getByLabel("OpenERP home");
-          const switcher = page.locator("header select.st-languageToggle__select");
+          const switcher = page.locator("header button.st-appHeader__control[aria-haspopup='menu']");
 
           await expect(appHeader).toBeVisible();
 
@@ -221,7 +221,7 @@ test.describe("UI review: shell ergonomics — pre-auth routes", () => {
 
           const appHeader = page.getByRole("banner");
           const brand = page.getByLabel("OpenERP home");
-          const switcher = page.locator("header select.st-languageToggle__select");
+          const switcher = page.locator("header button.st-appHeader__control[aria-haspopup='menu']");
 
           // Header and locale switcher must be present (pre-auth stays non-compact
           // at every viewport: brand + language only, no burger)
@@ -295,31 +295,33 @@ test("UI review: locale switcher preserves admin route and document language", a
     { timeout: 10_000 }
   );
   await expect(page.getByRole("banner")).toBeVisible();
-  // DS LanguageToggle: wrapper span (data-testid) contains the select element
-  await expect(page.locator("header select.st-languageToggle__select")).toBeVisible();
+  // Pill canonique (button st-appHeader__control) : libellé = locale active
+  const pill = page.locator("header button.st-appHeader__control[aria-haspopup='menu']");
+  await expect(pill).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
-  // DS LanguageToggle select: value reflects the current locale
-  await expect(page.locator("header select.st-languageToggle__select")).toHaveValue("fr");
+  await expect(pill).toContainText("FR");
 
+  await pill.click();
   await Promise.all([
     page.waitForNavigation({ waitUntil: "load" }),
-    page.locator("header select.st-languageToggle__select").selectOption("en")
+    page.getByRole("menuitem", { name: "English" }).click()
   ]);
   expect(new URL(page.url()).pathname).toBe("/admin/approvals");
-  await expect(page.locator("header select.st-languageToggle__select")).toBeVisible();
+  await expect(pill).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("heading", { name: "Approvals", exact: true })).toBeVisible();
-  await expect(page.locator("header select.st-languageToggle__select")).toHaveValue("en");
+  await expect(pill).toContainText("EN");
 
+  await pill.click();
   await Promise.all([
     page.waitForNavigation({ waitUntil: "load" }),
-    page.locator("header select.st-languageToggle__select").selectOption("fr")
+    page.getByRole("menuitem", { name: "Français" }).click()
   ]);
   expect(new URL(page.url()).pathname).toBe("/admin/approvals");
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.getByRole("heading", { name: "Approbations" })).toBeVisible();
-  await expect(page.locator("header select.st-languageToggle__select")).toHaveValue("fr");
+  await expect(pill).toContainText("FR");
 });
 
 test("UI review: keyboard flow reaches locale switcher and admin nav on admin routes", async ({ page, context, baseURL }) => {
@@ -335,11 +337,13 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
 
   await tabUntilFocused(page, page.getByLabel("OpenERP home"), 3);
 
-  // DS LanguageToggle: one focusable <select> element (replaces the former EN/FR button pair)
+  // Pill canonique st-appHeader__control : l'affordance focus du DS est
+  // border-color interactive + fond subtil (pas d'outline/box-shadow).
   await page.keyboard.press("Tab");
-  const localeSelect = page.locator("header select.st-languageToggle__select");
-  await expect(localeSelect).toBeFocused();
-  await expectFocusVisible(localeSelect);
+  const localePill = page.locator("header button.st-appHeader__control[aria-haspopup='menu']");
+  await expect(localePill).toBeFocused();
+  // Au focus, la bordure quitte l'état repos (border-subtle) pour l'interactive.
+  await expect(localePill).not.toHaveCSS("border-top-color", "rgb(226, 232, 240)");
 
   // DS IdentityMenu compact (signed-out): compact icon button with aria-label "Sign in"
   await page.keyboard.press("Tab");
@@ -409,7 +413,7 @@ test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible
   });
 
   test("locale-switcher est visible (UXDR-002 maintenu)", async ({ page }) => {
-    await expect(page.locator("header select.st-languageToggle__select")).toBeVisible();
+    await expect(page.locator("header button.st-appHeader__control[aria-haspopup='menu']")).toBeVisible();
   });
 
   test("skip link est focusable et visible au focus", async ({ page }) => {
@@ -504,7 +508,7 @@ test.describe("UXDR-008: /login — ni sidebar ni hamburger ni CTA connexion", (
     // No hamburger (pre-auth stays non-compact: AppHeader renders no burger)
     await expect(page.getByRole("button", { name: /navigation/i })).not.toBeAttached();
     // locale switcher still present (UXDR-002)
-    await expect(page.locator("header select.st-languageToggle__select")).toBeVisible();
+    await expect(page.locator("header button.st-appHeader__control[aria-haspopup='menu']")).toBeVisible();
     // No identity box on pre-auth — IdentityMenu not rendered ({#if !isPreAuth} guard)
     await expect(page.getByRole("banner").locator(".st-identityMenu__trigger")).not.toBeAttached();
     await expect(page.getByRole("banner").locator(".st-identityMenu__loginCompact")).not.toBeAttached();
