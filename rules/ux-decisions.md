@@ -264,3 +264,21 @@ Go/No-Go: GO si les criteres Playwright de la synthese §4 passent (desktop 1280
 Addendum 2026-07-03 (fidélité DS, directive utilisateur « header/drawer pas en phase avec le DS ») : le shell est migré sur le design system actuel — bump @sentropic/design-system-svelte ^0.7.0 → ^0.34.66 (+ themes/tokens ^0.11.0). Les contrôles faits main sont remplacés par les composants officiels : sélecteur de langue = `LanguageToggle` (variant select, supersède la forme boutons FR/EN aria-pressed d'UXDR-002 en conservant sa sémantique : bascule globale header, préservation de route, html[lang]) ; boîte identité = `IdentityMenu` (compact ; signed-in = avatar initiales + menu Se déconnecter ; signed-out = bouton connexion DS) ; drawer = `Drawer` 0.34. Sémantique UXDR-008 inchangée (anatomie, breakpoints, a11y, pré-auth). Gates re-vérifiés : svelte-check 0/0, build ok, e2e 217/217.
 
 Addendum 2026-07-04 (usage canonique AppHeader, directive utilisateur « l'alignement est merdique, tu n'utilises pas correctement le DS ») : le shell utilise désormais `AppHeader` canoniquement — marque par props (brandName/productName, brandMode full), burger + tiroir compact intégrés (prop compact pilotée par matchMedia <=768px), scrim DS. Écart acté vs UXDR-008 initial : en mode compact (mobile), le DS déplace les utilitaires (langue, identité) DANS le tiroir (pattern AppChrome) — le header mobile ne garde que marque + burger ; langue = LanguageToggle variant accordion, identité = IdentityMenu variant accordion, dans le tiroir. Escape + retour focus burger restent côté consommateur (AppHeader ne les gère pas). Prérequis consommateur découvert : reset global `* { box-sizing: border-box }` (comme l'app docs du DS) sinon `.st-appHeader__bar` (width:100% + padding) déborde de 32px — ajouté à app.css, remonté au DS (issue rhanka/sent-tech-design-system#30). Gates : svelte-check 0/0, e2e 217/0 failed.
+
+---
+
+## UXDR-009 — Navigation header + IA 2-niveaux + rail extensible (C accepté)
+
+Status: ACCEPTED 2026-07-06. Arbitrage utilisateur : « go appshell+C » + orientation rail : « le menu de gauche devrait être un rail extensible », concertation à lancer avec le DS sur la notion de rail.
+
+Ou: apps/web/src/routes/+layout.svelte (AppHeader nav snippet + shell grid), toutes routes /admin/*.
+
+Decision: (C) Les 5 modules (CRM, Projets, Facturation, Rapports, Admin) deviennent des liens st-appHeader__navLink dans le nav du header (aria-current sur le module actif) ; le panneau gauche ne montre plus que les sous-items du module actif ; la grille shell migre vers AppShell variant=workspace (topChrome/navigationPanel/main). Orientation complémentaire : le panneau gauche visera un RAIL EXTENSIBLE (replié = icônes, déplié = panel) — implémentation conditionnée à la concertation DS (le DS expose primaryRail dans AppShell et un layout rail-nav-panel, mais pas encore de rail repliable documenté consommateur).
+
+Options rejetées: A (modules header + sidebar complète : redondance) ; B (nav header vide : divergence canon permanente).
+
+Preuves: scan header-sweep (navLink manquant, nav 0px vs 28.2px) ; démos docs layouts/dashboard + settings ; source AppChrome ; chiffrage AppShell 01KWTRS3QY.
+
+Risques: refonte IA visible (navigation module d'abord) ; tests nav/keyboard à réécrire ; rail dépendant de la réponse DS (issue à ouvrir).
+
+Go/No-Go: GO — critères : header avec 5 navLink + aria-current du module actif ; panneau gauche = sous-items du module actif uniquement ; AppShell workspace en place ; e2e 0 failed ; scan header sans ligne non justifiée.

@@ -14,7 +14,8 @@ const TARGET_ROUTE = "/admin/reporting/dashboards";
 test("chat dock is absent when flag is off", async ({ page }) => {
   await page.goto(TARGET_ROUTE);
   // The shell should render without errors — use the specific Admin nav as a sentinel.
-  await expect(page.getByRole("navigation", { name: "Admin" })).toBeVisible();
+  // UXDR-009 : le panneau ne montre que le module actif — sentinelle = nav Reporting.
+  await expect(page.getByRole("navigation", { name: "Reporting" })).toBeVisible();
   // No chat dock element should be present.
   await expect(page.getByTestId("chat-dock")).not.toBeAttached();
 });
@@ -34,7 +35,8 @@ test("chat dock mounts when openerp_chat=1 cookie is set", async ({ page, contex
   await page.goto(TARGET_ROUTE);
 
   // The shell nav must still be present (flag must not break layout).
-  await expect(page.getByRole("navigation", { name: "Admin" })).toBeVisible();
+  // UXDR-009 : le panneau ne montre que le module actif — sentinelle = nav Reporting.
+  await expect(page.getByRole("navigation", { name: "Reporting" })).toBeVisible();
 
   // The chat-dock root element must be in the DOM.
   await expect(page.getByTestId("chat-dock")).toBeAttached();
@@ -57,7 +59,8 @@ test("chat dock mounts without crashing when endpoint is not configured", async 
   await page.goto(TARGET_ROUTE);
 
   // Shell remains functional.
-  await expect(page.getByRole("navigation", { name: "Admin" })).toBeVisible();
+  // UXDR-009 : le panneau ne montre que le module actif — sentinelle = nav Reporting.
+  await expect(page.getByRole("navigation", { name: "Reporting" })).toBeVisible();
 
   // Dock is present regardless of endpoint state (transport errors must not crash the shell).
   await expect(page.getByTestId("chat-dock")).toBeAttached();

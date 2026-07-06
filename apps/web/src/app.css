@@ -38,47 +38,44 @@ select {
   font: inherit;
 }
 
-/* ── Shell layout grid ────────────────────────────────────────────────────── */
-/* Two-column on desktop (sidebar + main), full-width on pre-auth routes.     */
+/* ── AppShell workspace layout (UXDR-009) ─────────────────────────────────── */
+/* La grille shell bespoke (.shell / .shell__sidebar / .shell--no-sidebar) est
+   remplacée par AppShell variant=workspace DS. Seul le shell du contenu reste
+   ici (padding main, sticky topChrome via AppShell, nav-panel SideNav token). */
 
-.shell {
-  align-items: start;
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  min-height: 100vh;
+/* AppShell workspace : full-viewport height. */
+.st-appShell--workspace {
+  min-block-size: 100vh;
 }
 
-.shell > .st-appHeader {
-  box-sizing: border-box;
-  grid-column: 1 / -1;
-  grid-row: 1;
+/* topChrome sticky : le DS le met en grid-row 1 avec z-index 30 ; on force
+   position sticky pour coller la barre en haut au scroll (pattern app-header). */
+.st-appShell__topChrome {
+  position: sticky;
+  top: 0;
+  z-index: var(--st-z-header, 50);
 }
 
-.shell__sidebar {
+/* navigationPanel : largeur 240px, même surface que l'ancienne sidebar.
+   B2 : token de largeur = mécanisme DS légitime, pas de bespoke. */
+.st-appShell__navigationPanel {
+  --st-component-appShell-navigationWidth: 240px;
   --st-component-sideNav-width: 100%;
-  background: var(--st-semantic-surface-subtle);
-  border-right: 1px solid var(--st-semantic-border-subtle);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  grid-column: 1;
-  grid-row: 2;
-  max-height: calc(100vh - var(--st-component-appHeader-height, 3.5rem));
-  min-height: calc(100vh - var(--st-component-appHeader-height, 3.5rem));
   overflow-y: auto;
   padding: 1rem;
   position: sticky;
   top: var(--st-component-appHeader-height, 3.5rem);
+  /* La hauteur sticky couvre l'espace sous le topChrome (AppShell body = row 2). */
+  max-block-size: calc(100vh - var(--st-component-appHeader-height, 3.5rem));
 }
 
-.shell--no-sidebar .shell__main {
-  grid-column: 1 / -1;
+/* B2 : le token de largeur SideNav remplit la colonne navigationPanel. */
+.shell__nav-panel {
+  --st-component-sideNav-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
-
-/* B2 : aucun override CSS du composant SideNav — seul le token de largeur est
-   ajusté (mécanisme DS légitime) pour remplir la colonne de 240px. */
 
 /* ── Sign-out form (hidden, submitted programmatically) ──────────────────── */
 
@@ -98,10 +95,10 @@ select {
 }
 
 /* ── Main content area ───────────────────────────────────────────────────── */
+/* .shell__main est maintenant un wrapper div dans st-appShell__main (AppShell
+   gère overflow:auto sur son main ; le wrapper porte le padding et le tabindex). */
 
 .shell__main {
-  grid-column: 2;
-  grid-row: 2;
   min-width: 0;
   padding: 1.5rem 2rem;
 }
@@ -112,7 +109,9 @@ select {
    main), le confinement des tables DS (re-scopé sur main) et .page__lede
    (reliquat justifié — aucun équivalent DS, tokens-only). */
 
-main .st-dataTable-wrap {
+/* Re-scopé sur .shell__main (wrapper div dans st-appShell__main) pour conserver
+   les sélecteurs main-scoped après migration AppShell. */
+.shell__main .st-dataTable-wrap {
   contain: paint;
   max-width: 100%;
   min-width: 0;
@@ -120,7 +119,7 @@ main .st-dataTable-wrap {
   width: 100%;
 }
 
-main h1 {
+.shell__main h1 {
   /* Aligné sur la référence consommateur DS (h1 36px/700) */
   font-size: 2.25rem;
   line-height: 1.15;
@@ -204,26 +203,24 @@ main h1 {
 }
 
 /* ── Mobile responsive ────────────────────────────────────────────────────── */
+/* AppShell variant=workspace empile ses panneaux en colonne à ≤48rem ; le shell
+   OpenERP masque le navigationPanel sur mobile (UXDR-008 : la nav vit dans le
+   Drawer AppHeader) et réduit le padding du main. */
 
 @media (max-width: 768px) {
-  .shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
-  .shell > .st-appHeader {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  /* Desktop sidebar is hidden on mobile — nav lives in the DS Drawer overlay */
-  .shell__sidebar {
+  .st-appShell__navigationPanel {
     display: none;
   }
 
+  /* AppShell empile en colonne à ≤48rem : main garde flex-basis 0 (hérité du
+     mode rangée) → hauteur 0, le contenu ne compte pas. flex-basis auto rend
+     la hauteur pilotée par le contenu. Spécificité (0,3,0) pour passer devant
+     le style scoped du composant. Remonté au DS (fil #31 workspace). */
+  .st-appShell--workspace .st-appShell__body > .st-appShell__main {
+    flex-basis: auto;
+  }
+
   .shell__main {
-    grid-column: 1;
-    grid-row: 2;
     padding: 1rem;
   }
 }

@@ -3,6 +3,17 @@ import { expect, test } from "@playwright/test";
 test("foundation shell exposes admin navigation without layout overlap", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "OpenERP" })).toBeVisible();
+  // UXDR-009: IA niveau 1 — les 5 modules sont des liens dans la nav du header ;
+  // les sous-items (Users, Roles…) vivent dans le panneau gauche du module actif.
+  await expect(page.getByRole("link", { name: "CRM" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Projects" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Billing" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Reporting" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Admin" })).toBeVisible();
+});
+
+test("admin module route exposes admin sub-navigation in the panel", async ({ page }) => {
+  await page.goto("/admin/users");
   await expect(page.getByRole("link", { name: "Users" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Roles" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Approvals" })).toBeVisible();
@@ -213,7 +224,8 @@ test("locale switcher toggles nav labels between FR and EN", async ({ page, cont
     { timeout: 10_000 }
   );
   const switcher = page.locator("header button.st-appHeader__control[aria-haspopup='menu']");
-  await expect(page.getByRole("link", { name: "Utilisateurs" })).toBeVisible();
+  // UXDR-009: nav header niveau 1 — libellé de module sensible à la locale
+  await expect(page.getByRole("link", { name: "Facturation" })).toBeVisible();
   // Pill canonique : libellé = locale active ; menu DS pour changer
   await expect(switcher).toBeVisible();
   await expect(switcher).toContainText("FR");
@@ -224,7 +236,7 @@ test("locale switcher toggles nav labels between FR and EN", async ({ page, cont
     page.getByRole("menuitem", { name: "English" }).click()
   ]);
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("link", { name: "Users" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("link", { name: "Billing" })).toBeVisible({ timeout: 10_000 });
   await expect(switcher).toBeVisible();
   await expect(switcher).toContainText("EN");
 });

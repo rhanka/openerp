@@ -102,52 +102,77 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
 
           await expect(page.getByRole("heading", { level: 1, name: route.labels[locale], exact: true })).toBeVisible();
 
-          // DS AppHeader: unnamed <header> banner; the aside sidebar is the only
-          // role=complementary named "Primary" (AppHeader's own desktop <nav> also
-          // carries aria-label="Primary", hence the role-scoped locator).
+          // UXDR-009: AppShell workspace — navigationPanel = st-appShell__navigationPanel
+          // aria-label="Primary" (prop navigationLabel). AppHeader nav = 5 navLinks desktop.
+          // Panneau gauche : 1 section (module actif) ; tiroir mobile : toutes sections.
           const appHeader = page.getByRole("banner");
-          const sidebar = page.getByRole("complementary", { name: "Primary" });
+          // AppShell navigationPanel: aside.st-appShell__navigationPanel[aria-label="Primary"]
+          const sidebar = page.locator("aside.st-appShell__navigationPanel[aria-label='Primary']");
           const brand = page.getByLabel("OpenERP home");
           const switcher = page.locator("header button.st-appHeader__control[aria-haspopup='menu']");
 
           await expect(appHeader).toBeVisible();
 
-          const sectionLabels = locale === "en"
+          // Module actif détecté à partir du chemin de route (5 groupes)
+          const routeModule = route.path.startsWith("/admin/crm") ? "crm"
+            : route.path.startsWith("/admin/project") ? "project"
+            : route.path.startsWith("/admin/billing") ? "billing"
+            : route.path.startsWith("/admin/reporting") ? "reporting"
+            : "admin";
+          const activeSectionLabel = locale === "en"
+            ? { crm: "CRM", project: "Projects", billing: "Billing", reporting: "Reporting", admin: "Admin" }[routeModule]
+            : { crm: "CRM", project: "Projets", billing: "Facturation", reporting: "Rapports", admin: "Admin" }[routeModule];
+
+          // Toutes les sections (pour vérifier le tiroir mobile)
+          const allSectionLabels = locale === "en"
+            ? ["CRM", "Projects", "Billing", "Reporting", "Admin"]
+            : ["CRM", "Projets", "Facturation", "Rapports", "Admin"];
+
+          // Nav header : 5 navLinks présents sur desktop (IA niveau 1)
+          const headerNavLinks = locale === "en"
             ? ["CRM", "Projects", "Billing", "Reporting", "Admin"]
             : ["CRM", "Projets", "Facturation", "Rapports", "Admin"];
 
           if (viewport.name === "mobile") {
-            // DS AppHeader compact (UXDR-008 addendum): sidebar CSS-hidden, header
-            // utilities move into the drawer; the bar keeps brand + burger only.
+            // AppHeader compact : sidebar cachée, utilitaires dans le tiroir.
             await expect(sidebar).not.toBeVisible();
             await expect(switcher).not.toBeVisible();
             const openNavLabel = locale === "en" ? "Open navigation" : "Ouvrir la navigation";
             await page.getByRole("button", { name: openNavLabel }).click();
             const drawer = page.locator("#primary-nav");
             await expect(drawer).toBeVisible();
-            // Active nav: the current route's link carries aria-current="page" inside the drawer
+            // Tiroir mobile : le lien actif porte aria-current="page"
             await expect(drawer.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
               "aria-current",
               "page"
             );
-            for (const sectionLabel of sectionLabels) {
+            // Tiroir mobile contient toutes les 5 sections (nav globale mobile)
+            for (const sectionLabel of allSectionLabels) {
               await expect(drawer.locator(".st-navSection__label", { hasText: sectionLabel })).toBeVisible();
             }
-            // Language + identity live in the drawer utilities on mobile (DS canon)
+            // Language + identity dans le tiroir (DS AppChrome compact)
             await expect(drawer.locator(".st-languageToggle__accordionTrigger")).toBeVisible();
             await page.keyboard.press("Escape");
             await expect(drawer).not.toBeVisible();
           } else {
             await expect(sidebar).toBeVisible();
             await expect(switcher).toBeVisible();
-            // Active nav: the current route's link carries aria-current="page" in the sidebar
+            // Panneau gauche (IA niveau 2) : 1 section — le module actif
+            await expect(sidebar.locator(".st-navSection__label", { hasText: activeSectionLabel })).toBeVisible();
+            // Le lien actif porte aria-current="page" dans le panneau gauche
             await expect(sidebar.getByRole("link", { name: route.labels[locale], exact: true })).toHaveAttribute(
               "aria-current",
               "page"
             );
-            for (const sectionLabel of sectionLabels) {
-              await expect(sidebar.locator(".st-navSection__label", { hasText: sectionLabel })).toBeVisible();
+            // Nav header (IA niveau 1) : 5 navLinks visibles
+            const headerNav = page.locator("header nav.st-appHeader__nav");
+            for (const navLabel of headerNavLinks) {
+              await expect(headerNav.locator("a.st-appHeader__navLink", { hasText: navLabel })).toBeVisible();
             }
+            // Module actif a aria-current="page" dans la nav header
+            await expect(
+              headerNav.locator(`a.st-appHeader__navLink[aria-current="page"]`, { hasText: activeSectionLabel })
+            ).toBeVisible();
           }
 
           await expectNoHorizontalOverflow(page);
@@ -158,9 +183,9 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
             await expectWithinViewport(switcher, page, "locale switcher");
           }
 
-          // On mobile, sidebar is replaced by the Drawer overlay — layout differs
+          // Sur desktop : header sticky en haut, panneau et main en dessous
           if (viewport.name !== "mobile") {
-            await expectHeaderBeforeShell(appHeader, sidebar, page.locator("main"));
+            await expectHeaderBeforeShell(appHeader, sidebar, page.locator(".st-appShell__main"));
           }
 
           const headerScreenshotPath = testInfo.outputPath(
@@ -176,7 +201,7 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
             const sidebarScreenshotPath = testInfo.outputPath(
               `ui-review-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
             );
-            await page.locator(".shell__sidebar").screenshot({ path: sidebarScreenshotPath });
+            await page.locator(".st-appShell__navigationPanel").screenshot({ path: sidebarScreenshotPath });
             await testInfo.attach(`ui-review ${viewport.name} ${locale} ${route.path}`, {
               path: sidebarScreenshotPath,
               contentType: "image/png"
@@ -186,7 +211,7 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
           const mainScreenshotPath = testInfo.outputPath(
             `ui-review-main-${viewport.name}-${locale}-${route.path.replaceAll("/", "-").replace(/^-/, "")}.png`
           );
-          await page.locator("main").screenshot({ path: mainScreenshotPath });
+          await page.locator(".st-appShell__main").screenshot({ path: mainScreenshotPath });
           await testInfo.attach(`ui-review main ${viewport.name} ${locale} ${route.path}`, {
             path: mainScreenshotPath,
             contentType: "image/png"
@@ -228,10 +253,10 @@ test.describe("UI review: shell ergonomics — pre-auth routes", () => {
           await expect(appHeader).toBeVisible();
           await expect(switcher).toBeVisible();
 
-          // Admin sidebar must NOT be present on pre-auth routes
-          await expect(page.getByRole("complementary", { name: "Primary" })).not.toBeAttached();
+          // UXDR-009: pré-auth utilise AppShell sans navigationPanel → aside absent du DOM
+          await expect(page.locator("aside.st-appShell__navigationPanel")).not.toBeAttached();
 
-          // No admin navigation elements
+          // No admin navigation elements (confirme l'absence des NavSection admin)
           await expect(page.getByRole("navigation", { name: "CRM" })).not.toBeAttached();
           await expect(page.getByRole("navigation", { name: "Admin" })).not.toBeAttached();
 
@@ -335,7 +360,15 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
   await page.goto("/admin/approvals");
   await page.waitForLoadState("domcontentloaded");
 
+  // UXDR-009 keyboard order: skip → brand → 5 navLinks → search → langue → identité → nav panneau
   await tabUntilFocused(page, page.getByLabel("OpenERP home"), 3);
+
+  // 5 navLinks dans l'ordre : CRM → Projects → Billing → Reporting → Admin
+  const navLinks = ["CRM", "Projects", "Billing", "Reporting", "Admin"];
+  for (const label of navLinks) {
+    await page.keyboard.press("Tab");
+    await expect(page.locator(`header a.st-appHeader__navLink`, { hasText: label })).toBeFocused();
+  }
 
   // Ordre canonique des utilitaires : search (pill icône) puis langue puis identité.
   await page.keyboard.press("Tab");
@@ -355,8 +388,9 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
   const signInButton = page.getByRole("banner").getByRole("button", { name: "Sign in" });
   await expect(signInButton).toBeFocused();
 
+  // Premier lien dans le panneau gauche (module Admin actif sur /admin/approvals)
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("link", { name: "Leads" })).toBeFocused();
+  await expect(page.getByRole("link", { name: "Users" })).toBeFocused();
 });
 
 test("UI review: keyboard flow on /login reaches form fields directly (no sidebar)", async ({ page, context, baseURL }) => {
@@ -408,7 +442,8 @@ test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible
   });
 
   test("sidebar desktop est visible", async ({ page }) => {
-    await expect(page.getByRole("complementary", { name: "Primary" })).toBeVisible();
+    // UXDR-009: AppShell navigationPanel aria-label="Primary"
+    await expect(page.locator("aside.st-appShell__navigationPanel[aria-label='Primary']")).toBeVisible();
   });
 
   test("identité (DS IdentityMenu compact) est visible dans le header", async ({ page }) => {
@@ -459,7 +494,8 @@ test.describe("UXDR-008: mobile 375×812 — hamburger visible, sidebar cachée,
   });
 
   test("sidebar desktop cachée sur mobile", async ({ page }) => {
-    await expect(page.getByRole("complementary", { name: "Primary" })).not.toBeVisible();
+    // UXDR-009: navigationPanel masqué sur mobile (AppShell flex-column collapse)
+    await expect(page.locator("aside.st-appShell__navigationPanel[aria-label='Primary']")).not.toBeVisible();
   });
 
   test("identité dans le tiroir mobile (DS AppHeader compact)", async ({ page }) => {
@@ -508,8 +544,8 @@ test.describe("UXDR-008: /login — ni sidebar ni hamburger ni CTA connexion", (
     await page.goto("/login");
     await page.waitForLoadState("domcontentloaded");
 
-    // No sidebar
-    await expect(page.getByRole("complementary", { name: "Primary" })).not.toBeAttached();
+    // UXDR-009: pré-auth utilise AppShell sans navigationPanel → absent du DOM
+    await expect(page.locator("aside.st-appShell__navigationPanel")).not.toBeAttached();
     // No hamburger (pre-auth stays non-compact: AppHeader renders no burger)
     await expect(page.getByRole("button", { name: /navigation/i })).not.toBeAttached();
     // locale switcher still present (UXDR-002)
