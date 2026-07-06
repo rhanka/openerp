@@ -212,21 +212,21 @@ test("locale switcher toggles nav labels between FR and EN", async ({ page, cont
     () => document.documentElement.getAttribute("data-hydrated") === "true",
     { timeout: 10_000 }
   );
-  const switcher = page.locator("header select.st-languageToggle__select");
+  const switcher = page.locator("header button.st-appHeader__control[aria-haspopup='menu']");
   await expect(page.getByRole("link", { name: "Utilisateurs" })).toBeVisible();
-  // DS 0.34 LanguageToggle — select variant (no button group, no aria-pressed)
+  // Pill canonique : libellé = locale active ; menu DS pour changer
   await expect(switcher).toBeVisible();
-  await expect(switcher).toHaveValue("fr");
+  await expect(switcher).toContainText("FR");
 
-  // Locale switch: handleLocaleChange fires fetch POST then window.location.href (hard reload)
+  await switcher.click();
   await Promise.all([
     page.waitForNavigation({ waitUntil: "load" }),
-    switcher.selectOption("en")
+    page.getByRole("menuitem", { name: "English" }).click()
   ]);
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("link", { name: "Users" })).toBeVisible({ timeout: 10_000 });
   await expect(switcher).toBeVisible();
-  await expect(page.locator("header select.st-languageToggle__select")).toHaveValue("en");
+  await expect(switcher).toContainText("EN");
 });
 
 function liveApiConfig(): {

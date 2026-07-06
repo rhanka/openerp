@@ -8,9 +8,12 @@
     AppHeader,
     IdentityMenu,
     LanguageToggle,
+    Menu,
+    MenuPopover,
     SideNav,
     type SideNavItem,
   } from "@sentropic/design-system-svelte";
+  import { ChevronDown, Globe } from "@lucide/svelte";
   import { compileTheme, sentTechTheme } from "@sentropic/design-system-themes";
 
   // B1 (fidélité DS) : le thème est émis à :root comme le fait l'app docs du DS,
@@ -44,6 +47,14 @@
   let menuOpen = $state(false);
   let isMobile = $state(false);
   let signOutFormRef: HTMLFormElement | undefined = $state();
+
+  // Contrôle langue canonique du header (pill st-appHeader__control + MenuPopover DS)
+  let localeMenuOpen = $state(false);
+  let localeTriggerEl: HTMLButtonElement | null = $state(null);
+  const localeItems = [
+    { label: "Français", value: "fr" },
+    { label: "English", value: "en" }
+  ];
 
   $effect(() => {
     if (!browser) return;
@@ -255,14 +266,33 @@
       drawerId="primary-nav"
     >
       {#snippet actions()}
-        <!-- Classe utilitaire PUBLIÉE par AppHeader (st-appHeader__control) :
-             donne au contrôle langue le pill canonique du header DS. -->
-        <LanguageToggle
-          locale={locale}
-          onLocaleChange={handleLocaleChange}
-          label={t(locale, "locale.switcher.label")}
+        <!-- Contrôle langue canonique (démo docs components/header) :
+             button.st-appHeader__control (globe + locale + chevron) + menu DS. -->
+        <button
+          type="button"
           class="st-appHeader__control"
-        />
+          bind:this={localeTriggerEl}
+          aria-haspopup="menu"
+          aria-expanded={localeMenuOpen}
+          aria-label={t(locale, "locale.switcher.label")}
+          onclick={() => (localeMenuOpen = !localeMenuOpen)}
+        >
+          <Globe size={14} aria-hidden="true" />
+          {locale.toUpperCase()}
+          <ChevronDown size={12} aria-hidden="true" />
+        </button>
+        <MenuPopover
+          bind:open={localeMenuOpen}
+          trigger={localeTriggerEl}
+          placement="bottom-end"
+          label={t(locale, "locale.switcher.label")}
+        >
+          <Menu
+            label={t(locale, "locale.switcher.label")}
+            items={localeItems}
+            onselect={(v) => handleLocaleChange(v as LocaleCode)}
+          />
+        </MenuPopover>
         {#if !isPreAuth}
           <IdentityMenu
             isAuthenticated={!!session}
