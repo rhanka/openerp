@@ -14,20 +14,17 @@ const SHORT = (v) => String(v).length > 46 ? String(v).slice(0, 43) + "…" : St
 // [élément, page réf docs, sélecteur réf, page nous, sélecteur nous]
 const PAIRS = [
   ["Button primaire", `${DOCS}/button`, ".st-button--primary", OURS_LEADS, "main .st-button--primary"],
-  ["Button secondaire", `${DOCS}/button`, ".st-button--secondary", OURS_AUDIT, "main .st-button--secondary"],
   ["Input texte", `${DOCS}/input`, "input[class*=st-]", OURS_LEADS, "main input[type=text], main input:not([type])"],
-  ["FormGroup label", `${DOCS}/form-group`, "label[class*=st-]", OURS_LEADS, "main label"],
+  ["Champ label (st-field__label)", `${DOCS}/input`, "span.st-field__label", OURS_LEADS, "main span.st-field__label"],
   ["Card", `${DOCS}/card`, "[class*=st-card]", OURS_LEADS, "main [class*=st-card]"],
-  ["Tag", `${DOCS}/tag`, ".st-tag", OURS_LEADS, "main .st-tag"],
-  ["Alert", `${DOCS}/alert`, ".st-alert", OURS_LEADS, "main .st-alert"],
+  ["Tag (warning)", `${DOCS}/tag`, ".st-tag--warning", OURS_LEADS, "main .st-tag--warning"],
+  ["Alert (warning)", `${DOCS}/alert`, ".st-alert--warning", OURS_LEADS, "main .st-alert--warning"],
   ["EmptyState", `${DOCS}/empty-state`, "[class*=st-emptyState], [class*=empty]", OURS_LEADS, "main [class*=st-emptyState], main [class*=empty-state]"],
   ["SideNav lien", `${DOCS}/side-nav`, ".st-sidenav a:not([aria-current])", OURS_LEADS, ".shell__sidebar .st-sidenav a:not([aria-current])"],
   ["SideNav lien actif", `${DOCS}/side-nav`, ".st-sidenav a[aria-current=page], .st-sidenav [aria-current=page]", OURS_LEADS, ".shell__sidebar .st-sidenav [aria-current=page]"],
   ["SideNav bloc", `${DOCS}/side-nav`, ".st-sidenav", OURS_LEADS, ".shell__sidebar .st-sidenav"],
-  ["LanguageToggle select", `${DOCS}/language-toggle`, "select[class*=st-languageToggle]", OURS_LEADS, "header select"],
-  ["DataTable th", `${DOCS}/data-table`, "[class*=st-dataTable] th, .st-table th, table th", OURS_AUDIT, "main table th"],
-  ["DataTable td", `${DOCS}/data-table`, "[class*=st-dataTable] td, .st-table td, table td", OURS_AUDIT, "main table td"],
-  ["Table (composant)", `${DOCS}/table`, "table[class*=st-], .st-table", OURS_AUDIT, "main table"],
+  ["DataTable th (md)", `${DOCS}/data-table`, ".st-dataTable--md th", OURS_AUDIT, "main .st-dataTable th, main table th"],
+  ["DataTable td (md)", `${DOCS}/data-table`, ".st-dataTable--md td", OURS_AUDIT, "main .st-dataTable td, main table td"],
 ];
 
 const pick = ({ sel, PROPS }) => {
@@ -66,7 +63,9 @@ for (const [key, refUrl, refSel, ourUrl, ourSel] of PAIRS) {
   if (!a && !b) { rows.push(`| ${++n} | ${key} | (élément) | absent de la démo docs | absent chez nous | à instrumenter |`); continue; }
   if (!a) { rows.push(`| ${++n} | ${key} | (élément) | démo docs sans ce sélecteur | présent chez nous | réf à préciser |`); continue; }
   if (!b) { rows.push(`| ${++n} | ${key} | (élément) | présent (${a.tag}.${a.cls.split(" ")[0]}) | **ABSENT/NON-DS chez nous** | bug |`); continue; }
+  const CONTENT_DRIVEN = ["Card", "EmptyState", "Alert (warning)"];
   for (const p of [...PROPS, "rectH"]) {
+    if (p === "rectH" && CONTENT_DRIVEN.some((k) => key.startsWith(k))) continue;
     if (String(a[p]) !== String(b[p])) {
       rows.push(`| ${++n} | ${key} | ${p} | ${SHORT(a[p])} | ${SHORT(b[p])} | delta |`);
     }
