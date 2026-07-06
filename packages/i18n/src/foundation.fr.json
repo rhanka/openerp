@@ -683,5 +683,7 @@
   "nav.drawer.title": "Navigation principale",
   "auth.signIn": "Se connecter",
   "auth.signOut": "Se déconnecter",
-  "auth.user.label": "Mon compte"
+  "auth.user.label": "Mon compte",
+  "shell.search": "Recherche",
+  "shell.searchHint": "La recherche globale arrive bientôt."
 }

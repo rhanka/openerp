@@ -337,6 +337,11 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
 
   await tabUntilFocused(page, page.getByLabel("OpenERP home"), 3);
 
+  // Ordre canonique des utilitaires : search (pill icône) puis langue puis identité.
+  await page.keyboard.press("Tab");
+  const searchPill = page.locator("header button.st-appHeader__control--icon[aria-haspopup='dialog']");
+  await expect(searchPill).toBeFocused();
+
   // Pill canonique st-appHeader__control : l'affordance focus du DS est
   // border-color interactive + fond subtil (pas d'outline/box-shadow).
   await page.keyboard.press("Tab");
