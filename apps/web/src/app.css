@@ -14,6 +14,8 @@
   background: var(--st-semantic-surface-default);
   color: var(--st-semantic-text-primary);
   font-family: var(--st-font-sans, Inter, ui-sans-serif, system-ui, sans-serif);
+  /* Réf site DS : barre AppHeader à 5rem (token composant = mécanisme DS) */
+  --st-component-appHeader-height: 5rem;
 }
 
 body {
