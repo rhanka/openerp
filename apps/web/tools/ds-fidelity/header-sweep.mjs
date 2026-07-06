@@ -16,16 +16,24 @@ const harvest = ({ PROPS, scopeSel }) => {
   const out = {};
   const bespoke = [];
   const walk = (el) => {
-    const classes = (el.className?.toString?.() || "").split(/\s+/).filter(Boolean);
+    // Les enfants SVG des icônes (lucide) portent des classes de lib, pas du
+    // CSS custom : hors périmètre bespoke.
+    const isSvg = el instanceof SVGElement;
+    const classes = (el.getAttribute?.("class") || "").split(/\s+/).filter(Boolean);
     const stClasses = classes.filter((c) => c.startsWith("st-"));
-    const nonSt = classes.filter((c) => !c.startsWith("st-") && !c.startsWith("s-"));
-    if (nonSt.length) bespoke.push(`${el.tagName.toLowerCase()}.${nonSt.join(".")}`);
+    const nonSt = classes.filter((c) => !c.startsWith("st-") && !c.startsWith("s-") && !c.startsWith("lucide"));
+    if (!isSvg && nonSt.length) bespoke.push(`${el.tagName.toLowerCase()}.${nonSt.join(".")}`);
     if (stClasses.length) {
       const cs = getComputedStyle(el);
       const o = { tag: el.tagName.toLowerCase() };
       for (const p of PROPS) o[p] = cs[p];
       o.rectH = Math.round(el.getBoundingClientRect().height * 10) / 10;
-      for (const key of stClasses) if (!out[key]) out[key] = o;
+      for (const key of stClasses) {
+        // Clé exacte : le pill de base ne doit pas être représenté par la
+        // variante --icon (et inversement).
+        if (key === "st-appHeader__control" && classes.includes("st-appHeader__control--icon")) continue;
+        if (!out[key]) out[key] = o;
+      }
     }
     for (const c of el.children) walk(c);
   };
