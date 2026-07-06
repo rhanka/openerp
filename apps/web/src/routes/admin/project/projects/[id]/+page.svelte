@@ -306,7 +306,7 @@
               <Tag tone={timeEntryStatusTone(entry.status)}>{timeEntryStatusLabel(entry.status)}</Tag>
             </div>
             <div class="page__task-body">
-              <span class="page__task-title">{formatMinutes(entry.minutes)} — {entry.entryDate}</span>
+              <span class="page__task-title">{formatMinutes(entry.minutes)} · {entry.entryDate}</span>
               {#if entry.description}
                 <span class="page__task-due">{entry.description}</span>
               {/if}
@@ -392,7 +392,7 @@
             <label class="page__task-form-select">
               <span>{t(locale, "project.assignments.field.billableRateSelect")}</span>
               <select name="billableRateId" data-testid="rate-select">
-                <option value="">— {t(locale, "project.assignments.field.billableRateSelect")} —</option>
+                <option value="">{t(locale, "project.assignments.field.billableRateSelect")}</option>
                 {#each rates as rate (rate.id)}
                   <option value={rate.id}>{rate.name}</option>
                 {/each}
@@ -491,7 +491,7 @@
               </span>
               {#if proposal.periodStart || proposal.periodEnd}
                 <span class="page__task-due">
-                  {proposal.periodStart ?? "—"} → {proposal.periodEnd ?? "—"}
+                  {proposal.periodStart ?? "–"} → {proposal.periodEnd ?? "–"}
                 </span>
               {/if}
             </div>

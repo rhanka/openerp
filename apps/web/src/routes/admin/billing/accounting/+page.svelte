@@ -102,7 +102,7 @@
                     {t(locale, `billing.accounts.type.${account.type}`)}
                   </Tag>
                 </td>
-                <td>{account.active ? "✓" : "—"}</td>
+                <td>{account.active ? "✓" : "–"}</td>
               </tr>
             {/each}
           </tbody>
@@ -146,8 +146,8 @@
               onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") toggleEntry(entry.id); }}
             >
               <td>{entry.entryDate}</td>
-              <td><code>{entry.reference ?? "—"}</code></td>
-              <td class="entry-description">{entry.description ?? "—"}</td>
+              <td><code>{entry.reference ?? "–"}</code></td>
+              <td class="entry-description">{entry.description ?? "–"}</td>
               <td>
                 <Tag tone="neutral">
                   {t(locale, `billing.journal.sourceType.${entry.sourceType}`)}
@@ -180,16 +180,16 @@
                     <tbody>
                       {#each entry.lines as line (line.id)}
                         <tr data-testid="journal-line-row">
-                          <td>{line.description ?? "—"}</td>
+                          <td>{line.description ?? "–"}</td>
                           <td class="amount">
                             {line.debit.amountMinor > 0
                               ? formatMoney(line.debit.amountMinor, line.debit.scale, line.debit.currency)
-                              : "—"}
+                              : "–"}
                           </td>
                           <td class="amount">
                             {line.credit.amountMinor > 0
                               ? formatMoney(line.credit.amountMinor, line.credit.scale, line.credit.currency)
-                              : "—"}
+                              : "–"}
                           </td>
                         </tr>
                       {/each}

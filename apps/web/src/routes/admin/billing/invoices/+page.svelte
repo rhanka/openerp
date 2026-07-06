@@ -28,8 +28,8 @@
 
   function formatProposalLabel(p: InvoiceProposal): string {
     const amount = (p.total.amountMinor / Math.pow(10, p.total.scale)).toFixed(p.total.scale);
-    const proj = p.projectId ? `${p.projectId.slice(0, 8)}` : "—";
-    return `${proj} — ${amount} ${p.total.currency}`;
+    const proj = p.projectId ? `${p.projectId.slice(0, 8)}` : "–";
+    return `${proj} - ${amount} ${p.total.currency}`;
   }
 
   function statusLabel(status: Invoice["status"]): string {

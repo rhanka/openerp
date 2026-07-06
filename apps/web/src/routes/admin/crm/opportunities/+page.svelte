@@ -169,7 +169,7 @@
                   <a class="page__item-link" href="/admin/crm/opportunities/{opp.id}">{opp.name}</a>
                 </h2>
                 <p class="page__item-sub">
-                  {stage?.name ?? opp.stageId} · {amount ?? "—"}
+                  {stage?.name ?? opp.stageId} · {amount ?? "–"}
                 </p>
               </div>
               <Tag tone={statusTone(opp.status)}>{statusLabel(opp.status)}</Tag>

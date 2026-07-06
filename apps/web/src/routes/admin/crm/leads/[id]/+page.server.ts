@@ -36,7 +36,7 @@ const DEMO_FALLBACK: { lead: Lead; timeline: TimelineEntry[] } = {
     id: "demo-lead-1",
     organizationId: "demo-org",
     source: "web_form",
-    displayName: "Acme — inbound demo request",
+    displayName: "Acme, inbound demo request",
     companyName: "Acme Acquisition Corp.",
     contactName: "Alice Tremblay",
     email: "alice@acme.example",
@@ -60,7 +60,7 @@ const DEMO_FALLBACK: { lead: Lead; timeline: TimelineEntry[] } = {
       resourceId: "demo-lead-1",
       actorUserIdentityId: null,
       entryType: "crm.lead.created",
-      payloadSummary: { displayName: "Acme — inbound demo request", source: "web_form" },
+      payloadSummary: { displayName: "Acme, inbound demo request", source: "web_form" },
       occurredAt: new Date(Date.now() - 86_400_000).toISOString()
     },
     {

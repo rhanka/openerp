@@ -90,7 +90,7 @@ const DEMO_JOURNAL_ENTRIES: JournalEntryWithLines[] = [
         accountId: "demo-acc-1100",
         debit: { amountMinor: 11498, currency: "CAD", scale: 2 },
         credit: { amountMinor: 0, currency: "CAD", scale: 2 },
-        description: "AR — INV-000001",
+        description: "AR - INV-000001",
         createdAt: new Date().toISOString()
       },
       {
@@ -100,7 +100,7 @@ const DEMO_JOURNAL_ENTRIES: JournalEntryWithLines[] = [
         accountId: "demo-acc-4000",
         debit: { amountMinor: 0, currency: "CAD", scale: 2 },
         credit: { amountMinor: 10000, currency: "CAD", scale: 2 },
-        description: "Revenue — INV-000001",
+        description: "Revenue - INV-000001",
         createdAt: new Date().toISOString()
       },
       {
@@ -110,7 +110,7 @@ const DEMO_JOURNAL_ENTRIES: JournalEntryWithLines[] = [
         accountId: "demo-acc-2310",
         debit: { amountMinor: 0, currency: "CAD", scale: 2 },
         credit: { amountMinor: 500, currency: "CAD", scale: 2 },
-        description: "GST — INV-000001",
+        description: "GST - INV-000001",
         createdAt: new Date().toISOString()
       },
       {
@@ -120,7 +120,7 @@ const DEMO_JOURNAL_ENTRIES: JournalEntryWithLines[] = [
         accountId: "demo-acc-2320",
         debit: { amountMinor: 0, currency: "CAD", scale: 2 },
         credit: { amountMinor: 998, currency: "CAD", scale: 2 },
-        description: "QST — INV-000001",
+        description: "QST - INV-000001",
         createdAt: new Date().toISOString()
       }
     ]

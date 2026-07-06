@@ -120,7 +120,7 @@
                   <a class="page__item-link" href="/admin/crm/leads/{lead.id}">{lead.displayName}</a>
                 </h2>
                 <p class="page__item-sub">
-                  {lead.companyName ?? "—"} · {lead.email ?? lead.phone ?? "—"} · {formatTimestamp(lead.createdAt)}
+                  {lead.companyName ?? "–"} · {lead.email ?? lead.phone ?? "–"} · {formatTimestamp(lead.createdAt)}
                 </p>
               </div>
               <Tag tone={statusTone(lead.status)}>{statusLabel(lead.status)}</Tag>

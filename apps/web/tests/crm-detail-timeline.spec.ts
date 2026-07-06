@@ -45,7 +45,7 @@ test("lead detail renders timeline activity in demo mode", async ({ page, contex
   await page.goto("/admin/crm/leads/demo-lead-1");
   await page.waitForLoadState("domcontentloaded");
 
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Acme — inbound demo request");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Acme, inbound demo request");
   await expect(page.getByText("Activity", { exact: true })).toBeVisible();
   const timeline = page.getByTestId("crm-lead-timeline");
   await expect(timeline).toBeVisible();

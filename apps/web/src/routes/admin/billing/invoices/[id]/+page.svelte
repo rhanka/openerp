@@ -257,7 +257,7 @@
         <tbody>
           {#each invoice.lines as line (line.id)}
             <tr>
-              <td>{line.description ?? "—"}</td>
+              <td>{line.description ?? "–"}</td>
               <td class="page__col-num">{line.quantity}</td>
               <td class="page__col-num">{formatMoney(line.unitPrice.amountMinor, line.unitPrice.scale, line.unitPrice.currency)}</td>
               <td class="page__col-num">{formatMoney(line.amount.amountMinor, line.amount.scale, line.amount.currency)}</td>
@@ -299,7 +299,7 @@
             <tr>
               <td>{payment.paymentDate}</td>
               <td>{t(locale, `billing.payments.method.${payment.method}`)}</td>
-              <td>{payment.reference ?? "—"}</td>
+              <td>{payment.reference ?? "–"}</td>
               <td class="page__col-num">{formatMoney(payment.amount.amountMinor, payment.amount.scale, payment.amount.currency)}</td>
             </tr>
           {/each}
