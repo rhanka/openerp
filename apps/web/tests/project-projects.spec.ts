@@ -10,7 +10,7 @@ test("project list renders in demo mode", async ({ page, context, baseURL }) => 
   await page.goto("/admin/project/projects");
   await page.waitForLoadState("domcontentloaded");
 
-  await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Projects", exact: true })).toBeVisible();
   const list = page.getByTestId("project-projects-list");
   await expect(list).toBeVisible();
   const items = list.locator(":scope > li");

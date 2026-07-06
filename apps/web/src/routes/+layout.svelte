@@ -11,8 +11,10 @@
     Menu,
     MenuPopover,
     Modal,
+    NavSection,
     Search,
     SideNav,
+    SkipLink,
     type SideNavItem,
   } from "@sentropic/design-system-svelte";
   import { ChevronDown, Globe, Search as SearchIcon } from "@lucide/svelte";
@@ -197,50 +199,25 @@
 </svelte:head>
 
 {#snippet navGroups()}
-  <div class="shell__nav-group">
-    <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.crm")}</p>
-    <SideNav
-      class="shell__sidenav"
-      items={crmItems}
-      label={t(locale, "nav.section.crm")}
-    />
-  </div>
-  <div class="shell__nav-group">
-    <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.projects")}</p>
-    <SideNav
-      class="shell__sidenav"
-      items={projectItems}
-      label={t(locale, "nav.section.projects")}
-    />
-  </div>
-  <div class="shell__nav-group">
-    <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.billing")}</p>
-    <SideNav
-      class="shell__sidenav"
-      items={billingItems}
-      label={t(locale, "nav.section.billing")}
-    />
-  </div>
-  <div class="shell__nav-group">
-    <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.reporting")}</p>
-    <SideNav
-      class="shell__sidenav"
-      items={reportingItems}
-      label={t(locale, "nav.section.reporting")}
-    />
-  </div>
-  <div class="shell__nav-group">
-    <p class="shell__nav-heading" aria-hidden="true">{t(locale, "nav.section.admin")}</p>
-    <SideNav
-      class="shell__sidenav"
-      items={adminItems}
-      label={t(locale, "nav.section.admin")}
-    />
-  </div>
+  <NavSection label={t(locale, "nav.section.crm")} as="h2">
+    <SideNav items={crmItems} label={t(locale, "nav.section.crm")} />
+  </NavSection>
+  <NavSection label={t(locale, "nav.section.projects")} as="h2">
+    <SideNav items={projectItems} label={t(locale, "nav.section.projects")} />
+  </NavSection>
+  <NavSection label={t(locale, "nav.section.billing")} as="h2">
+    <SideNav items={billingItems} label={t(locale, "nav.section.billing")} />
+  </NavSection>
+  <NavSection label={t(locale, "nav.section.reporting")} as="h2">
+    <SideNav items={reportingItems} label={t(locale, "nav.section.reporting")} />
+  </NavSection>
+  <NavSection label={t(locale, "nav.section.admin")} as="h2">
+    <SideNav items={adminItems} label={t(locale, "nav.section.admin")} />
+  </NavSection>
 {/snippet}
 
-<!-- Skip link: first focusable element in the page (WCAG 2.4.1) -->
-<a class="skip-link" href="#main-content">{t(locale, "shell.skipToContent")}</a>
+<!-- Skip link DS : premier élément focusable (WCAG 2.4.1) -->
+<SkipLink href="#main-content">{t(locale, "shell.skipToContent")}</SkipLink>
 
   <!-- Hidden sign-out form — submitted by the IdentityMenu (header or drawer). -->
   <form
