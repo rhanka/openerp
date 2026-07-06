@@ -10,10 +10,12 @@
     LanguageToggle,
     Menu,
     MenuPopover,
+    Modal,
+    Search,
     SideNav,
     type SideNavItem,
   } from "@sentropic/design-system-svelte";
-  import { ChevronDown, Globe } from "@lucide/svelte";
+  import { ChevronDown, Globe, Search as SearchIcon } from "@lucide/svelte";
   import { compileTheme, sentTechTheme } from "@sentropic/design-system-themes";
 
   // B1 (fidélité DS) : le thème est émis à :root comme le fait l'app docs du DS,
@@ -47,6 +49,10 @@
   let menuOpen = $state(false);
   let isMobile = $state(false);
   let signOutFormRef: HTMLFormElement | undefined = $state();
+
+  // Recherche globale (pill --icon canonique ; la feature est un stub tracké)
+  let searchOpen = $state(false);
+  let searchValue = $state("");
 
   // Contrôle langue canonique du header (pill st-appHeader__control + MenuPopover DS)
   let localeMenuOpen = $state(false);
@@ -266,6 +272,18 @@
       drawerId="primary-nav"
     >
       {#snippet actions()}
+        {#if !isPreAuth}
+          <!-- Recherche : pill icône canonique (st-appHeader__control--icon) -->
+          <button
+            type="button"
+            class="st-appHeader__control st-appHeader__control--icon"
+            aria-label={t(locale, "shell.search")}
+            aria-haspopup="dialog"
+            onclick={() => (searchOpen = true)}
+          >
+            <SearchIcon size={16} aria-hidden="true" />
+          </button>
+        {/if}
         <!-- Contrôle langue canonique (démo docs components/header) :
              button.st-appHeader__control (globe + locale + chevron) + menu DS. -->
         <button
@@ -329,6 +347,23 @@
         </div>
       {/snippet}
     </AppHeader>
+
+    {#if !isPreAuth}
+      <!-- Recherche globale — modale DS + champ Search DS (feature stub trackée) -->
+      <Modal
+        open={searchOpen}
+        title={t(locale, "shell.search")}
+        onclose={() => (searchOpen = false)}
+      >
+        <Search
+          label={t(locale, "shell.search")}
+          placeholder={t(locale, "shell.search")}
+          helperText={t(locale, "shell.searchHint")}
+          bind:value={searchValue}
+          fluid={true}
+        />
+      </Modal>
+    {/if}
 
     {#if !isPreAuth}
       <!-- Desktop persistent sidebar (CSS grid, always visible ≥769px) -->
