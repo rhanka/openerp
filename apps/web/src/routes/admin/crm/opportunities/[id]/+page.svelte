@@ -114,7 +114,7 @@
       <h1>{opp?.name ?? t(locale, "crm.opportunities.detail.notFound")}</h1>
       {#if opp}
         <p class="page__lede">
-          {stagesById[opp.stageId]?.name ?? opp.stageId} · {formatAmount(opp) ?? "—"}
+          {stagesById[opp.stageId]?.name ?? opp.stageId} · {formatAmount(opp) ?? "–"}
         </p>
       {/if}
     </div>
@@ -154,7 +154,7 @@
         </div>
         <div>
           <dt>{t(locale, "crm.opportunities.field.expectedValue")}</dt>
-          <dd>{formatAmount(opp) ?? "—"}</dd>
+          <dd>{formatAmount(opp) ?? "–"}</dd>
         </div>
       </div>
     </Card>

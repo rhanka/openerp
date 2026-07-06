@@ -202,7 +202,7 @@ export async function seedDev(client: ClientQueryable): Promise<SeedResult> {
     `insert into opportunities (
        organization_id, company_id, name, stage_id, status, owner_user_id,
        expected_value, currency, probability_band, service_summary
-     ) values ($1, $2, 'Acme — Annual platform licence', $3, 'open', $4,
+     ) values ($1, $2, 'Acme, Annual platform licence', $3, 'open', $4,
        $5::jsonb, 'CAD', 'medium', 'Bilingual SaaS licence + onboarding')
      returning id`,
     [

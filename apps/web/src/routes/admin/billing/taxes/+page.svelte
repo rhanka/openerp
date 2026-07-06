@@ -207,7 +207,7 @@
               >
                 <input type="hidden" name="taxCategoryId" value={category.id} />
                 <fieldset class="page__fieldset page__fieldset--compact">
-                  <legend class="page__fieldset-legend-sr">{t(locale, "billing.taxRates.form.legend")} — {category.name}</legend>
+                  <legend class="page__fieldset-legend-sr">{t(locale, "billing.taxRates.form.legend")} - {category.name}</legend>
                   <Input
                     label={t(locale, "billing.taxRates.field.jurisdiction")}
                     name="jurisdiction"

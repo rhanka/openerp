@@ -144,7 +144,7 @@
             <a class="page__item-link" href="/admin/crm/opportunities/{opp.id}">
               <span class="page__item-name">{opp.name}</span>
               {#if opp.expectedValue}
-                <span class="page__item-meta">{formatOppAmount(opp) ?? "—"}</span>
+                <span class="page__item-meta">{formatOppAmount(opp) ?? "–"}</span>
               {/if}
             </a>
             <Tag tone={oppStatusTone(opp.status)}>{oppStatusLabel(opp.status)}</Tag>

@@ -57,7 +57,7 @@
     <div>
       <h1>{lead?.displayName ?? t(locale, "crm.leads.detail.notFound")}</h1>
       {#if lead?.companyName}
-        <p class="page__lede">{lead.companyName} · {lead.source ?? "—"}</p>
+        <p class="page__lede">{lead.companyName} · {lead.source ?? "–"}</p>
       {/if}
     </div>
     <Flex gap={2} align="center" wrap={true}>

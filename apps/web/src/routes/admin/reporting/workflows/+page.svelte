@@ -49,7 +49,7 @@
   }
 
   function formatDate(iso: string | null): string {
-    if (!iso) return "—";
+    if (!iso) return "–";
     try {
       return new Date(iso).toLocaleString();
     } catch {
@@ -119,7 +119,7 @@
           required
           data-testid="trigger-select"
         >
-          <option value="">— {t(locale, "workflow.field.triggerType")} —</option>
+          <option value="">{t(locale, "workflow.field.triggerType")}</option>
           {#each data.catalog.triggers as trigger}
             <option value={trigger.eventType}>{triggerLabel(trigger.eventType)}</option>
           {/each}
@@ -130,7 +130,7 @@
           required
           data-testid="action-select"
         >
-          <option value="">— {t(locale, "workflow.field.actionType")} —</option>
+          <option value="">{t(locale, "workflow.field.actionType")}</option>
           {#each data.catalog.actions as action}
             <option value={action.actionType}>{actionLabel(action.actionType)}</option>
           {/each}

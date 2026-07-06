@@ -12,7 +12,7 @@ const DEMO_FALLBACK: Lead[] = [
     id: "demo-lead-1",
     organizationId: "demo-org",
     source: "web_form",
-    displayName: "Acme — inbound demo request",
+    displayName: "Acme, inbound demo request",
     companyName: "Acme Acquisition Corp.",
     contactName: "Alice Tremblay",
     email: "alice@acme.example",

@@ -58,7 +58,7 @@
   {#if form && "code" in form}
     {@const message = (form as { message?: string }).message}
     <Alert tone="error" title={t(locale, "approval.actionError.title")}>
-      {form.code}{message ? ` — ${message}` : ""}
+      {form.code}{message ? ` - ${message}` : ""}
     </Alert>
   {/if}
   {#if form && "ok" in form && form.ok}
