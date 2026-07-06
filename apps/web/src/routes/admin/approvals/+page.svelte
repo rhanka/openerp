@@ -1,13 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import {
-    Alert,
-    Button,
-    Card,
-    EmptyState,
-    Input,
-    Tag
-  } from "@sentropic/design-system-svelte";
+  import { Alert, Button, Card, Container, EmptyState, Flex, Input, Row, Stack, Tag } from "@sentropic/design-system-svelte";
 
   import type { PageData, ActionData } from "./$types";
   import { t, type LocaleCode } from "$lib/i18n";
@@ -40,20 +33,21 @@
   }
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{t(locale, "approval.page.title")}</h1>
       <p class="page__lede">
         {t(locale, "approval.page.lede")}
       </p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <span data-source={data.source} data-testid="data-source-badge">
         <Tag tone={sourceTone}>{sourceLabel}</Tag>
       </span>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   {#if data.source === "error"}
     <Alert tone="warning" title={t(locale, "approval.backendError.title")}>
@@ -79,7 +73,7 @@
       message={t(locale, "approval.empty.message")}
     />
   {:else}
-    <div class="approvals-list stack">
+    <Stack gap={4} class="approvals-list">
       {#each data.approvals as ar}
         <Card>
           <h2 class="approvals-title">{ar.subjectType}:{ar.subjectId}</h2>
@@ -110,9 +104,10 @@
           </form>
         </Card>
       {/each}
-    </div>
+    </Stack>
   {/if}
-</section>
+</Stack>
+</Container>
 
 <style>
   .approvals-title {

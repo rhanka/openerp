@@ -107,21 +107,12 @@ select {
 }
 
 /* ── Page layout helpers ─────────────────────────────────────────────────── */
+/* Le scaffolding .page/.stack/.page__header/.page__actions est porté par les
+   composants DS Container/Stack/Row. Restent : la typo h1 (re-scopée sur
+   main), le confinement des tables DS (re-scopé sur main) et .page__lede
+   (reliquat justifié — aucun équivalent DS, tokens-only). */
 
-.page {
-  display: grid;
-  gap: 1.5rem;
-  margin: 0 auto;
-  max-width: 72rem;
-  min-width: 0;
-  width: 100%;
-}
-
-.page > * {
-  min-width: 0;
-}
-
-.page .st-dataTable-wrap {
+main .st-dataTable-wrap {
   contain: paint;
   max-width: 100%;
   min-width: 0;
@@ -129,15 +120,7 @@ select {
   width: 100%;
 }
 
-.page__header {
-  align-items: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: space-between;
-}
-
-.page__header h1 {
+main h1 {
   /* Aligné sur la référence consommateur DS (h1 36px/700) */
   font-size: 2.25rem;
   line-height: 1.15;
@@ -148,19 +131,9 @@ select {
   color: var(--st-semantic-text-secondary);
   line-height: 1.5;
   margin: 0.25rem 0 0;
-  max-width: 52rem;
-}
-
-.page__actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.stack {
-  display: grid;
-  gap: 1rem;
+  /* 48rem (~85ch) : laisse la place aux actions du header dans un Container xl
+     à 1280px sans repli de ligne (932px utiles = 768 + gouttière + badge). */
+  max-width: 48rem;
 }
 
 /* ── Chat dock (feature-flagged, zero layout impact when OFF) ─────────────── */

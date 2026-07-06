@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { Alert, Button, Card, Form, FormGroup, Input } from "@sentropic/design-system-svelte";
+  import { Alert, Button, Card, Container, Form, FormGroup, Input, Row, Stack } from "@sentropic/design-system-svelte";
   import { startAuthentication } from "@simplewebauthn/browser";
 
   import { t, type LocaleCode } from "$lib/i18n";
@@ -49,15 +49,16 @@
   }
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{t(locale, "login.page.title")}</h1>
       <p class="page__lede">
         {t(locale, "login.page.lede")}
       </p>
     </div>
-  </header>
+  </Row>
 
   <Card>
     <Form
@@ -92,7 +93,8 @@
       {/if}
     </Form>
   </Card>
-</section>
+</Stack>
+</Container>
 
 <style>
   .login-actions {

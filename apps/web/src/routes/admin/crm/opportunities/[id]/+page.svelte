@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
+  import { Alert, Card, Container, EmptyState, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
 
   import type { Opportunity, OpportunityStatus, PipelineStage } from "@sentropic/openerp-domain/crm";
   import type { TimelineEntry } from "@sentropic/openerp-domain";
@@ -107,8 +107,9 @@
   }
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{opp?.name ?? t(locale, "crm.opportunities.detail.notFound")}</h1>
       {#if opp}
@@ -117,15 +118,15 @@
         </p>
       {/if}
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <span data-source={data.source} data-testid="data-source-badge">
         <Tag tone={sourceTone}>{sourceLabel}</Tag>
       </span>
       <a class="page__back" href="/admin/crm/opportunities">
         ← {t(locale, "crm.opportunities.detail.action.back")}
       </a>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   {#if data.source === "error"}
     <Alert tone="warning" title={t(locale, "approval.backendError.title")}>
@@ -198,31 +199,10 @@
       </ol>
     {/if}
   {/if}
-</section>
+</Stack>
+</Container>
 
 <style>
-  .page {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.5rem;
-  }
-  .page__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  .page__lede {
-    margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted);
-  }
-  .page__actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
   .page__back {
     color: var(--st-semantic-text-muted);
     font-size: 0.875rem;

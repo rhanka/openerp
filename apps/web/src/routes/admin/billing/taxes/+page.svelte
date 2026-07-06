@@ -1,13 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import {
-    Alert,
-    Button,
-    Card,
-    EmptyState,
-    Input,
-    Tag
-  } from "@sentropic/design-system-svelte";
+  import { Alert, Button, Card, Container, EmptyState, Flex, Input, Row, Stack, Tag } from "@sentropic/design-system-svelte";
 
   import type { TaxCategory, TaxRateVersion } from "@sentropic/openerp-domain/billing";
 
@@ -41,20 +34,21 @@
   }
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{t(locale, "billing.taxCategories.page.title")}</h1>
       <p class="page__lede">
         {t(locale, "billing.taxCategories.page.lede")}
       </p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <span data-source={data.source} data-testid="data-source-badge">
         <Tag tone={sourceTone}>{sourceLabel}</Tag>
       </span>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   {#if data.source === "error"}
     <Alert tone="warning" title={t(locale, "approval.backendError.title")}>
@@ -272,33 +266,10 @@
       {/each}
     </ul>
   {/if}
-</section>
+</Stack>
+</Container>
 
 <style>
-  .page {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.5rem;
-  }
-
-  .page__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .page__lede {
-    margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted);
-  }
-
-  .page__actions {
-    flex-shrink: 0;
-  }
-
   .page__form {
     display: flex;
     flex-direction: column;

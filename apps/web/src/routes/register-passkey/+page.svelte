@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { Alert, Button, Card, Form, FormGroup, Input } from "@sentropic/design-system-svelte";
+  import { Alert, Button, Card, Container, Form, FormGroup, Input, Row, Stack } from "@sentropic/design-system-svelte";
   import { startRegistration } from "@simplewebauthn/browser";
 
   import { t, type LocaleCode } from "$lib/i18n";
@@ -64,15 +64,16 @@
   }
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{t(locale, "register.page.title")}</h1>
       <p class="page__lede">
         {t(locale, "register.page.lede")}
       </p>
     </div>
-  </header>
+  </Row>
 
   <Card>
     <Form
@@ -114,7 +115,8 @@
       {/if}
     </Form>
   </Card>
-</section>
+</Stack>
+</Container>
 
 <style>
   .register-actions {

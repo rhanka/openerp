@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, DataTable, Tag } from "@sentropic/design-system-svelte";
+  import { Button, Container, DataTable, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
   import type { DataTableColumn, DataTableRow } from "@sentropic/design-system-svelte";
 
   type SettingRow = DataTableRow & { id: string; field: string; value: string };
@@ -20,19 +20,21 @@
   ];
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>Settings</h1>
       <p class="page__lede">
         Organization defaults, locale policy, tax region, retention, and self-hosted update state.
       </p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <Tag tone="info">FR/EN ready</Tag>
       <Button variant="primary">Run preflight</Button>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   <DataTable {columns} {rows} caption="Organization settings" />
-</section>
+</Stack>
+</Container>
