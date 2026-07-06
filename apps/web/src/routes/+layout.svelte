@@ -6,6 +6,7 @@
   import { browser } from "$app/environment";
   import {
     AppHeader,
+    AppShell,
     IdentityMenu,
     LanguageToggle,
     Menu,
@@ -148,6 +149,16 @@
   const preAuthRoutes = ["/login", "/register-passkey"];
   const isPreAuth = $derived(preAuthRoutes.some((r) => currentPath === r || currentPath.startsWith(r + "/")));
 
+  // Active module detection for 2-level IA (UXDR-009)
+  const activeModule = $derived(
+    currentPath.startsWith("/admin/crm") ? "crm"
+    : currentPath.startsWith("/admin/project") ? "project"
+    : currentPath.startsWith("/admin/billing") ? "billing"
+    : currentPath.startsWith("/admin/reporting") ? "reporting"
+    : (currentPath.startsWith("/admin/users") || currentPath.startsWith("/admin/roles") || currentPath.startsWith("/admin/approvals") || currentPath.startsWith("/admin/audit") || currentPath.startsWith("/admin/settings")) ? "admin"
+    : null
+  );
+
   function navGroup(items: Array<{ label: string; href: string }>): SideNavItem[] {
     return items.map((item) => ({
       ...item,
@@ -216,148 +227,201 @@
   </NavSection>
 {/snippet}
 
+<!-- UXDR-009 : panneau gauche = section du module actif uniquement -->
+{#snippet activeNavSection()}
+  {#if activeModule === "crm"}
+    <NavSection label={t(locale, "nav.section.crm")} as="h2">
+      <SideNav items={crmItems} label={t(locale, "nav.section.crm")} />
+    </NavSection>
+  {:else if activeModule === "project"}
+    <NavSection label={t(locale, "nav.section.projects")} as="h2">
+      <SideNav items={projectItems} label={t(locale, "nav.section.projects")} />
+    </NavSection>
+  {:else if activeModule === "billing"}
+    <NavSection label={t(locale, "nav.section.billing")} as="h2">
+      <SideNav items={billingItems} label={t(locale, "nav.section.billing")} />
+    </NavSection>
+  {:else if activeModule === "reporting"}
+    <NavSection label={t(locale, "nav.section.reporting")} as="h2">
+      <SideNav items={reportingItems} label={t(locale, "nav.section.reporting")} />
+    </NavSection>
+  {:else if activeModule === "admin"}
+    <NavSection label={t(locale, "nav.section.admin")} as="h2">
+      <SideNav items={adminItems} label={t(locale, "nav.section.admin")} />
+    </NavSection>
+  {/if}
+{/snippet}
+
+{#snippet appHeaderContent()}
+  <!--
+    DS AppHeader, canonical usage: brand via props, nav snippet = 5 modules
+    (IA niveau 1, UXDR-009), burger + drawer en mode compact (mobile).
+    En mode compact le DS déplace les utilitaires dans le tiroir (AppChrome).
+  -->
+  <AppHeader
+    brandName="OpenERP"
+    productName="Foundation"
+    brandMode="full"
+    logoSrc="/SENT-logo-squared.svg"
+    brandHref="/"
+    brandLabel="OpenERP home"
+    compact={!isPreAuth && isMobile}
+    menuOpen={menuOpen}
+    onMenuToggle={() => (menuOpen = !menuOpen)}
+    menuLabel={menuOpen ? t(locale, "nav.toggle.close") : t(locale, "nav.toggle.open")}
+    drawerId="primary-nav"
+  >
+    <!-- IA niveau 1 : 5 modules dans la nav header (desktop uniquement, admin only) -->
+    {#snippet nav()}
+      {#if !isPreAuth}
+        <a class="st-appHeader__navLink" href="/admin/crm/leads" aria-current={activeModule === "crm" ? "page" : undefined}>{t(locale, "nav.section.crm")}</a>
+        <a class="st-appHeader__navLink" href="/admin/project/projects" aria-current={activeModule === "project" ? "page" : undefined}>{t(locale, "nav.section.projects")}</a>
+        <a class="st-appHeader__navLink" href="/admin/billing/invoices" aria-current={activeModule === "billing" ? "page" : undefined}>{t(locale, "nav.section.billing")}</a>
+        <a class="st-appHeader__navLink" href="/admin/reporting/saved-views" aria-current={activeModule === "reporting" ? "page" : undefined}>{t(locale, "nav.section.reporting")}</a>
+        <a class="st-appHeader__navLink" href="/admin/users" aria-current={activeModule === "admin" ? "page" : undefined}>{t(locale, "nav.section.admin")}</a>
+      {/if}
+    {/snippet}
+
+    {#snippet actions()}
+      {#if !isPreAuth}
+        <!-- Recherche : pill icône canonique (st-appHeader__control--icon) -->
+        <button
+          type="button"
+          class="st-appHeader__control st-appHeader__control--icon"
+          aria-label={t(locale, "shell.search")}
+          aria-haspopup="dialog"
+          onclick={() => (searchOpen = true)}
+        >
+          <SearchIcon size={16} aria-hidden="true" />
+        </button>
+      {/if}
+      <!-- Contrôle langue canonique (démo docs components/header) :
+           button.st-appHeader__control (globe + locale + chevron) + menu DS. -->
+      <button
+        type="button"
+        class="st-appHeader__control"
+        bind:this={localeTriggerEl}
+        aria-haspopup="menu"
+        aria-expanded={localeMenuOpen}
+        aria-label={t(locale, "locale.switcher.label")}
+        onclick={() => (localeMenuOpen = !localeMenuOpen)}
+      >
+        <Globe size={14} aria-hidden="true" />
+        {locale.toUpperCase()}
+        <ChevronDown size={12} aria-hidden="true" />
+      </button>
+      <MenuPopover
+        bind:open={localeMenuOpen}
+        trigger={localeTriggerEl}
+        placement="bottom-end"
+        label={t(locale, "locale.switcher.label")}
+      >
+        <Menu
+          label={t(locale, "locale.switcher.label")}
+          items={localeItems}
+          onselect={(v) => handleLocaleChange(v as LocaleCode)}
+        />
+      </MenuPopover>
+      {#if !isPreAuth}
+        <IdentityMenu
+          isAuthenticated={!!session}
+          user={identityUser}
+          compact={true}
+          onLogin={() => { if (browser) window.location.href = "/login"; }}
+          onLogout={() => signOutFormRef?.requestSubmit()}
+          loginLabel={t(locale, "auth.signIn")}
+          logoutLabel={t(locale, "auth.signOut")}
+        />
+      {/if}
+    {/snippet}
+
+    {#snippet drawer()}
+      <!-- Tiroir mobile : toutes les sections (nav globale mobile) + utilitaires -->
+      {@render navGroups()}
+      <div class="shell__drawer-utils">
+        <LanguageToggle
+          variant="accordion"
+          accordionLabel={t(locale, "locale.switcher.label")}
+          locale={locale}
+          onLocaleChange={handleLocaleChange}
+          frLabel="Français"
+          enLabel="English"
+        />
+        <IdentityMenu
+          variant="accordion"
+          isAuthenticated={!!session}
+          user={identityUser}
+          onLogin={() => { if (browser) window.location.href = "/login"; }}
+          onLogout={() => signOutFormRef?.requestSubmit()}
+          loginLabel={t(locale, "auth.signIn")}
+          logoutLabel={t(locale, "auth.signOut")}
+        />
+      </div>
+    {/snippet}
+  </AppHeader>
+
+  {#if !isPreAuth}
+    <!-- Recherche globale — modale DS + champ Search DS (feature stub trackée) -->
+    <Modal
+      open={searchOpen}
+      title={t(locale, "shell.search")}
+      onclose={() => (searchOpen = false)}
+    >
+      <Search
+        label={t(locale, "shell.search")}
+        placeholder={t(locale, "shell.search")}
+        helperText={t(locale, "shell.searchHint")}
+        bind:value={searchValue}
+        fluid={true}
+      />
+    </Modal>
+  {/if}
+{/snippet}
+
 <!-- Skip link DS : premier élément focusable (WCAG 2.4.1) -->
 <SkipLink href="#main-content">{t(locale, "shell.skipToContent")}</SkipLink>
 
-  <!-- Hidden sign-out form — submitted by the IdentityMenu (header or drawer). -->
-  <form
-    bind:this={signOutFormRef}
-    method="POST"
-    action="/auth/logout"
-    class="shell__signout-form"
-    aria-hidden="true"
-  ></form>
+<!-- Hidden sign-out form — submitted by the IdentityMenu (header or drawer). -->
+<form
+  bind:this={signOutFormRef}
+  method="POST"
+  action="/auth/logout"
+  class="shell__signout-form"
+  aria-hidden="true"
+></form>
 
-  <div class="shell" class:shell--no-sidebar={isPreAuth}>
-    <!--
-      DS AppHeader, canonical usage: structured brand via props (no custom brand
-      markup), integrated burger + drawer in compact mode (mobile, admin routes),
-      utilities in `actions` on desktop. In compact mode the DS moves utilities
-      into the drawer (per AppChrome), so language + identity render there too.
-    -->
-    <AppHeader
-      brandName="OpenERP"
-      productName="Foundation"
-      brandMode="full"
-      logoSrc="/SENT-logo-squared.svg"
-      brandHref="/"
-      brandLabel="OpenERP home"
-      compact={!isPreAuth && isMobile}
-      menuOpen={menuOpen}
-      onMenuToggle={() => (menuOpen = !menuOpen)}
-      menuLabel={menuOpen ? t(locale, "nav.toggle.close") : t(locale, "nav.toggle.open")}
-      drawerId="primary-nav"
-    >
-      {#snippet actions()}
-        {#if !isPreAuth}
-          <!-- Recherche : pill icône canonique (st-appHeader__control--icon) -->
-          <button
-            type="button"
-            class="st-appHeader__control st-appHeader__control--icon"
-            aria-label={t(locale, "shell.search")}
-            aria-haspopup="dialog"
-            onclick={() => (searchOpen = true)}
-          >
-            <SearchIcon size={16} aria-hidden="true" />
-          </button>
-        {/if}
-        <!-- Contrôle langue canonique (démo docs components/header) :
-             button.st-appHeader__control (globe + locale + chevron) + menu DS. -->
-        <button
-          type="button"
-          class="st-appHeader__control"
-          bind:this={localeTriggerEl}
-          aria-haspopup="menu"
-          aria-expanded={localeMenuOpen}
-          aria-label={t(locale, "locale.switcher.label")}
-          onclick={() => (localeMenuOpen = !localeMenuOpen)}
-        >
-          <Globe size={14} aria-hidden="true" />
-          {locale.toUpperCase()}
-          <ChevronDown size={12} aria-hidden="true" />
-        </button>
-        <MenuPopover
-          bind:open={localeMenuOpen}
-          trigger={localeTriggerEl}
-          placement="bottom-end"
-          label={t(locale, "locale.switcher.label")}
-        >
-          <Menu
-            label={t(locale, "locale.switcher.label")}
-            items={localeItems}
-            onselect={(v) => handleLocaleChange(v as LocaleCode)}
-          />
-        </MenuPopover>
-        {#if !isPreAuth}
-          <IdentityMenu
-            isAuthenticated={!!session}
-            user={identityUser}
-            compact={true}
-            onLogin={() => { if (browser) window.location.href = "/login"; }}
-            onLogout={() => signOutFormRef?.requestSubmit()}
-            loginLabel={t(locale, "auth.signIn")}
-            logoutLabel={t(locale, "auth.signOut")}
-          />
-        {/if}
-      {/snippet}
+<!--
+  UXDR-009 : AppShell variant=workspace + IA 2 niveaux.
+  Deux instances conditionnelles pour éviter un panneau navigationPanel vide
+  (de largeur 20rem) sur les routes pré-auth : pré-auth = sans navigationPanel,
+  admin = avec navigationPanel (section du module actif uniquement).
+  Le snippet appHeaderContent est partagé (passé en prop topChrome) pour éviter
+  la duplication du markup AppHeader entre les deux branches.
+-->
+{#if isPreAuth}
+  <AppShell variant="workspace" mainId="main-content" topChrome={appHeaderContent}>
+    {#snippet main()}
+      <div class="shell__main" tabindex="-1">
+        {@render children?.()}
+      </div>
+    {/snippet}
+  </AppShell>
+{:else}
+  <AppShell variant="workspace" mainId="main-content" navigationLabel="Primary" topChrome={appHeaderContent}>
+    <!-- IA niveau 2 : panneau gauche = sous-items du module actif uniquement -->
+    {#snippet navigationPanel()}
+      <div class="shell__nav-panel" inert={isMobile && menuOpen}>
+        {@render activeNavSection()}
+      </div>
+    {/snippet}
 
-      {#snippet drawer()}
-        {@render navGroups()}
-        <div class="shell__drawer-utils">
-          <LanguageToggle
-            variant="accordion"
-            accordionLabel={t(locale, "locale.switcher.label")}
-            locale={locale}
-            onLocaleChange={handleLocaleChange}
-            frLabel="Français"
-            enLabel="English"
-          />
-          <IdentityMenu
-            variant="accordion"
-            isAuthenticated={!!session}
-            user={identityUser}
-            onLogin={() => { if (browser) window.location.href = "/login"; }}
-            onLogout={() => signOutFormRef?.requestSubmit()}
-            loginLabel={t(locale, "auth.signIn")}
-            logoutLabel={t(locale, "auth.signOut")}
-          />
-        </div>
-      {/snippet}
-    </AppHeader>
-
-    {#if !isPreAuth}
-      <!-- Recherche globale — modale DS + champ Search DS (feature stub trackée) -->
-      <Modal
-        open={searchOpen}
-        title={t(locale, "shell.search")}
-        onclose={() => (searchOpen = false)}
-      >
-        <Search
-          label={t(locale, "shell.search")}
-          placeholder={t(locale, "shell.search")}
-          helperText={t(locale, "shell.searchHint")}
-          bind:value={searchValue}
-          fluid={true}
-        />
-      </Modal>
-    {/if}
-
-    {#if !isPreAuth}
-      <!-- Desktop persistent sidebar (CSS grid, always visible ≥769px) -->
-      <aside class="shell__sidebar" aria-label="Primary" inert={isMobile && menuOpen}>
-        {@render navGroups()}
-      </aside>
-    {/if}
-
-    <main
-      id="main-content"
-      class="shell__main"
-      tabindex="-1"
-      inert={isMobile && menuOpen}
-    >
-      {@render children?.()}
-    </main>
-  </div>
+    {#snippet main()}
+      <div class="shell__main" tabindex="-1" inert={isMobile && menuOpen}>
+        {@render children?.()}
+      </div>
+    {/snippet}
+  </AppShell>
+{/if}
 
   {#if chatEnabled}
     <div data-testid="chat-dock" class="chat-dock-root">
