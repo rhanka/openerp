@@ -245,7 +245,7 @@
       brandName="OpenERP"
       productName="Foundation"
       brandMode="full"
-      logoSrc="/openerp-logo-squared.svg"
+      logoSrc="/SENT-logo-squared.svg"
       brandHref="/"
       brandLabel="OpenERP home"
       compact={!isPreAuth && isMobile}
