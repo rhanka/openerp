@@ -80,7 +80,7 @@ test.describe("Reporting scheduled deliveries (DS 5.3 demo mode)", () => {
     await page.waitForLoadState("domcontentloaded");
 
     await expect(
-      page.locator(".shell__nav-heading", { hasText: "Reporting" })
+      page.locator(".st-navSection__label", { hasText: "Reporting" })
     ).toBeVisible();
 
     // All six nav items in the Reporting section are present

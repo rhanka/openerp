@@ -82,7 +82,7 @@ test.describe("Reporting saved-views (DS 5.0 demo mode)", () => {
     await page.waitForLoadState("domcontentloaded");
 
     await expect(
-      page.locator(".shell__nav-heading", { hasText: "Reporting" })
+      page.locator(".st-navSection__label", { hasText: "Reporting" })
     ).toBeVisible();
 
     const savedViewsLink = page.getByRole("link", { name: "Saved views", exact: true });

@@ -100,7 +100,7 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
             { timeout: 10_000 }
           );
 
-          await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
+          await expect(page.getByRole("heading", { level: 1, name: route.labels[locale], exact: true })).toBeVisible();
 
           // DS AppHeader: unnamed <header> banner; the aside sidebar is the only
           // role=complementary named "Primary" (AppHeader's own desktop <nav> also
@@ -131,7 +131,7 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
               "page"
             );
             for (const sectionLabel of sectionLabels) {
-              await expect(drawer.locator(".shell__nav-heading", { hasText: sectionLabel })).toBeVisible();
+              await expect(drawer.locator(".st-navSection__label", { hasText: sectionLabel })).toBeVisible();
             }
             // Language + identity live in the drawer utilities on mobile (DS canon)
             await expect(drawer.locator(".st-languageToggle__accordionTrigger")).toBeVisible();
@@ -146,7 +146,7 @@ test.describe("UI review: shell ergonomics — admin routes", () => {
               "page"
             );
             for (const sectionLabel of sectionLabels) {
-              await expect(sidebar.locator(".shell__nav-heading", { hasText: sectionLabel })).toBeVisible();
+              await expect(sidebar.locator(".st-navSection__label", { hasText: sectionLabel })).toBeVisible();
             }
           }
 
@@ -217,7 +217,7 @@ test.describe("UI review: shell ergonomics — pre-auth routes", () => {
           await page.goto(route.path);
           await page.waitForLoadState("domcontentloaded");
 
-          await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
+          await expect(page.getByRole("heading", { level: 1, name: route.labels[locale], exact: true })).toBeVisible();
 
           const appHeader = page.getByRole("banner");
           const brand = page.getByLabel("OpenERP home");
@@ -422,7 +422,7 @@ test.describe("UXDR-008: desktop 1280×800 — hamburger caché, sidebar visible
   });
 
   test("skip link est focusable et visible au focus", async ({ page }) => {
-    const skipLink = page.locator(".skip-link");
+    const skipLink = page.locator(".st-skipLink");
     await skipLink.focus();
     await expect(skipLink).toBeVisible();
     await expect(skipLink).toBeFocused();
