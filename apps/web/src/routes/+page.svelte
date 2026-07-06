@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Card, DataTable, Tag } from "@sentropic/design-system-svelte";
+  import { Button, Card, Container, DataTable, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
   import type { DataTableColumn, DataTableRow } from "@sentropic/design-system-svelte";
 
   type MetricRow = DataTableRow & { id: string; label: string; value: string };
@@ -25,19 +25,20 @@
   ];
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>OpenERP</h1>
       <p class="page__lede">
         Tenant foundation for Northwind Services. Locale EN, Canada/Quebec tax region, UTC storage.
       </p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <a href="/login"><Button variant="secondary">Sign in</Button></a>
       <Button variant="primary">Run preflight</Button>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   <div class="dashboard-metrics">
     {#each metrics as metric}
@@ -48,14 +49,15 @@
     {/each}
   </div>
 
-  <section class="stack">
+  <Stack gap={4}>
     <header class="dashboard-section-header">
       <h2>Latest audit activity</h2>
       <Tag tone="success">Append-only</Tag>
     </header>
     <DataTable columns={auditColumns} rows={auditRows} caption="Recent audit events" />
-  </section>
-</section>
+  </Stack>
+</Stack>
+</Container>
 
 <style>
   .dashboard-metrics {

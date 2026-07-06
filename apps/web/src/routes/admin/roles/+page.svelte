@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, DataTable, Tag } from "@sentropic/design-system-svelte";
+  import { Button, Container, DataTable, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
   import type { DataTableColumn, DataTableRow } from "@sentropic/design-system-svelte";
 
   type RoleRow = DataTableRow & {
@@ -26,17 +26,19 @@
   ];
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>Roles</h1>
       <p class="page__lede">Review system roles and permission coverage before module rollout.</p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <Tag tone="info">Scoped permissions</Tag>
       <Button variant="primary">Create role</Button>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   <DataTable {columns} {rows} caption="Role catalog" />
-</section>
+</Stack>
+</Container>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, DataTable, Tag } from "@sentropic/design-system-svelte";
+  import { Button, Container, DataTable, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
   import type { DataTableColumn, DataTableRow } from "@sentropic/design-system-svelte";
 
   type UserRow = DataTableRow & {
@@ -26,17 +26,19 @@
   ];
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>Users</h1>
       <p class="page__lede">Manage tenant users, locale preferences, status, and role assignments.</p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <Tag tone="info">Deny by default</Tag>
       <Button variant="primary">Invite user</Button>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   <DataTable {columns} {rows} caption="User directory" />
-</section>
+</Stack>
+</Container>

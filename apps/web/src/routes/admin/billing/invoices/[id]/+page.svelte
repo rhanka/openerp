@@ -1,12 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import {
-    Alert,
-    Button,
-    Card,
-    EmptyState,
-    Tag
-  } from "@sentropic/design-system-svelte";
+  import { Alert, Button, Card, Container, EmptyState, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
 
   import type { InvoiceWithLines, JournalEntryWithLines, Payment } from "@sentropic/openerp-domain/billing";
 
@@ -102,8 +96,9 @@
   );
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{invoice.invoiceNumber}</h1>
       <p class="page__meta">
@@ -137,7 +132,7 @@
         </p>
       {/if}
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <span data-source={data.source} data-testid="data-source-badge">
         <Tag tone={sourceTone}>{sourceLabel}</Tag>
       </span>
@@ -163,8 +158,8 @@
           </Button>
         </form>
       {/if}
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   {#if form && "ok" in form && form.ok}
     <Alert tone="success" title={t(locale, "approval.success.title")}>
@@ -320,31 +315,10 @@
       </table>
     {/if}
   </Card>
-</section>
+</Stack>
+</Container>
 
 <style>
-  .page {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.5rem;
-  }
-
-  .page__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .page__actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-shrink: 0;
-  }
-
   .page__back {
     color: var(--st-semantic-text-muted);
     font-size: 0.875rem;

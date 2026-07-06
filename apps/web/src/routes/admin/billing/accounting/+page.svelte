@@ -1,10 +1,5 @@
 <script lang="ts">
-  import {
-    Alert,
-    Card,
-    EmptyState,
-    Tag
-  } from "@sentropic/design-system-svelte";
+  import { Alert, Card, Container, EmptyState, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
 
   import type { Account, JournalEntryWithLines } from "@sentropic/openerp-domain/billing";
 
@@ -58,20 +53,21 @@
   }
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{t(locale, "billing.accounts.page.title")}</h1>
       <p class="page__lede">
         {t(locale, "billing.accounts.page.lede")}
       </p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <span data-source={data.source} data-testid="data-source-badge">
         <Tag tone={sourceTone}>{sourceLabel}</Tag>
       </span>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   {#if data.source === "error"}
     <Alert tone="warning" title={t(locale, "approval.backendError.title")}>
@@ -208,39 +204,13 @@
       </div>
     {/if}
   </Card>
-</section>
+</Stack>
+</Container>
 
 <style>
-  .page {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1rem;
-  }
-
   .table-wrap {
     max-width: 100%;
     overflow-x: auto;
-  }
-
-  .page__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-
-  .page__lede {
-    color: var(--st-semantic-text-secondary);
-    margin-top: 0.25rem;
-  }
-
-  .page__actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-shrink: 0;
   }
 
   .section-title {

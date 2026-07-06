@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { Alert, Card, EmptyState, Tag } from "@sentropic/design-system-svelte";
+  import { Alert, Card, Container, EmptyState, Row, Stack, Tag } from "@sentropic/design-system-svelte";
 
   import type { Rate } from "@sentropic/openerp-domain/project";
 
@@ -34,8 +34,9 @@
   }
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{t(locale, "project.rates.page.title")}</h1>
       <p class="page__lede">{t(locale, "project.rates.page.lede")}</p>
@@ -43,7 +44,7 @@
     <span data-source={data.source} data-testid="data-source-badge">
       <Tag tone={sourceTone}>{sourceLabel}</Tag>
     </span>
-  </header>
+  </Row>
 
   {#if data.source === "error"}
     <Alert tone="warning" title={t(locale, "approval.backendError.title")}>
@@ -128,27 +129,10 @@
       {/each}
     </ol>
   {/if}
-</section>
+</Stack>
+</Container>
 
 <style>
-  .page {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.5rem;
-  }
-  .page__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  .page__lede {
-    margin: 0.5rem 0 0 0;
-    color: var(--st-semantic-text-muted);
-    font-size: 0.875rem;
-  }
   .page__form {
     padding: 0.75rem 0;
   }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Card, DataTable, EmptyState, Tag } from "@sentropic/design-system-svelte";
+  import { Button, Card, Container, DataTable, EmptyState, Flex, Row, Stack, Tag } from "@sentropic/design-system-svelte";
   import type { DataTableColumn, DataTableRow } from "@sentropic/design-system-svelte";
 
   import { t, type LocaleCode } from "$lib/i18n";
@@ -65,19 +65,20 @@
   );
 </script>
 
-<section class="page">
-  <header class="page__header">
+<Container size="xl" as="section">
+<Stack gap={6}>
+  <Row justify="between" align="start">
     <div>
       <h1>{t(locale, "audit.page.title")}</h1>
       <p class="page__lede">{t(locale, "audit.page.lede")}</p>
     </div>
-    <div class="page__actions">
+    <Flex gap={2} align="center" wrap={true}>
       <span data-source={data.source} data-testid="data-source-badge">
         <Tag {tone}>{sourceLabel}</Tag>
       </span>
       <Button variant="primary">{t(locale, "audit.action.export")}</Button>
-    </div>
-  </header>
+    </Flex>
+  </Row>
 
   {#if data.source === "error"}
     <Card>
@@ -96,4 +97,5 @@
       emptyLabel={t(locale, "audit.empty.title")}
     />
   {/if}
-</section>
+</Stack>
+</Container>
