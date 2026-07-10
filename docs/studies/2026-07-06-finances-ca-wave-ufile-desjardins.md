@@ -234,3 +234,13 @@ Jalons de bascule : après P1, plus de facturation Wave ; après P3 validé sur 
 - `apps/api/src/billing/` : `invoice-service.ts`, `payment-service.ts`, `tax-service.ts`, `accounting-service.ts`, `recurring-schedule-service.ts`
 - Migrations : `apps/api/src/db/migrations/0021_billing_invoices.sql`, `0022_billing_payments.sql`, `0023_billing_taxes.sql`, `0024_billing_accounting.sql`, `0027_billing_recurring_schedules.sql`
 - Domaine : `packages/domain/src/billing.ts` ; UI : `apps/web/src/routes/admin/billing/{invoices,accounting,taxes}` ; tests : `apps/api/test/foundation/billing-tax-service.test.ts`
+
+---
+
+## Addendum P0 — inventaire live (2026-07-06, session Wave de l'utilisateur)
+
+- Compte Wave = plan **PRO** → l'API GraphQL est éligible (clients/factures/produits par API, en complément des exports).
+- Surface Data Export réelle (`accounting.waveapps.com/settings/export`) : « Export all transactions » (**Excel** ou **CSV**) + « Export all receipts » (**ZIP**). Les clients/factures ne sont pas dans cette page → à prendre via l'API GraphQL (PRO) ou les listes.
+- **Export CSV des transactions déclenché** ce jour (livraison par courriel — récupération du lien via Gmail).
+- Modules Wave actifs constatés : Sales & Payments, Purchases, Receipts, Accounting, Banking, Reports.
+- Stratégie P0 affinée : transactions/GL via Data Export CSV ; clients+factures+produits via GraphQL (PRO) ; reçus via ZIP.
