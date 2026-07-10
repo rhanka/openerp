@@ -1,0 +1,50 @@
+{
+  "institution": "Desjardins",
+  "accounts": [
+    {
+      "account_id": "acc-001",
+      "name": "Compte cheques Desjardins",
+      "type": "depository",
+      "subtype": "checking",
+      "balances": { "iso_currency_code": "CAD", "current": 1523.47 }
+    },
+    {
+      "account_id": "acc-002",
+      "name": "Carte de credit Desjardins",
+      "type": "credit",
+      "subtype": "credit card",
+      "balances": { "iso_currency_code": "CAD", "current": -230.1 }
+    }
+  ],
+  "transactions": [
+    {
+      "transaction_id": "txn-001",
+      "account_id": "acc-001",
+      "date": "2026-06-01",
+      "amount": 45.99,
+      "iso_currency_code": "CAD",
+      "name": "Epicerie Metro",
+      "merchant_name": "Metro",
+      "personal_finance_category": { "primary": "FOOD_AND_DRINK" },
+      "pending": false
+    },
+    {
+      "transaction_id": "txn-002",
+      "account_id": "acc-001",
+      "date": "2026-06-03",
+      "amount": -1500.0,
+      "iso_currency_code": "CAD",
+      "name": "Depot paie",
+      "pending": false
+    },
+    {
+      "transaction_id": "txn-003",
+      "account_id": "acc-001",
+      "date": "2026-06-05",
+      "amount": 12.5,
+      "iso_currency_code": "CAD",
+      "name": "Cafe Van Houtte",
+      "pending": true
+    }
+  ]
+}
