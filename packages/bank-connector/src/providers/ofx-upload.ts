@@ -10,6 +10,7 @@
  * is used, i.e. multi-account OFX files are not split per account.
  */
 import { readFileSync } from "node:fs";
+import { isAbsolute, resolve, sep } from "node:path";
 
 import type {
   BankProvider,
@@ -83,47 +84,80 @@ export function parseOfx(content: string): OfxParsed {
   return { accountId, currency, transactions };
 }
 
-export const ofxUploadProvider: BankProvider = {
-  id: "ofx-upload",
+export interface OfxUploadOptions {
+  /**
+   * Directory the uploaded .ofx file must live under. Any `ctx.filePath` that resolves outside it
+   * (path traversal, absolute escape) is rejected before the file is opened. When omitted, the
+   * process cwd is used as the base — callers SHOULD pass an explicit upload dir.
+   */
+  allowedBaseDir?: string;
+}
 
-  async listAccounts(ctx: ProviderContext): Promise<NormalizedAccount[]> {
-    if (!ctx.filePath) {
-      throw new Error("ofx-upload: filePath is required");
-    }
-    const content = readFileSync(ctx.filePath, "utf8");
-    const bankId = extractTag(content, "BANKID");
-    const { accountId, currency } = parseOfx(content);
+/**
+ * Resolves `filePath` and guarantees it stays within `allowedBaseDir`. Rejects `../` traversal,
+ * absolute paths escaping the base, and NUL bytes. Returns the safe absolute path to open.
+ */
+export function resolveOfxPath(filePath: string, allowedBaseDir?: string): string {
+  if (filePath.includes("\0")) {
+    throw new Error("ofx-upload: filePath contains a NUL byte");
+  }
+  const base = resolve(allowedBaseDir ?? process.cwd());
+  const resolved = isAbsolute(filePath) ? resolve(filePath) : resolve(base, filePath);
+  if (resolved !== base && !resolved.startsWith(base + sep)) {
+    throw new Error("ofx-upload: filePath escapes the allowed upload directory");
+  }
+  return resolved;
+}
 
-    const account: NormalizedAccount = {
-      id: accountId,
-      providerRef: accountId,
-      name: `OFX ${accountId}`,
-      type: "checking",
-      currency,
-      institution: bankId ?? "ofx-upload",
-    };
-    return [account];
-  },
+/**
+ * Builds an ofx-upload provider. The uploaded OFX text is read, parsed, and discarded within each
+ * call — it is never cached in module or instance state (own-OFX stays ephemeral, C1 requirement).
+ */
+export function createOfxUploadProvider(options: OfxUploadOptions = {}): BankProvider {
+  const { allowedBaseDir } = options;
 
-  async listTransactions(
-    ctx: ProviderContext,
-    params: ListTransactionsParams
-  ): Promise<ListTransactionsResult> {
-    if (!ctx.filePath) {
-      throw new Error("ofx-upload: filePath is required");
-    }
-    const content = readFileSync(ctx.filePath, "utf8");
-    let { transactions } = parseOfx(content);
+  return {
+    id: "ofx-upload",
 
-    if (params.accountId) {
-      const accountId = params.accountId;
-      transactions = transactions.filter((t) => t.accountId === accountId);
-    }
-    if (params.since) {
-      const since = params.since;
-      transactions = transactions.filter((t) => t.postedAt >= since);
-    }
+    async listAccounts(ctx: ProviderContext): Promise<NormalizedAccount[]> {
+      if (!ctx.filePath) {
+        throw new Error("ofx-upload: filePath is required");
+      }
+      const content = readFileSync(resolveOfxPath(ctx.filePath, allowedBaseDir), "utf8");
+      const bankId = extractTag(content, "BANKID");
+      const { accountId, currency } = parseOfx(content);
 
-    return { transactions };
-  },
-};
+      const account: NormalizedAccount = {
+        id: accountId,
+        providerRef: accountId,
+        name: `OFX ${accountId}`,
+        type: "checking",
+        currency,
+        institution: bankId ?? "ofx-upload",
+      };
+      return [account];
+    },
+
+    async listTransactions(
+      ctx: ProviderContext,
+      params: ListTransactionsParams
+    ): Promise<ListTransactionsResult> {
+      if (!ctx.filePath) {
+        throw new Error("ofx-upload: filePath is required");
+      }
+      const content = readFileSync(resolveOfxPath(ctx.filePath, allowedBaseDir), "utf8");
+      let { transactions } = parseOfx(content);
+
+      if (params.accountId) {
+        const accountId = params.accountId;
+        transactions = transactions.filter((t) => t.accountId === accountId);
+      }
+      if (params.since) {
+        const since = params.since;
+        transactions = transactions.filter((t) => t.postedAt >= since);
+      }
+
+      return { transactions };
+    },
+  };
+}
