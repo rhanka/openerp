@@ -271,7 +271,7 @@ function makeInvoice(overrides: Partial<Invoice> = {}): Invoice {
     total: { amountMinor: 11498, currency: "CAD", scale: 2 },
     taxCategoryId: null,
     taxBreakdown: [
-      { jurisdiction: "CA-GST", label: "GST", rateBps: 500, amount: { amountMinor: 500, currency: "CAD", scale: 2 } },
+      { jurisdiction: "CA-GST", label: "GST", rateBps: 5000, amount: { amountMinor: 500, currency: "CAD", scale: 2 } },
       { jurisdiction: "CA-QC-QST", label: "QST", rateBps: 9975, amount: { amountMinor: 998, currency: "CAD", scale: 2 } }
     ],
     issueDate: "2026-05-25",

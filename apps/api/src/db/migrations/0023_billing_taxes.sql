@@ -25,7 +25,10 @@ create table tax_rate_versions (
   tax_category_id uuid not null references tax_categories(id),
   jurisdiction text not null,
   label text not null,
-  -- Integer basis points: 500 = 5.00%, 9975 = 9.975%.
+  -- Integer milli-percent (rate * 1000): 5000 = 5.000%, 9975 = 9.975%.
+  -- The engine computes round(base * rate_bps / 100000). QST 9.975% is only
+  -- representable as an integer in milli-percent (basis points would be 997.5),
+  -- so DO NOT seed GST 5% as 500 — that is 0.5%. GST 5% = 5000.
   rate_bps integer not null check (rate_bps >= 0),
   -- When false (default): rate applies on pre-tax subtotal base.
   -- When true: rate applies on subtotal + sum of prior taxes (compounded).
