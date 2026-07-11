@@ -112,3 +112,22 @@
 - **Réversible déjà fait, sans décision** : import Wave (outillage), isolation bank-connector C1, moteur de rapprochement C2 (normalize→match→service).
 
 Prochaine étape agent : sur accord owner, formaliser D1/D2 via `present-decision` (irréversibles) et implémenter D4/D8/D5 (réversibles, attended pour le blast radius domaine).
+
+---
+
+## Arbitrage owner — 2026-07-11 (présenté via present-decision, AskUserQuestion)
+
+| # | Décision | **Arbitrage owner** | Suite |
+|---|---|---|---|
+| D1 | Accès Plaid Production | **Différer** (rester sandbox jusqu'à ARCH-11 + 5 gates) | attendre architecte C3/ARCH-11 |
+| D2 | Entité signataire ToS/Loi 25 | **Trancher maintenant** — owner choisit l'entité (option restante à nommer : opérateur Sentropic mutualisé vs custody par org) | sous-question owner ouverte |
+| D3 | Résiliation Wave | **Après P3 validé** (double-run période de taxes complète) | Wave lecture seule d'ici là |
+| D4 | Stockage numéros TPS/TVQ émetteur | **GO — `tenant_settings`** (numéros + adresse émetteur) | migration additive + service |
+| D5 | Rendu PDF facture | **GO — HTML→PDF via Playwright** (dépendance déjà au repo) | gabarit UX-gated (openerp-ux-decision) |
+| D6 | Envoi courriel | **GO — abstraction `EmailSender` (SMTP par défaut)** ; provider concret plus tard | port + journal d'envoi |
+| D7 | Lien de paiement | **Virement d'abord**, PSP en phase ultérieure | instructions virement sur facture |
+| D8 | Snapshot vendeur/client | **GO — snapshot figé à l'émission** (`issuer_snapshot`/`customer_snapshot` jsonb) | migration additive + `issueInvoice` |
+
+**Découplage confirmé** : le chemin Plaid (D1/D2, gaté architecte) est indépendant de la facture statutaire P1 (D4/D5/D8, GO immédiat). L'implémentation P1 démarre ; Plaid attend ARCH-11.
+
+**Sous-décision D2 ouverte** : l'owner a choisi de trancher l'entité signataire maintenant mais doit encore la **nommer** — opérateur Sentropic mutualisé (tier operator-secret, un seul onboarding Plaid pour toutes les orgs fédérées) **vs** custody par organisation (chaque org signe/onboard, pas de mutualisation).
