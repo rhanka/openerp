@@ -82,6 +82,18 @@ async function generateInvoiceNumber(db: Queryable, context: TenantContext): Pro
   return `INV-${String(seq).padStart(6, "0")}`;
 }
 
+/**
+ * Derives the invoice due date from net payment terms: due_date = issue_date + termsDays.
+ * Returns null when no terms are set (due date stays unset). Pure — UTC date arithmetic only.
+ */
+export function deriveDueDate(issueDate: string, paymentTermsDays: number | null): string | null {
+  if (paymentTermsDays === null || paymentTermsDays === undefined) return null;
+  const base = new Date(`${issueDate.slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(base.getTime())) return null;
+  base.setUTCDate(base.getUTCDate() + paymentTermsDays);
+  return base.toISOString().slice(0, 10);
+}
+
 // ---------------------------------------------------------------------------
 // Manual create
 // ---------------------------------------------------------------------------
@@ -121,7 +133,10 @@ export async function createInvoice(
     total,
     taxCategoryId: input.taxCategoryId ?? null,
     issueDate: null,
-    dueDate: null
+    dueDate: null,
+    notes: input.notes ?? null,
+    poNumber: input.poNumber ?? null,
+    paymentTermsDays: input.paymentTermsDays ?? null
   });
 
   const persistedLines: InvoiceLine[] = [];
@@ -374,7 +389,13 @@ export async function issueInvoice(
   const now = new Date();
   const issuedAt = now.toISOString();
   const issueDate = now.toISOString().slice(0, 10);
-  const updated = await updateInvoiceStatus(db, context, id, "issued", { issuedAt, issueDate });
+  // Derive the due date from net payment terms, when set (due_date = issue_date + N days).
+  const dueDate = deriveDueDate(issueDate, before.paymentTermsDays ?? null);
+  const updated = await updateInvoiceStatus(db, context, id, "issued", {
+    issuedAt,
+    issueDate,
+    ...(dueDate !== null ? { dueDate } : {})
+  });
   if (!updated) throw new InvoiceNotFoundError(id);
   await emitInvoiceAudit(db, context, {
     action: "billing.invoice.issued",
