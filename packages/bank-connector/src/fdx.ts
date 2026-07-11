@@ -48,6 +48,17 @@ export interface NormalizedTransaction {
 }
 
 /**
+ * Tenant + consent scope for a connector call (C1 seam toward the platform broker's
+ * ConnectorEnrollment/ConsentGrant — see SPEC_EVOL_BANK_CONNECTOR §7/§10). Every data access is
+ * keyed by `tenantId`; no provider instance may carry another tenant's state. `consentRef` is an
+ * opaque handle to the consent grant authorizing the access (never a raw credential).
+ */
+export interface StpConnectorContext {
+  readonly tenantId: string;
+  readonly consentRef?: string;
+}
+
+/**
  * Shared invocation context passed to every BankProvider call. Each provider only reads the
  * field(s) it needs: ofx-upload reads `filePath`, plaid-sandbox reads `institutionQuery`.
  */
@@ -56,6 +67,8 @@ export interface ProviderContext {
   filePath?: string;
   /** Institution search query used to enroll a sandbox Item — used by plaid-sandbox only. */
   institutionQuery?: string;
+  /** Tenant + consent scope for this call (C1: read-only mono-tenant). */
+  tenant?: StpConnectorContext;
 }
 
 export interface ListTransactionsParams {
@@ -84,4 +97,16 @@ export interface BankProvider {
     ctx: ProviderContext,
     params: ListTransactionsParams
   ): Promise<ListTransactionsResult>;
+}
+
+/**
+ * A tenant-scoped set of freshly built provider instances. Created per StpConnectorContext by
+ * `createConnector` (see mcp-server.ts) so that no provider instance — and no in-memory credential
+ * cache it holds — is ever shared across tenants. This replaces the previous module-global provider
+ * singletons (C1 isolation requirement).
+ */
+export interface Connector {
+  readonly context: StpConnectorContext;
+  listProviderIds(): string[];
+  getProvider(id: string): BankProvider;
 }

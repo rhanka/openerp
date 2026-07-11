@@ -14,21 +14,51 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-import type { BankProvider, ProviderContext, ListTransactionsParams } from "./fdx.js";
-import { ofxUploadProvider } from "./providers/ofx-upload.js";
-import { plaidSandboxProvider } from "./providers/plaid-sandbox.js";
+import type {
+  BankProvider,
+  Connector,
+  ProviderContext,
+  ListTransactionsParams,
+  StpConnectorContext,
+} from "./fdx.js";
+import { createOfxUploadProvider } from "./providers/ofx-upload.js";
+import { createPlaidSandboxProvider } from "./providers/plaid-sandbox.js";
 
-const providers: readonly BankProvider[] = [plaidSandboxProvider, ofxUploadProvider];
-const providersById = new Map(providers.map((provider) => [provider.id, provider] as const));
+/** Provider ids this connector can build — used by bank_list_providers without instantiating any. */
+const PROVIDER_IDS = ["plaid-sandbox", "ofx-upload"] as const;
 
-function requireProvider(id: string): BankProvider {
-  const provider = providersById.get(id);
-  if (!provider) {
-    throw new Error(
-      `unknown provider "${id}" — available: ${[...providersById.keys()].join(", ")}`
-    );
-  }
-  return provider;
+/** Directory uploaded .ofx files must live under (path-traversal guard). */
+const OFX_UPLOAD_DIR = process.env.BANK_CONNECTOR_OFX_DIR ?? process.cwd();
+
+/**
+ * Builds a tenant-scoped Connector: a FRESH set of provider instances per call. No provider (and no
+ * in-memory token cache it holds) is shared across tenants — this replaces the former module-global
+ * provider singletons (C1 isolation requirement).
+ */
+export function createConnector(context: StpConnectorContext): Connector {
+  const providersById = new Map<string, BankProvider>([
+    ["plaid-sandbox", createPlaidSandboxProvider()],
+    ["ofx-upload", createOfxUploadProvider({ allowedBaseDir: OFX_UPLOAD_DIR })],
+  ]);
+
+  return {
+    context,
+    listProviderIds: () => [...providersById.keys()],
+    getProvider(id: string): BankProvider {
+      const provider = providersById.get(id);
+      if (!provider) {
+        throw new Error(
+          `unknown provider "${id}" — available: ${[...providersById.keys()].join(", ")}`
+        );
+      }
+      return provider;
+    },
+  };
+}
+
+/** Every tool call is tenant-scoped; mono-tenant C1 defaults to a single local tenant. */
+function contextFromInput(tenantId: string | undefined): StpConnectorContext {
+  return { tenantId: tenantId ?? "local" };
 }
 
 /** Never surface raw thrown values: keeps stack traces / unexpected payload fields out of tool errors. */
@@ -52,7 +82,7 @@ server.registerTool(
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify({ providers: providers.map((p) => ({ id: p.id })) }, null, 2),
+        text: JSON.stringify({ providers: PROVIDER_IDS.map((id) => ({ id })) }, null, 2),
       },
     ],
   })
@@ -65,12 +95,14 @@ server.registerTool(
     description: "List normalized (FDX-inspired) bank accounts exposed by a provider.",
     inputSchema: {
       provider: z.string().describe("Provider id — see bank_list_providers"),
+      tenantId: z.string().optional().describe("Tenant/org scope for this call (C1: mono-tenant)"),
     },
   },
-  async ({ provider }) => {
+  async ({ provider, tenantId }) => {
     try {
-      const impl = requireProvider(provider);
-      const accounts = await impl.listAccounts({});
+      const connector = createConnector(contextFromInput(tenantId));
+      const impl = connector.getProvider(provider);
+      const accounts = await impl.listAccounts({ tenant: connector.context });
       return { content: [{ type: "text" as const, text: JSON.stringify({ accounts }, null, 2) }] };
     } catch (error) {
       return { isError: true, content: [{ type: "text" as const, text: toErrorMessage(error) }] };
@@ -90,13 +122,15 @@ server.registerTool(
       since: z.string().optional().describe("ISO 8601 date — inclusive lower bound on postedAt"),
       cursor: z.string().optional().describe("Opaque pagination cursor returned by a previous call"),
       filePath: z.string().optional().describe("Path to a .ofx file — required for the ofx-upload provider"),
+      tenantId: z.string().optional().describe("Tenant/org scope for this call (C1: mono-tenant)"),
     },
   },
-  async ({ provider, accountId, since, cursor, filePath }) => {
+  async ({ provider, accountId, since, cursor, filePath, tenantId }) => {
     try {
-      const impl = requireProvider(provider);
+      const connector = createConnector(contextFromInput(tenantId));
+      const impl = connector.getProvider(provider);
 
-      const ctx: ProviderContext = {};
+      const ctx: ProviderContext = { tenant: connector.context };
       if (filePath) ctx.filePath = filePath;
 
       const params: ListTransactionsParams = {};
