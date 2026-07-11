@@ -120,7 +120,7 @@ Prochaine étape agent : sur accord owner, formaliser D1/D2 via `present-decisio
 | # | Décision | **Arbitrage owner** | Suite |
 |---|---|---|---|
 | D1 | Accès Plaid Production | **Différer** (rester sandbox jusqu'à ARCH-11 + 5 gates) | attendre architecte C3/ARCH-11 |
-| D2 | Entité signataire ToS/Loi 25 | **Trancher maintenant** — owner choisit l'entité (option restante à nommer : opérateur Sentropic mutualisé vs custody par org) | sous-question owner ouverte |
+| D2 | Entité signataire ToS/Loi 25 | **Opérateur Sentropic mutualisé par défaut**, MAIS les deux modes de custody doivent rester possibles — **c'est une configuration**, pas un fork | spec architecte : custody mode configurable (operator vs per-org) |
 | D3 | Résiliation Wave | **Après P3 validé** (double-run période de taxes complète) | Wave lecture seule d'ici là |
 | D4 | Stockage numéros TPS/TVQ émetteur | **GO — `tenant_settings`** (numéros + adresse émetteur) | migration additive + service |
 | D5 | Rendu PDF facture | **GO — HTML→PDF via Playwright** (dépendance déjà au repo) | gabarit UX-gated (openerp-ux-decision) |
@@ -130,4 +130,4 @@ Prochaine étape agent : sur accord owner, formaliser D1/D2 via `present-decisio
 
 **Découplage confirmé** : le chemin Plaid (D1/D2, gaté architecte) est indépendant de la facture statutaire P1 (D4/D5/D8, GO immédiat). L'implémentation P1 démarre ; Plaid attend ARCH-11.
 
-**Sous-décision D2 ouverte** : l'owner a choisi de trancher l'entité signataire maintenant mais doit encore la **nommer** — opérateur Sentropic mutualisé (tier operator-secret, un seul onboarding Plaid pour toutes les orgs fédérées) **vs** custody par organisation (chaque org signe/onboard, pas de mutualisation).
+**Sous-décision D2 — TRANCHÉE (owner, 2026-07-11)** : **opérateur Sentropic mutualisé par défaut** (tier operator-secret, un seul onboarding Plaid pour les orgs fédérées), **MAIS les deux modes de custody doivent rester possibles via CONFIGURATION** — pas un fork de code. Le mode custody (`operator` mutualisé | `per-org`) est un paramètre de déploiement/organisation. Implication architecte : `SecretStatus.scope 'operator'` et les access_tokens tenant-scoped coexistent, le mode actif étant piloté par config (défaut = operator). À valider dans SPEC_EVOL_BANK_CONNECTOR.
