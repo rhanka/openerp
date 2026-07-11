@@ -114,6 +114,12 @@ export interface Invoice {
   issueDate: string | null;
   dueDate: string | null;
   issuedAt: string | null;
+  /** Free-text notes / legal mentions shown on the document (P1). */
+  notes?: string | null;
+  /** Customer purchase-order number (P1). */
+  poNumber?: string | null;
+  /** Net payment terms in days; drives due_date derivation at issue (P1). */
+  paymentTermsDays?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -147,6 +153,9 @@ export interface CreateInvoiceInput {
   projectId?: string | null;
   currency?: string;
   taxCategoryId?: string | null;
+  notes?: string | null;
+  poNumber?: string | null;
+  paymentTermsDays?: number | null;
   lines: CreateInvoiceLineInput[];
 }
 

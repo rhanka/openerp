@@ -23,6 +23,9 @@ const INVOICE_RETURN_COLUMNS = `
   issue_date as "issueDate",
   due_date as "dueDate",
   issued_at as "issuedAt",
+  notes,
+  po_number as "poNumber",
+  payment_terms_days as "paymentTermsDays",
   created_at as "createdAt",
   updated_at as "updatedAt"
 `;
@@ -56,6 +59,9 @@ export async function insertInvoice(
     taxCategoryId?: string | null;
     issueDate: string | null;
     dueDate: string | null;
+    notes?: string | null;
+    poNumber?: string | null;
+    paymentTermsDays?: number | null;
   }
 ): Promise<Invoice> {
   assertTenantContext(context);
@@ -63,8 +69,8 @@ export async function insertInvoice(
     `insert into invoices (
        organization_id, company_id, project_id, invoice_proposal_id,
        invoice_number, status, currency, subtotal, tax_total, total,
-       tax_category_id, issue_date, due_date
-     ) values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12, $13)
+       tax_category_id, issue_date, due_date, notes, po_number, payment_terms_days
+     ) values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11, $12, $13, $14, $15, $16)
      returning ${INVOICE_RETURN_COLUMNS}`,
     [
       context.organizationId,
@@ -79,7 +85,10 @@ export async function insertInvoice(
       JSON.stringify(input.total),
       input.taxCategoryId ?? null,
       input.issueDate ?? null,
-      input.dueDate ?? null
+      input.dueDate ?? null,
+      input.notes ?? null,
+      input.poNumber ?? null,
+      input.paymentTermsDays ?? null
     ]
   );
   return result.rows[0]!;
@@ -187,7 +196,7 @@ export async function updateInvoiceStatus(
   context: TenantContext,
   id: string,
   status: InvoiceStatus,
-  extra: { issuedAt?: string | null; issueDate?: string | null } = {}
+  extra: { issuedAt?: string | null; issueDate?: string | null; dueDate?: string | null } = {}
 ): Promise<Invoice | null> {
   assertTenantContext(context);
   const sets = ["status = $3", "updated_at = now()"];
@@ -199,6 +208,10 @@ export async function updateInvoiceStatus(
   if (extra.issueDate !== undefined) {
     sets.push(`issue_date = $${values.length + 1}`);
     values.push(extra.issueDate);
+  }
+  if (extra.dueDate !== undefined) {
+    sets.push(`due_date = $${values.length + 1}`);
+    values.push(extra.dueDate);
   }
   const result = await db.query<Invoice>(
     `update invoices
