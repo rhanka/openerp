@@ -1,4 +1,10 @@
-import type { Invoice, InvoiceLine, InvoiceStatus, BillingMoney, TaxBreakdownLine } from "@sentropic/openerp-domain/billing";
+import type {
+  BillingMoney,
+  Invoice,
+  InvoiceLine,
+  InvoiceStatus,
+  TaxBreakdownLine
+} from "@sentropic/openerp-domain/billing";
 
 import type { Queryable, TenantContext } from "../db/client";
 import { assertTenantContext } from "../db/client";
@@ -26,6 +32,8 @@ const INVOICE_RETURN_COLUMNS = `
   notes,
   po_number as "poNumber",
   payment_terms_days as "paymentTermsDays",
+  issuer_snapshot as "issuerSnapshot",
+  customer_snapshot as "customerSnapshot",
   created_at as "createdAt",
   updated_at as "updatedAt"
 `;
@@ -219,6 +227,59 @@ export async function updateInvoiceStatus(
       where id = $1 and organization_id = $2 and deleted_at is null
       returning ${INVOICE_RETURN_COLUMNS}`,
     values
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function issueInvoiceWithSnapshots(
+  db: Queryable,
+  context: TenantContext,
+  id: string
+): Promise<Invoice | null> {
+  assertTenantContext(context);
+  // The invoice FK is the statutory source of customer identity. Intentionally
+  // retain access to that tenant-scoped row after company soft deletion.
+  const result = await db.query<Invoice>(
+    `with updated_invoice as (
+       update invoices invoice
+        set status = $3,
+            issued_at = now(),
+            issue_date = current_date,
+            due_date = case
+              when invoice.payment_terms_days is null then invoice.due_date
+              else current_date + invoice.payment_terms_days
+            end,
+            issuer_snapshot = jsonb_build_object(
+              'legalName', organization.legal_name,
+              'gstRegistrationNumber', settings.gst_registration_number,
+              'qstRegistrationNumber', settings.qst_registration_number,
+              'issuerAddress', settings.issuer_address
+            ),
+            customer_snapshot = jsonb_build_object(
+              'legalName', customer.legal_name,
+              'displayName', customer.display_name,
+              'billingAddress', customer.billing_address,
+              'email', customer.email
+            ),
+            updated_at = now()
+       from organizations organization
+       join companies customer
+         on customer.organization_id = organization.id
+       left join tenant_settings settings
+         on settings.organization_id = organization.id
+      where invoice.id = $1
+        and invoice.organization_id = $2
+        and invoice.organization_id = organization.id
+        and invoice.company_id = customer.id
+        and invoice.deleted_at is null
+        and invoice.status = 'draft'
+        and invoice.issuer_snapshot is null
+        and invoice.customer_snapshot is null
+      returning invoice.*
+     )
+     select ${INVOICE_RETURN_COLUMNS}
+       from updated_invoice`,
+    [id, context.organizationId, "issued"]
   );
   return result.rows[0] ?? null;
 }

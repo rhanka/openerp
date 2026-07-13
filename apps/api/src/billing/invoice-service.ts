@@ -16,6 +16,7 @@ import {
   findInvoiceById,
   insertInvoice,
   insertInvoiceLine,
+  issueInvoiceWithSnapshots,
   listInvoices as listInvoicesRepo,
   listLinesForInvoice,
   softDeleteInvoice,
@@ -386,17 +387,13 @@ export async function issueInvoice(
   if (before.status !== "draft") {
     throw new InvoiceTransitionError(before.status, "issued");
   }
-  const now = new Date();
-  const issuedAt = now.toISOString();
-  const issueDate = now.toISOString().slice(0, 10);
-  // Derive the due date from net payment terms, when set (due_date = issue_date + N days).
-  const dueDate = deriveDueDate(issueDate, before.paymentTermsDays ?? null);
-  const updated = await updateInvoiceStatus(db, context, id, "issued", {
-    issuedAt,
-    issueDate,
-    ...(dueDate !== null ? { dueDate } : {})
-  });
-  if (!updated) throw new InvoiceNotFoundError(id);
+  const updated = await issueInvoiceWithSnapshots(db, context, id);
+  if (!updated) {
+    const current = await findInvoiceById(db, context, id);
+    if (!current) throw new InvoiceNotFoundError(id);
+    throw new InvoiceTransitionError(current.status, "issued");
+  }
+  const issuedAt = updated.issuedAt;
   await emitInvoiceAudit(db, context, {
     action: "billing.invoice.issued",
     invoiceId: id,

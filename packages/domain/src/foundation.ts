@@ -32,6 +32,15 @@ export interface Organization {
   updatedAt: string;
 }
 
+export interface TenantIssuerAddress {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  provinceState?: string;
+  postalCode?: string;
+  country?: string;
+}
+
 export interface TenantSettings {
   organizationId: string;
   supportedLocales: LocaleCode[];
@@ -46,6 +55,9 @@ export interface TenantSettings {
     supportWindow: SupportWindow;
     preflightRequired: boolean;
   };
+  gstRegistrationNumber?: string | null;
+  qstRegistrationNumber?: string | null;
+  issuerAddress?: TenantIssuerAddress | null;
 }
 
 export interface User {

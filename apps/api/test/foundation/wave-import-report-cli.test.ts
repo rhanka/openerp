@@ -1,11 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const SCRIPT = "src/scripts/wave-import-report.ts";
 let workDir: string;
+let outputSequence = 0;
 
 beforeAll(() => {
   workDir = mkdtempSync(join(tmpdir(), "wave-cli-"));
@@ -16,13 +17,19 @@ afterAll(() => {
 });
 
 function runCli(args: string[]): { status: number; stdout: string } {
+  const outputPath = join(workDir, `stdout-${outputSequence += 1}.json`);
+  const outputFd = openSync(outputPath, "w");
+  let status = 0;
   try {
-    const stdout = execFileSync("npx", ["tsx", SCRIPT, ...args], { encoding: "utf8" });
-    return { status: 0, stdout };
+    execFileSync(process.execPath, ["--import", "tsx", SCRIPT, ...args], {
+      stdio: ["ignore", outputFd, "ignore"]
+    });
   } catch (error) {
-    const err = error as { status?: number; stdout?: Buffer | string };
-    return { status: err.status ?? 1, stdout: String(err.stdout ?? "") };
+    status = (error as { status?: number }).status ?? 1;
+  } finally {
+    closeSync(outputFd);
   }
+  return { status, stdout: readFileSync(outputPath, "utf8") };
 }
 
 describe("wave-import-report CLI", () => {

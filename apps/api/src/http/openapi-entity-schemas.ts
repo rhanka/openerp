@@ -607,6 +607,41 @@ const ENTITY_SCHEMAS_INNER = {
     additionalProperties: false
   },
 
+  InvoiceIssuerSnapshot: {
+    type: "object",
+    description: "Issuer identity frozen when an invoice is issued.",
+    properties: {
+      legalName: { type: "string" },
+      gstRegistrationNumber: { type: ["string", "null"] },
+      qstRegistrationNumber: { type: ["string", "null"] },
+      issuerAddress: {
+        oneOf: [{ $ref: "#/components/schemas/AddressPayload" }, { type: "null" }]
+      }
+    },
+    required: [
+      "legalName",
+      "gstRegistrationNumber",
+      "qstRegistrationNumber",
+      "issuerAddress"
+    ],
+    additionalProperties: false
+  },
+
+  InvoiceCustomerSnapshot: {
+    type: "object",
+    description: "Customer identity frozen when an invoice is issued.",
+    properties: {
+      legalName: { type: ["string", "null"] },
+      displayName: { type: "string" },
+      billingAddress: {
+        oneOf: [{ $ref: "#/components/schemas/AddressPayload" }, { type: "null" }]
+      },
+      email: { type: ["string", "null"] }
+    },
+    required: ["legalName", "displayName", "billingAddress", "email"],
+    additionalProperties: false
+  },
+
   // ── Invoice ───────────────────────────────────────────────────────────────
 
   Invoice: {
@@ -637,6 +672,12 @@ const ENTITY_SCHEMAS_INNER = {
       issueDate: { type: ["string", "null"] },
       dueDate: { type: ["string", "null"] },
       issuedAt: { type: ["string", "null"], format: "date-time" },
+      issuerSnapshot: {
+        oneOf: [{ $ref: "#/components/schemas/InvoiceIssuerSnapshot" }, { type: "null" }]
+      },
+      customerSnapshot: {
+        oneOf: [{ $ref: "#/components/schemas/InvoiceCustomerSnapshot" }, { type: "null" }]
+      },
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" }
     },
@@ -1751,6 +1792,11 @@ const ENTITY_SCHEMAS_INNER = {
       retentionPolicy: { type: "string" },
       selfHostedUpdateState: {
         $ref: "#/components/schemas/TenantSettingsSelfHostedUpdateState"
+      },
+      gstRegistrationNumber: { type: ["string", "null"] },
+      qstRegistrationNumber: { type: ["string", "null"] },
+      issuerAddress: {
+        oneOf: [{ $ref: "#/components/schemas/AddressPayload" }, { type: "null" }]
       }
     },
     required: [
