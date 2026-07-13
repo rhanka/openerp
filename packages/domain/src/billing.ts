@@ -1,6 +1,9 @@
 // Billing entity — finance module (billing-accounting.md Article 4.4).
 // Invoice is the final revenue document. Payment, taxes, journal entries are later slices.
 
+import type { AddressPayload } from "./crm";
+import type { TenantIssuerAddress } from "./foundation";
+
 export type InvoiceStatus =
   | "draft"
   | "issued"
@@ -95,6 +98,20 @@ export interface TaxBreakdownLine {
   amount: BillingMoney;
 }
 
+export interface InvoiceIssuerSnapshot {
+  legalName: string;
+  gstRegistrationNumber: string | null;
+  qstRegistrationNumber: string | null;
+  issuerAddress: TenantIssuerAddress | null;
+}
+
+export interface InvoiceCustomerSnapshot {
+  legalName: string | null;
+  displayName: string;
+  billingAddress: AddressPayload | null;
+  email: string | null;
+}
+
 export interface Invoice {
   id: string;
   organizationId: string;
@@ -120,6 +137,10 @@ export interface Invoice {
   poNumber?: string | null;
   /** Net payment terms in days; drives due_date derivation at issue (P1). */
   paymentTermsDays?: number | null;
+  /** Statutory issuer identity frozen when the draft is issued (D8). */
+  issuerSnapshot?: InvoiceIssuerSnapshot | null;
+  /** Statutory customer identity frozen when the draft is issued (D8). */
+  customerSnapshot?: InvoiceCustomerSnapshot | null;
   createdAt: string;
   updatedAt: string;
 }

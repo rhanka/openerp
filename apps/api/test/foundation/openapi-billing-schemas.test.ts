@@ -192,6 +192,19 @@ describe("Billing entity schemas (OA-3)", () => {
       expect(types).toContain("null");
     });
 
+    it("exposes nullable issuer and customer snapshot contracts", () => {
+      expect(ENTITY_SCHEMAS.InvoiceIssuerSnapshot.additionalProperties).toBe(false);
+      expect(ENTITY_SCHEMAS.InvoiceCustomerSnapshot.additionalProperties).toBe(false);
+      const issuer = ENTITY_SCHEMAS.Invoice.properties!.issuerSnapshot as { oneOf: unknown[] };
+      const customer = ENTITY_SCHEMAS.Invoice.properties!.customerSnapshot as { oneOf: unknown[] };
+      expect(issuer.oneOf).toContainEqual({
+        $ref: "#/components/schemas/InvoiceIssuerSnapshot"
+      });
+      expect(customer.oneOf).toContainEqual({
+        $ref: "#/components/schemas/InvoiceCustomerSnapshot"
+      });
+    });
+
     it("has additionalProperties: false", () => {
       expect(ENTITY_SCHEMAS.Invoice.additionalProperties).toBe(false);
     });

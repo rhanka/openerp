@@ -67,6 +67,8 @@ function makeFakeDb(
           issueDate,
           dueDate,
           issuedAt: null,
+          issuerSnapshot: null,
+          customerSnapshot: null,
           createdAt: "2026-05-25T10:00:00.000Z",
           updatedAt: "2026-05-25T10:00:00.000Z"
         };
@@ -119,16 +121,61 @@ function makeFakeDb(
           (i) => i.id === id && i.organizationId === organizationId && !i._deleted
         );
         if (!inv) return { rows: [] };
-        inv.status = newStatus as InvoiceStatus;
-        // set issuedAt and issueDate if in the set clause
-        if (t.includes("issued_at")) {
-          const issuedAt = values[3] as string | null;
-          inv.issuedAt = issuedAt;
+        if (t.includes("invoice.status = 'draft'") && inv.status !== "draft") {
+          return { rows: [] };
         }
-        if (t.includes("issue_date")) {
-          const dateIdx = t.includes("issued_at") ? 4 : 3;
-          const issueDate = values[dateIdx] as string | null;
-          inv.issueDate = issueDate;
+        if (t.includes("invoice.issuer_snapshot is null") && inv.issuerSnapshot !== null) {
+          return { rows: [] };
+        }
+        if (t.includes("invoice.customer_snapshot is null") && inv.customerSnapshot !== null) {
+          return { rows: [] };
+        }
+        inv.status = newStatus as InvoiceStatus;
+        const assignedValue = (column: string): unknown => {
+          const match = t.match(new RegExp(`${column} = \\$(\\d+)`));
+          return match ? values[Number(match[1]) - 1] : undefined;
+        };
+        const issuedAt = assignedValue("issued_at");
+        const issueDate = assignedValue("issue_date");
+        const dueDate = assignedValue("due_date");
+        const issuerSnapshot = assignedValue("issuer_snapshot");
+        const customerSnapshot = assignedValue("customer_snapshot");
+        if (issuedAt !== undefined) inv.issuedAt = issuedAt as string | null;
+        if (issueDate !== undefined) inv.issueDate = issueDate as string | null;
+        if (dueDate !== undefined) inv.dueDate = dueDate as string | null;
+        if (issuerSnapshot !== undefined) {
+          inv.issuerSnapshot = JSON.parse(issuerSnapshot as string);
+        }
+        if (customerSnapshot !== undefined) {
+          inv.customerSnapshot = JSON.parse(customerSnapshot as string);
+        }
+        if (t.includes("issuer_snapshot = jsonb_build_object")) {
+          inv.issuedAt = "2026-05-25T11:00:00.000Z";
+          inv.issueDate = "2026-05-25";
+          inv.issuerSnapshot = {
+            legalName: "Example Issuer Inc.",
+            gstRegistrationNumber: "123456789RT0001",
+            qstRegistrationNumber: "1234567890TQ0001",
+            issuerAddress: {
+              line1: "123 rue Exemple",
+              city: "Montréal",
+              provinceState: "QC",
+              postalCode: "H2X 1Y4",
+              country: "CA"
+            }
+          };
+          inv.customerSnapshot = {
+            legalName: "Example Customer Ltd.",
+            displayName: "Example Customer",
+            billingAddress: {
+              line1: "456 avenue Test",
+              city: "Québec",
+              provinceState: "QC",
+              postalCode: "G1A 1A1",
+              country: "CA"
+            },
+            email: "billing@example.invalid"
+          };
         }
         return { rows: [inv as unknown as T] };
       }
@@ -298,7 +345,7 @@ describe("billing invoice service (DS 4.0) — unit", () => {
     );
   });
 
-  it("issueInvoice: transitions draft -> issued, emits billing.invoice.issued", async () => {
+  it("issueInvoice: freezes issuer and customer snapshots only at draft -> issued", async () => {
     const { db, audits, timelines } = makeFakeDb();
     const inv = await createInvoice(db, TENANT, {
       companyId: "co-1",
@@ -310,8 +357,38 @@ describe("billing invoice service (DS 4.0) — unit", () => {
         }
       ]
     });
+    expect(inv.issuerSnapshot).toBeNull();
+    expect(inv.customerSnapshot).toBeNull();
+
     const issued = await issueInvoice(db, TENANT, inv.id);
     expect(issued.status).toBe("issued");
+    expect(issued.issuerSnapshot).toEqual({
+      legalName: "Example Issuer Inc.",
+      gstRegistrationNumber: "123456789RT0001",
+      qstRegistrationNumber: "1234567890TQ0001",
+      issuerAddress: {
+        line1: "123 rue Exemple",
+        city: "Montréal",
+        provinceState: "QC",
+        postalCode: "H2X 1Y4",
+        country: "CA"
+      }
+    });
+    expect(issued.customerSnapshot).toEqual({
+      legalName: "Example Customer Ltd.",
+      displayName: "Example Customer",
+      billingAddress: {
+        line1: "456 avenue Test",
+        city: "Québec",
+        provinceState: "QC",
+        postalCode: "G1A 1A1",
+        country: "CA"
+      },
+      email: "billing@example.invalid"
+    });
+    const paid = await markPaid(db, TENANT, inv.id);
+    expect(paid.issuerSnapshot).toEqual(issued.issuerSnapshot);
+    expect(paid.customerSnapshot).toEqual(issued.customerSnapshot);
     expect(audits.some((a) => a.action === "billing.invoice.issued")).toBe(true);
     expect(timelines.some((t) => t.entryType === "billing.invoice.issued")).toBe(true);
   });
