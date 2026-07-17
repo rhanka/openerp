@@ -352,6 +352,28 @@ export interface IdempotencyRecord {
   expiresAt: string;
 }
 
+export type EmailSendStatus = "queued" | "sent" | "failed";
+
+/** EmailSend — D6 (owner-ratified 2026-07-11). Audited, idempotent journal row
+ *  for the EmailSender port. No concrete SMTP provider is wired yet — see
+ *  apps/api/src/foundation/email-sender.ts. */
+export interface EmailSend {
+  id: string;
+  organizationId: string;
+  toAddress: string;
+  subject: string;
+  kind: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  status: EmailSendStatus;
+  provider: string;
+  idempotencyKey: string;
+  error: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Build a Money value with minor units. Throws if currency code is not 3 chars. */
 export function makeMoney(amountMinor: number, currency: string, scale = 2): Money {
   if (currency.length !== 3) {
