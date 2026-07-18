@@ -39,6 +39,14 @@ export function buildBillingRoutes(): RouteContract[] {
       responseSchema: "InvoiceWithLines"
     },
     {
+      // D5 document view-model — a composed, locale-agnostic render object, not
+      // a registered entity schema; emits the {type:object} placeholder in
+      // OpenAPI. See billing/invoice-document.ts.
+      method: "GET",
+      path: "/billing/invoices/:id/document",
+      audited: false
+    },
+    {
       method: "POST",
       path: "/billing/invoices/:id/issue",
       audited: true,

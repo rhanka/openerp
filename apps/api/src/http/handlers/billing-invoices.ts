@@ -18,6 +18,8 @@ import {
   markPaid,
   voidInvoice
 } from "../../billing/invoice-service";
+import { findInvoiceById, listLinesForInvoice } from "../../billing/invoices";
+import { buildInvoiceDocumentModel } from "../../billing/invoice-document";
 
 interface CreateInvoiceBody {
   companyId: string;
@@ -157,6 +159,19 @@ export function mountBillingInvoiceRoutes(app: Hono<AppBindings>): void {
     const found = await getInvoiceById(db, tenant, c.req.param("id"));
     if (!found) return c.json({ code: "NOT_FOUND" }, 404);
     return c.json(found);
+  });
+
+  // Read-only invoice document view-model (D5) — assembles the render-ready
+  // structured object from the already-loaded Invoice + InvoiceLine[]. No
+  // mutation, no audit event: this is a GET.
+  app.get("/billing/invoices/:id/document", async (c) => {
+    const db = c.get("db");
+    const tenant = c.get("tenant");
+    const id = c.req.param("id");
+    const invoice = await findInvoiceById(db, tenant, id);
+    if (!invoice) return c.json({ code: "NOT_FOUND" }, 404);
+    const lines = await listLinesForInvoice(db, tenant, id);
+    return c.json(buildInvoiceDocumentModel(invoice, lines));
   });
 
   app.post("/billing/invoices/:id/issue", async (c) => {
