@@ -9,6 +9,7 @@ describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3 + DS 2.7 + D
       "POST /billing/invoices/from-proposal",
       "POST /billing/invoices/from-quote-handoff",
       "GET /billing/invoices/:id",
+      "GET /billing/invoices/:id/document",
       "POST /billing/invoices/:id/issue",
       "POST /billing/invoices/:id/pay",
       "POST /billing/invoices/:id/void",
@@ -90,6 +91,7 @@ describe("billing route registry (DS 4.0 + DS 4.1 + DS 4.2 + DS 4.3 + DS 2.7 + D
     const routes = buildBillingRoutes();
     expect(routes.find((r) => r.path === "/billing/invoices" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/billing/invoices/:id" && r.method === "GET")?.audited).toBe(false);
+    expect(routes.find((r) => r.path === "/billing/invoices/:id/document" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/billing/payments" && r.method === "GET")?.audited).toBe(false);
     expect(routes.find((r) => r.path === "/billing/payments/:id" && r.method === "GET")?.audited).toBe(false);
   });
