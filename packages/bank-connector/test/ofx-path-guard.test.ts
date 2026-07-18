@@ -38,7 +38,7 @@ describe("createOfxUploadProvider enforces the guard", () => {
   it("refuses to read a file outside allowedBaseDir", async () => {
     const provider = createOfxUploadProvider({ allowedBaseDir: baseDir });
     await expect(
-      provider.listTransactions({ filePath: "../../etc/hosts", tenant: { tenantId: "org-A" } }, {})
+      provider.listTransactions({ filePath: "../../etc/hosts" }, {})
     ).rejects.toThrow(/escapes/);
   });
 });

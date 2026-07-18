@@ -50,12 +50,34 @@ export interface NormalizedTransaction {
 /**
  * Tenant + consent scope for a connector call (C1 seam toward the platform broker's
  * ConnectorEnrollment/ConsentGrant — see SPEC_EVOL_BANK_CONNECTOR §7/§10). Every data access is
- * keyed by `tenantId`; no provider instance may carry another tenant's state. `consentRef` is an
- * opaque handle to the consent grant authorizing the access (never a raw credential).
+ * keyed by `tenantRef`, which the CORE resolves server-side (S2S OBO session / resolveTenant) —
+ * NEVER a client-supplied tool input (ARCH-11: the client must not be able to choose the tenant).
+ * No provider instance may carry another tenant's state. `consentRefs` are opaque handles to the
+ * ConsentGrant(s) authorizing the access for the target itemRef (never raw credentials).
+ *
+ * This shape mirrors @sentropic/mcp-platform runtime §4.5 (StpConnectorContext). That package is
+ * not published as a standalone lib in this repo yet, so the interface is defined locally here —
+ * swap this for the canonical `@sentropic/mcp-platform` import once that package is available.
  */
 export interface StpConnectorContext {
-  readonly tenantId: string;
-  readonly consentRef?: string;
+  readonly requestId: string;
+  readonly principal: {
+    readonly sub: string;
+    readonly tenantRef: string;
+    readonly workspaceRef?: string;
+    readonly roles: readonly string[];
+  };
+  readonly session: {
+    readonly mcpSessionId: string;
+    readonly clientId: string;
+    readonly source: "claude.ai" | "claude-code" | "codex" | string;
+  };
+  /** Core-authorized tenant for this call — NEVER derived from a client tool input. */
+  readonly tenantRef: string;
+  /** ConsentGrant refs for the target itemRef. */
+  readonly consentRefs: readonly string[];
+  getSecret(name: string): Promise<string>;
+  // connectorConfig / audit / logger may be added later; keep this minimal for now
 }
 
 /**
