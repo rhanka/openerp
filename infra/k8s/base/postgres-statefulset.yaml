@@ -63,6 +63,7 @@ spec:
           app.kubernetes.io/component: postgres
       spec:
         accessModes: ["ReadWriteOnce"]
+        storageClassName: block-standard
         resources:
           requests:
             storage: 10Gi
