@@ -105,3 +105,28 @@ Trois tables additives (migrations 0041+), conventions `0040` (RLS do-block enab
 - **Go/No-Go observable** : migrations 0041+ appliquées ; import synthétique OFX-propre écrit des `bank_transactions` idempotents ; suggest en lecture seule renvoie des suggestions sur les lignes persistées ; confirm/unmatch transitionne l'état + émet un audit ; gates verts (domaine build, API lint, API test, web svelte-check) ; zéro donnée réelle, zéro écriture comptable.
 
 **En attente de ton arbitrage sur les 5 décisions §6 pour lancer le build v1.**
+
+---
+
+## 10. Ratification & frontière d'implémentation v1 (2026-07-22)
+
+- **Choix owner ratifié** : **B, B, B, A, B**. D9 v1 est strictement l'Option A, un grand livre
+  d'attestation de rapprochement ; aucune écriture comptable n'est créée.
+- **Frontière comptable** : `journal_entries.source_type` reste inchangé et le flux D9 n'appelle
+  jamais `postPaymentToJournal`. Aucun état de paiement, facture, comptabilité ou journal n'est
+  modifié par confirmation, rejet, unmatch ou ignore.
+- **Entrées admises** : snapshots normalisés synthétiques/propres déjà fournis à l'API, uniquement
+  depuis `ofx-upload` ou `plaid-sandbox`, canonisés une fois en `ofx` / `plaid_sandbox`. L'API ne
+  lit aucun fichier OFX, provider, variable Plaid, credential, cursor ou token ; aucun webhook ou
+  événement n'est déclenché.
+- **Correction qui remplace §6/#4** : malgré la préconisation historique `raw_payload`, D9 v1
+  **n'accepte ni ne stocke** de payload brut arbitraire. Seul un snapshot normalisé, redacted et
+  whitelisté (≤16 KiB) est conservé. `bank_transactions` n'a pas de `deleted_at` et v1 omet toute
+  allocation ; ces trois exclusions priment le schéma exploratoire des §4–§6.
+- **Autorisations v1** : le facility finance existant ne porte pas encore une politique utilisable
+  pour ces routes : ses grants directs sans politique/ressource finance établie ni membership de rôle
+  auraient un deny-all ou inventeraient une nouvelle autorité. Le modèle owner-préchoisi reste donc
+  mono-acteur authentifié + audit transactionnel de l'acteur, jusqu'à une décision RBAC finance dédiée.
+- **Idempotence** : répéter un import ne crée ni transaction ni audit supplémentaires ; refresh
+  réutilise les propositions durables ; confirm/reject/ignore/unmatch répétés dans leur état cible
+  renvoient l'état sans nouvel audit. Une paire rejetée n'est jamais reproposée.

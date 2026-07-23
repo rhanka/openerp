@@ -1,3 +1,14 @@
+export interface RouteQueryParameter {
+  name: string;
+  description?: string;
+  schema: {
+    type: "string" | "integer";
+    enum?: readonly string[];
+    minimum?: number;
+    maximum?: number;
+  };
+}
+
 export interface RouteContract {
   method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
@@ -6,6 +17,14 @@ export interface RouteContract {
   requestSchema?: string;
   /** $ref name for the 200/201 response body. */
   responseSchema?: string;
+  /** False for bodyless POST transitions; defaults preserve existing registry behaviour. */
+  hasRequestBody?: boolean;
+  /** Additional runtime error statuses beyond the common 400/401/path-404 set. */
+  errorStatuses?: readonly (400 | 401 | 403 | 404 | 409)[];
+  /** Use for state transitions or idempotent POSTs that return 200 rather than creation semantics. */
+  successStatus?: 200 | 201 | 204;
+  /** Runtime query parameters explicitly exposed by this route. */
+  queryParameters?: readonly RouteQueryParameter[];
 }
 
 export function buildFoundationRoutes(): RouteContract[] {

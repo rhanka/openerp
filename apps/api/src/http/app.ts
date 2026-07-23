@@ -25,6 +25,7 @@ import { mountBillingPaymentRoutes } from "./handlers/billing-payments";
 import { mountBillingTaxRoutes } from "./handlers/billing-taxes";
 import { mountBillingAccountingRoutes } from "./handlers/billing-accounting";
 import { mountBillingRecurringScheduleRoutes } from "./handlers/billing-recurring-schedules";
+import { mountBankingRoutes } from "./handlers/banking";
 import { mountReportingSavedViewRoutes } from "./handlers/reporting-saved-views";
 import { mountReportingReportDefinitionRoutes } from "./handlers/reporting-report-definitions";
 import { mountReportingDashboardRoutes } from "./handlers/reporting-dashboards";
@@ -182,6 +183,7 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   mountBillingTaxRoutes(app);
   mountBillingAccountingRoutes(app);
   mountBillingRecurringScheduleRoutes(app);
+  mountBankingRoutes(app);
   mountReportingSavedViewRoutes(app);
   mountReportingReportDefinitionRoutes(app);
   mountReportingDashboardRoutes(app);

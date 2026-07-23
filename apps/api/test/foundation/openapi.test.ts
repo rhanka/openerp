@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildApprovalRequestRoutes } from "../../src/http/routes/approval-requests";
 import { buildBillingRoutes } from "../../src/http/routes/billing";
+import { buildBankingRoutes } from "../../src/http/routes/banking";
 import { buildCrmRoutes } from "../../src/http/routes/crm";
 import { buildFoundationRoutes } from "../../src/http/routes/foundation";
 import { buildProjectRoutes } from "../../src/http/routes/project";
@@ -47,6 +48,8 @@ describe("buildOpenApiDocument()", () => {
     expect(paths).toContain("/billing/invoices");
     // project
     expect(paths).toContain("/project/projects");
+    // banking
+    expect(paths).toContain("/banking/reconciliation/suggestions");
     // approval-requests
     expect(paths).toContain("/approval-requests");
   });
@@ -114,6 +117,7 @@ describe("buildOpenApiDocument()", () => {
       ...buildCrmRoutes().map((r) => r.path),
       ...buildProjectRoutes().map((r) => r.path),
       ...buildBillingRoutes().map((r) => r.path),
+      ...buildBankingRoutes().map((r) => r.path),
       ...buildReportingRoutes().map((r) => r.path),
       ...buildWorkflowRoutes().map((r) => r.path),
       ...buildWebhookRoutes().map((r) => r.path),
@@ -143,6 +147,7 @@ describe("buildOpenApiDocument()", () => {
     expect(tagNames).toContain("workflow");
     expect(tagNames).toContain("webhook");
     expect(tagNames).toContain("billing");
+    expect(tagNames).toContain("banking");
     expect(tagNames).toContain("project");
   });
 

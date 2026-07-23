@@ -10,6 +10,7 @@
 
 import { buildApprovalRequestRoutes } from "./routes/approval-requests";
 import { buildBillingRoutes } from "./routes/billing";
+import { buildBankingRoutes } from "./routes/banking";
 import { buildCrmRoutes } from "./routes/crm";
 import type { RouteContract } from "./routes/foundation";
 import { buildFoundationRoutes } from "./routes/foundation";
@@ -66,9 +67,15 @@ interface OpenApiResponse {
 
 interface OpenApiParameter {
   name: string;
-  in: "path";
-  required: true;
-  schema: { type: "string" };
+  in: "path" | "query";
+  required: boolean;
+  description?: string;
+  schema: {
+    type: "string" | "integer";
+    enum?: readonly string[];
+    minimum?: number;
+    maximum?: number;
+  };
 }
 
 interface OpenApiOperation {
@@ -127,6 +134,7 @@ function moduleTag(path: string): string {
     workflows: "workflow",
     webhook: "webhook",
     billing: "billing",
+    banking: "banking",
     project: "project",
     "approval-requests": "approval-requests",
     webauthn: "webauthn",
@@ -180,6 +188,7 @@ const MODULE_TAG_DESCRIPTIONS: ReadonlyArray<[string, string]> = [
   ["crm", "CRM — companies, contacts, pipeline, opportunities, leads, quote-handoffs"],
   ["project", "Project management — projects, tasks, time-entries, rates, assignments, proposals"],
   ["billing", "Billing — invoices, payments, taxes, journal entries, recurring schedules"],
+  ["banking", "Banking — imported normalized transactions and auditable reconciliation attestations"],
   ["reporting", "Reporting — saved views, report definitions, runs, dashboards, deliveries"],
   ["workflow", "Workflow automation — definitions, runs, catalog"],
   ["webhook", "Webhooks — endpoints, deliveries, event types"]
@@ -200,6 +209,7 @@ export function buildOpenApiDocument(): OpenApiDoc {
     ...buildCrmRoutes(),
     ...buildProjectRoutes(),
     ...buildBillingRoutes(),
+    ...buildBankingRoutes(),
     ...buildReportingRoutes(),
     ...buildWorkflowRoutes(),
     ...buildWebhookRoutes(),
@@ -219,6 +229,14 @@ export function buildOpenApiDocument(): OpenApiDoc {
     const operationId = `${methodKey}_${sanitizeForOperationId(openApiPath)}`;
 
     const pathParams = extractPathParams(openApiPath);
+    const queryParams: OpenApiParameter[] = (route.queryParameters ?? []).map((parameter) => ({
+      name: parameter.name,
+      in: "query",
+      required: false,
+      ...(parameter.description ? { description: parameter.description } : {}),
+      schema: parameter.schema
+    }));
+    const parameters = [...pathParams, ...queryParams];
 
     // Determine security:
     // - public paths → no security requirement
@@ -236,19 +254,13 @@ export function buildOpenApiDocument(): OpenApiDoc {
       ? { $ref: `#/components/schemas/${route.responseSchema}` }
       : { type: "object" as const };
 
-    // Responses: all operations return 200/201 + common error codes.
+    // Responses: most POSTs create a resource, while declared transition routes return 200.
     const responses: Record<string, OpenApiResponse> = {};
-    if (route.method === "POST") {
-      responses["201"] = {
-        description: "Created",
-        content: { "application/json": { schema: responseSchema } }
-      };
-    } else {
-      responses["200"] = {
-        description: "OK",
-        content: { "application/json": { schema: responseSchema } }
-      };
-    }
+    const successStatus = route.successStatus ?? (route.method === "POST" ? 201 : 200);
+    responses[String(successStatus)] = {
+      description: successStatus === 201 ? "Created" : successStatus === 204 ? "No content" : "OK",
+      ...(successStatus === 204 ? {} : { content: { "application/json": { schema: responseSchema } } })
+    };
     responses["400"] = { description: "Bad request" };
     if (!isPublicPath(openApiPath)) {
       responses["401"] = { description: "Unauthorized — missing or invalid bearer token" };
@@ -256,12 +268,23 @@ export function buildOpenApiDocument(): OpenApiDoc {
     if (pathParams.length > 0) {
       responses["404"] = { description: "Resource not found" };
     }
+    for (const status of route.errorStatuses ?? []) {
+      if (responses[String(status)]) continue;
+      const descriptions: Record<number, string> = {
+        400: "Bad request",
+        401: "Unauthorized — missing or invalid bearer token",
+        403: "Forbidden",
+        404: "Resource not found",
+        409: "Conflict — illegal state transition"
+      };
+      responses[String(status)] = { description: descriptions[status] ?? "Error" };
+    }
 
     const operation: OpenApiOperation = {
       operationId,
       tags: [tag],
-      ...(pathParams.length > 0 ? { parameters: pathParams } : {}),
-      ...(["POST", "PATCH"].includes(route.method)
+      ...(parameters.length > 0 ? { parameters } : {}),
+      ...(route.hasRequestBody ?? ["POST", "PATCH"].includes(route.method)
         ? {
             requestBody: {
               required: true,
