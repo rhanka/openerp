@@ -2683,6 +2683,163 @@ const ENTITY_SCHEMAS_INNER = {
     },
     required: ["projectId"],
     additionalProperties: false
+  },
+
+  // ── Banking reconciliation (D9, Option A attestation only) ──────────────
+
+  BankAccount: {
+    type: "object",
+    description: "Tenant-scoped persisted bank account snapshot without credentials, cursors, or provider tokens.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      provider: { type: "string", enum: ["ofx", "plaid_sandbox"] },
+      providerAccountRef: { type: "string" },
+      displayName: { type: "string" },
+      accountType: { type: "string", enum: ["checking", "savings", "credit", "loan", "investment", "other"] },
+      currency: { type: "string", pattern: "^[A-Z]{3}$" },
+      institution: { type: "string" },
+      active: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "organizationId", "provider", "providerAccountRef", "displayName", "accountType", "currency", "institution", "active", "createdAt", "updatedAt"],
+    additionalProperties: false
+  },
+
+  BankTransactionSnapshot: {
+    type: "object",
+    description: "Whitelisted, redacted normalized transaction snapshot; arbitrary raw provider payload is never accepted.",
+    properties: {
+      sourceId: { type: "string" },
+      providerRef: { type: "string" },
+      postedAt: { type: "string", format: "date-time" },
+      amount: { $ref: "#/components/schemas/BillingMoney" },
+      description: { type: "string" },
+      merchant: { type: "string" },
+      category: { type: "string" }
+    },
+    required: ["sourceId", "providerRef", "postedAt", "amount", "description"],
+    additionalProperties: false
+  },
+
+  BankTransaction: {
+    type: "object",
+    description: "Immutable posted bank transaction in the D9 attestation ledger; it does not post journals or alter payments.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      bankAccountId: { type: "string" },
+      provider: { type: "string", enum: ["ofx", "plaid_sandbox"] },
+      providerTransactionRef: { type: "string" },
+      postedAt: { type: "string", format: "date-time" },
+      amount: { $ref: "#/components/schemas/BillingMoney" },
+      rawDescription: { type: "string" },
+      normalizedSnapshot: { $ref: "#/components/schemas/BankTransactionSnapshot" },
+      reconciliationStatus: { type: "string", enum: ["unmatched", "matched", "ignored"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "organizationId", "bankAccountId", "provider", "providerTransactionRef", "postedAt", "amount", "rawDescription", "normalizedSnapshot", "reconciliationStatus", "createdAt", "updatedAt"],
+    additionalProperties: false
+  },
+
+  ReconciliationLink: {
+    type: "object",
+    description: "Auditable proposed, confirmed, or rejected reconciliation attestation. D9 v1 candidates are payments only.",
+    properties: {
+      id: { type: "string" },
+      organizationId: { type: "string" },
+      bankTransactionId: { type: "string" },
+      candidateKind: { type: "string", enum: ["payment"] },
+      candidateId: { type: "string" },
+      score: { type: "number", minimum: 0, maximum: 1 },
+      reasons: { type: "array", items: { type: "string" } },
+      status: { type: "string", enum: ["proposed", "confirmed", "rejected"] },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "organizationId", "bankTransactionId", "candidateKind", "candidateId", "score", "reasons", "status", "createdAt", "updatedAt"],
+    additionalProperties: false
+  },
+
+  BankingImportAccountInput: {
+    type: "object",
+    properties: {
+      id: { type: "string", minLength: 1 },
+      providerRef: { type: "string", minLength: 1 },
+      name: { type: "string", minLength: 1 },
+      type: { type: "string", enum: ["checking", "savings", "credit", "loan", "investment", "other"] },
+      currency: { type: "string", pattern: "^[A-Z]{3}$" },
+      institution: { type: "string", minLength: 1 },
+      balance: { type: "number" }
+    },
+    required: ["id", "providerRef", "name", "type", "currency", "institution"],
+    additionalProperties: false
+  },
+
+  BankingImportTransactionInput: {
+    type: "object",
+    properties: {
+      id: { type: "string", minLength: 1 },
+      accountId: { type: "string", minLength: 1 },
+      postedAt: { type: "string" },
+      amount: { type: "number" },
+      currency: { type: "string", pattern: "^[A-Z]{3}$" },
+      description: { type: "string", minLength: 1 },
+      merchant: { type: "string" },
+      category: { type: "string" },
+      status: { type: "string", enum: ["posted", "pending"] },
+      providerRef: { type: "string", minLength: 1 }
+    },
+    required: ["id", "accountId", "postedAt", "amount", "currency", "description", "status", "providerRef"],
+    additionalProperties: false
+  },
+
+  BankingImportInput: {
+    type: "object",
+    description: "Already-normalized import from ofx-upload or plaid-sandbox. The API never invokes providers or accepts rawPayload.",
+    properties: {
+      provider: { type: "string", enum: ["ofx-upload", "plaid-sandbox"] },
+      account: { $ref: "#/components/schemas/BankingImportAccountInput" },
+      transactions: { type: "array", items: { $ref: "#/components/schemas/BankingImportTransactionInput" } }
+    },
+    required: ["provider", "account", "transactions"],
+    additionalProperties: false
+  },
+
+  BankingImportResult: {
+    type: "object",
+    properties: {
+      imported: { type: "array", items: { $ref: "#/components/schemas/BankTransaction" } },
+      skippedPending: { type: "integer", minimum: 0 }
+    },
+    required: ["imported", "skippedPending"],
+    additionalProperties: false
+  },
+
+  BankTransactionList: {
+    type: "object",
+    properties: { items: { type: "array", items: { $ref: "#/components/schemas/BankTransaction" } } },
+    required: ["items"],
+    additionalProperties: false
+  },
+
+  ReconciliationSuggestionList: {
+    type: "object",
+    properties: { items: { type: "array", items: { $ref: "#/components/schemas/ReconciliationLink" } } },
+    required: ["items"],
+    additionalProperties: false
+  },
+
+  BankingRefreshResult: {
+    type: "object",
+    properties: {
+      created: { type: "array", items: { $ref: "#/components/schemas/ReconciliationLink" } },
+      proposals: { type: "array", items: { $ref: "#/components/schemas/ReconciliationLink" } }
+    },
+    required: ["created", "proposals"],
+    additionalProperties: false
   }
 } satisfies Record<string, EntitySchema>;
 

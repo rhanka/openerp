@@ -32,6 +32,10 @@
       "types": "./dist/billing.d.ts",
       "default": "./dist/billing.js"
     },
+    "./banking": {
+      "types": "./dist/banking.d.ts",
+      "default": "./dist/banking.js"
+    },
     "./reporting": {
       "types": "./dist/reporting.d.ts",
       "default": "./dist/reporting.js"
