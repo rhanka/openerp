@@ -1,0 +1,71 @@
+# Dev namespace quota adjustment (tenant quota: 1500m CPU / 2Gi memory).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openerp-postgres
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres
+        resources:
+          requests:
+            cpu: 100m
+            memory: 192Mi
+          limits:
+            cpu: 250m
+            memory: 512Mi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-api
+spec:
+  template:
+    spec:
+      containers:
+      - name: api
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 448Mi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-web
+spec:
+  template:
+    spec:
+      containers:
+      - name: web
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 150m
+            memory: 320Mi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-worker
+spec:
+  template:
+    spec:
+      containers:
+      - name: worker
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 150m
+            memory: 256Mi
