@@ -12,8 +12,8 @@ const ORG_MEMBER_COLUMNS = `
   organization_id as "organizationId",
   status,
   preferred_locale as "preferredLocale",
-  joined_at as "joinedAt",
-  updated_at as "updatedAt"
+  to_char(joined_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "joinedAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export interface InsertOrganizationMemberInput {
@@ -100,8 +100,8 @@ export async function listActiveMembershipsForUser(
             user_identity_id as "userIdentityId",
             status,
             preferred_locale as "preferredLocale",
-            joined_at as "joinedAt",
-            updated_at as "updatedAt"
+            to_char(joined_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "joinedAt",
+            to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
        from list_active_memberships_for_user($1)`,
     [userIdentityId]
   );

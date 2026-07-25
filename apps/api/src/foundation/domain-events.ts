@@ -14,8 +14,8 @@ const DE_COLUMNS = `
   resource_type as "resourceType",
   resource_id as "resourceId",
   payload_summary as "payloadSummary",
-  emitted_at as "emittedAt",
-  consumed_at as "consumedAt"
+  to_char(emitted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "emittedAt",
+  to_char(consumed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "consumedAt"
 `;
 
 export interface PublishDomainEventInput {

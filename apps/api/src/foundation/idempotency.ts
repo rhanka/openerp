@@ -12,8 +12,8 @@ const IDEMPOTENCY_COLUMNS = `
   request_hash as "requestHash",
   response_body_hash as "responseBodyHash",
   status_code as "statusCode",
-  created_at as "createdAt",
-  expires_at as "expiresAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "expiresAt"
 `;
 
 const IDEMPOTENCY_RAW_COLUMNS = `

@@ -27,9 +27,9 @@ const EMAIL_SEND_COLUMNS = `
   provider,
   idempotency_key as "idempotencyKey",
   error,
-  sent_at as "sentAt",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(sent_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "sentAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export interface EmailMessage {

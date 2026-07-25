@@ -18,11 +18,11 @@ const RATE_RETURN_COLUMNS = `
   label,
   rate_bps as "rateBps",
   compound,
-  effective_from as "effectiveFrom",
-  effective_to as "effectiveTo",
+  to_char(effective_from, 'YYYY-MM-DD') as "effectiveFrom",
+  to_char(effective_to, 'YYYY-MM-DD') as "effectiveTo",
   active,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertTaxRateVersion(

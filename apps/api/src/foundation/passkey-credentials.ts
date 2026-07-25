@@ -29,8 +29,8 @@ const CREDENTIAL_COLUMNS = `
   label,
   backed_up as "backedUp",
   device_type as "deviceType",
-  created_at as "createdAt",
-  last_used_at as "lastUsedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(last_used_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "lastUsedAt"
 `;
 
 export interface InsertPasskeyCredentialInput {
@@ -141,8 +141,8 @@ const CHALLENGE_COLUMNS = `
   user_identity_id as "userIdentityId",
   challenge,
   purpose,
-  created_at as "createdAt",
-  expires_at as "expiresAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "expiresAt"
 `;
 
 export async function insertPasskeyChallenge(

@@ -13,9 +13,9 @@ const USER_IDENTITY_COLUMNS = `
   mfa_state as "mfaState",
   status,
   actor_type as "actorType",
-  last_login_at as "lastLoginAt",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(last_login_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "lastLoginAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export interface InsertUserIdentityInput {

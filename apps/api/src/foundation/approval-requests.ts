@@ -22,9 +22,9 @@ const APPROVAL_COLUMNS = `
   urgency,
   status,
   decision_reason as "decisionReason",
-  decided_at as "decidedAt",
-  expires_at as "expiresAt",
-  created_at as "createdAt"
+  to_char(decided_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "decidedAt",
+  to_char(expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "expiresAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"
 `;
 
 export interface CreateApprovalRow {

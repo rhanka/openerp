@@ -22,9 +22,9 @@ const PROPOSAL_RETURN_COLUMNS = `
   period_end as "periodEnd",
   total,
   currency,
-  submitted_at as "submittedAt",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(submitted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "submittedAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const LINE_RETURN_COLUMNS = `
@@ -37,7 +37,7 @@ const LINE_RETURN_COLUMNS = `
   quantity_minutes as "quantityMinutes",
   unit_rate as "unitRate",
   amount,
-  created_at as "createdAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"
 `;
 
 export async function insertInvoiceProposal(

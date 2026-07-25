@@ -16,8 +16,8 @@ const STAGE_RETURN_COLUMNS = `
   is_won as "isWon",
   is_lost as "isLost",
   active,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertPipelineStage(

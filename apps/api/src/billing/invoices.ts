@@ -26,16 +26,16 @@ const INVOICE_RETURN_COLUMNS = `
   total,
   tax_category_id as "taxCategoryId",
   tax_breakdown as "taxBreakdown",
-  issue_date as "issueDate",
-  due_date as "dueDate",
-  issued_at as "issuedAt",
+  to_char(issue_date, 'YYYY-MM-DD') as "issueDate",
+  to_char(due_date, 'YYYY-MM-DD') as "dueDate",
+  to_char(issued_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "issuedAt",
   notes,
   po_number as "poNumber",
   payment_terms_days as "paymentTermsDays",
   issuer_snapshot as "issuerSnapshot",
   customer_snapshot as "customerSnapshot",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const LINE_RETURN_COLUMNS = `
@@ -48,7 +48,7 @@ const LINE_RETURN_COLUMNS = `
   quantity,
   unit_price as "unitPrice",
   amount,
-  created_at as "createdAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"
 `;
 
 export async function insertInvoice(

@@ -19,14 +19,14 @@ const SCHEDULED_DELIVERY_RETURN_COLUMNS = `
   target_id as "targetId",
   cadence,
   timezone,
-  next_run_at as "nextRunAt",
-  last_run_at as "lastRunAt",
+  to_char(next_run_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "nextRunAt",
+  to_char(last_run_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "lastRunAt",
   channel,
   recipient_user_ids as "recipientUserIds",
   is_shared as "isShared",
   active,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const DELIVERY_RUN_RETURN_COLUMNS = `
@@ -38,9 +38,9 @@ const DELIVERY_RUN_RETURN_COLUMNS = `
   status,
   error_detail as "errorDetail",
   snapshot_summary as "snapshotSummary",
-  started_at as "startedAt",
-  completed_at as "completedAt",
-  created_at as "createdAt"
+  to_char(started_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "startedAt",
+  to_char(completed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "completedAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"
 `;
 
 // ---------------------------------------------------------------------------

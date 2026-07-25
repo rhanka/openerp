@@ -21,12 +21,12 @@ const LEAD_RETURN_COLUMNS = `
   status,
   owner_user_id as "ownerUserId",
   team_id as "teamId",
-  converted_at as "convertedAt",
+  to_char(converted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "convertedAt",
   converted_company_id as "convertedCompanyId",
   converted_contact_id as "convertedContactId",
   converted_opportunity_id as "convertedOpportunityId",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertLead(

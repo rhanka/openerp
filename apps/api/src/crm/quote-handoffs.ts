@@ -14,10 +14,10 @@ const HANDOFF_RETURN_COLUMNS = `
   target_type as "targetType",
   status,
   requested_by_user_id as "requestedByUserId",
-  accepted_at as "acceptedAt",
-  deleted_at as "deletedAt",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(accepted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "acceptedAt",
+  to_char(deleted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "deletedAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertQuoteHandoff(
