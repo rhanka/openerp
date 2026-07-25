@@ -28,6 +28,6 @@
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "svelte": "^5.33.2",
     "svelte-check": "^4.2.1",
-    "vite": "^6.3.5"
+    "vite": "^6.4.3"
   }
 }
