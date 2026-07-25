@@ -131,8 +131,8 @@ const ACCOUNT_COLUMNS = `
   currency,
   institution,
   active,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const TRANSACTION_COLUMNS = `
@@ -146,8 +146,8 @@ const TRANSACTION_COLUMNS = `
   raw_description as "rawDescription",
   normalized_snapshot as "normalizedSnapshot",
   reconciliation_status as "reconciliationStatus",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const LINK_COLUMNS = `
@@ -159,8 +159,8 @@ const LINK_COLUMNS = `
   score::float8 as score,
   reasons,
   status,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -546,8 +546,8 @@ export async function listStoredProposals(
             l.score::float8 as score,
             l.reasons,
             l.status,
-            l.created_at as "createdAt",
-            l.updated_at as "updatedAt"
+            to_char(l.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+            to_char(l.updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
        from reconciliation_links l
        join bank_transactions bt
          on bt.id = l.bank_transaction_id and bt.organization_id = l.organization_id
@@ -612,11 +612,11 @@ async function listEligiblePaymentsForRefresh(
             invoice_id as "invoiceId",
             company_id as "companyId",
             amount,
-            payment_date as "paymentDate",
+            to_char(payment_date, 'YYYY-MM-DD') as "paymentDate",
             method,
             reference,
-            created_at as "createdAt",
-            updated_at as "updatedAt"
+            to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+            to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
        from payments p
       where p.organization_id = $1
         and p.deleted_at is null
