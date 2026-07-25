@@ -15,10 +15,10 @@ const PROJECT_RETURN_COLUMNS = `
   code,
   company_id as "companyId",
   owner_user_id as "ownerUserId",
-  start_date as "startDate",
-  end_date as "endDate",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(start_date, 'YYYY-MM-DD') as "startDate",
+  to_char(end_date, 'YYYY-MM-DD') as "endDate",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertProject(

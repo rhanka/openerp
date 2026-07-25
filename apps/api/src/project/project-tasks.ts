@@ -19,11 +19,11 @@ const TASK_RETURN_COLUMNS = `
   description,
   status,
   assignee_user_id as "assigneeUserId",
-  due_date as "dueDate",
-  completed_at as "completedAt",
+  to_char(due_date, 'YYYY-MM-DD') as "dueDate",
+  to_char(completed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "completedAt",
   parent_task_id as "parentTaskId",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertProjectTask(

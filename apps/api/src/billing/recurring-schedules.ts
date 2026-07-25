@@ -27,9 +27,9 @@ const SCHEDULE_RETURN_COLUMNS = `
   to_char(next_run_at, 'YYYY-MM-DD') as "nextRunAt",
   active,
   last_invoice_id as "lastInvoiceId",
-  last_run_at as "lastRunAt",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(last_run_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "lastRunAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertRecurringSchedule(

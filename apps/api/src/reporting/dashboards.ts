@@ -19,8 +19,8 @@ const DASHBOARD_RETURN_COLUMNS = `
   name,
   description,
   is_shared as "isShared",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const DASHBOARD_WIDGET_RETURN_COLUMNS = `
@@ -30,8 +30,8 @@ const DASHBOARD_WIDGET_RETURN_COLUMNS = `
   report_definition_id as "reportDefinitionId",
   title,
   position,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 // ---------------------------------------------------------------------------

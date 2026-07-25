@@ -16,11 +16,11 @@ const ASSIGNMENT_RETURN_COLUMNS = `
   user_id as "userId",
   role_label as "roleLabel",
   allocation_percent as "allocationPercent",
-  start_date as "startDate",
-  end_date as "endDate",
+  to_char(start_date, 'YYYY-MM-DD') as "startDate",
+  to_char(end_date, 'YYYY-MM-DD') as "endDate",
   billable_rate_id as "billableRateId",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertAssignment(

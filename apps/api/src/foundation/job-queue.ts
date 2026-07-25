@@ -13,9 +13,9 @@ const JOB_COLUMNS = `
   job_type as "jobType",
   status,
   attempts,
-  scheduled_at as "scheduledAt",
-  started_at as "startedAt",
-  completed_at as "completedAt"
+  to_char(scheduled_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "scheduledAt",
+  to_char(started_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "startedAt",
+  to_char(completed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "completedAt"
 `;
 
 export function createPgJobQueue(db: Queryable, context: TenantContext): JobQueue {
@@ -116,7 +116,7 @@ export async function claimNextJob(
         job_type as "jobType",
         payload,
         attempts,
-        scheduled_at as "scheduledAt"`,
+        to_char(scheduled_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "scheduledAt"`,
     [context.organizationId]
   );
   return result.rows[0] ?? null;
