@@ -282,3 +282,40 @@ Preuves: scan header-sweep (navLink manquant, nav 0px vs 28.2px) ; démos docs l
 Risques: refonte IA visible (navigation module d'abord) ; tests nav/keyboard à réécrire ; rail dépendant de la réponse DS (issue à ouvrir).
 
 Go/No-Go: GO — critères : header avec 5 navLink + aria-current du module actif ; panneau gauche = sous-items du module actif uniquement ; AppShell workspace en place ; e2e 0 failed ; scan header sans ligne non justifiée.
+
+## UXDR-010 — Worklist de rapprochement bancaire (Option A, owner-ratified)
+
+Status: ACCEPTED 2026-07-26. Owner-ratified.
+
+Ou: `apps/web` route `/admin/billing/reconciliation`, sous-item de Facturation/Billing dans la navigation, libellés FR « Rapprochement bancaire » / EN « Bank reconciliation » ; workflow v1 focalisé sur la file de décision ligne bancaire → proposition stockée → actions unitaires.
+
+Orientation:
+- Retenir l’`Option A` : une file unique centrée sur la ligne bancaire, avec proposition dépliable sous la ligne (comparaison ligne bancaire ↔ paiement, preuves fournies, actions unitaires).
+- Portée des vues par le paramètre URL `status=unmatched|matched|ignored`, exposée via des liens.
+- Modèles techniques hérités et obligatoires : gabarit calqué sur `apps/web/src/routes/admin/approvals/+page.svelte` ; mutations via SvelteKit form actions uniquement (`use:enhance` + `fail(...)`) sans `fetch` direct en composant ; données via `+page.server.ts` injectant le `fetch` SvelteKit dans `createApiClient` ; primitives `@sentropic/design-system-svelte` uniquement avec confirmation composée `Modal` + `Button`, feedback `Alert` (pas de toast), sans hôte/precedent applicatif ; clés i18n ajoutées simultanément dans `foundation.en.json` et `foundation.fr.json`.
+- La confirmation de rapprochement est un acte d’attestation et n’écrit aucune écriture comptable ; l’UI doit l’indiquer explicitement.
+
+Options rejetees:
+- Option B (workspace à deux volets) — rejetée : dépendances v1 absentes (plusieurs candidats, recherche manuelle, pièces jointes, split), coût important en responsive/accessibilité.
+- Option C (revue guidée 1 ligne à la fois) — rejetée : masque la file, les lignes sans proposition et l’action de remise à plus tard.
+- Confirmations en masse, score numérique de confiance, recherche/choix manuel d’un autre paiement, rapprochement de factures, split, multi-devise, second approbateur, écriture comptable automatique, suppression evidence importée, restauration paire rejetée : explicitement hors périmètre v1.
+
+Preuves:
+- `docs/reviews/2026-07-26-banking-worklist-uxdr-synthesis.md` (passe 3 de synthèse, orientation propriétaire ; les passes 1 et 2 — état de l’art et revue de l’implémenté — l’alimentent)
+- Consolidation produit par lot pass3 : route `/admin/billing/reconciliation`, libellés FR/EN, paramètre `status`, contraintes API et retours Playwright attendus.
+- Backend et front-end contracts repris de la synthèse : erreurs 400/404/409, endpoints de mutation, relecture serveur après action, pas de mise à jour optimiste.
+
+Risques:
+- Ignore irréversible refusé tant que `unignore` n’existe pas : l’endpoint `unignore` est requis avant livraison écran.
+- « Défaire le rapprochement » non atteignable tant que les liens confirmés ne sont pas lisibles côté API (extension additive requise).
+- Sur-promesse comptable : confusion possible avec des écritures comptables si le message d’attestation n’est pas visible.
+- Dépendance écran/UI à la livraison Go/No-Go des extensions backend (unignore + lisibilité liens confirmés).
+
+Decision proposee:
+- Oui à l’`Option A` (file unique / proposition dépliable).
+- Décisions complémentaires owner ratifiées :
+  1. L’`ignore` irréversible est refusée tant que `unignore` n’est pas livré.
+  2. Exiger l’extension API « liens confirmés lisibles » avant d’exposer « Défaire le rapprochement ».
+
+Go/No-Go:
+- Go quand les deux extensions backend (`unignore` + lisibilité des liens confirmés) sont livrées et validées, que toutes les mutations passent par form actions traitant 400/404/409 avec relecture serveur (zéro optimisme), et que les tests Playwright couvrent FR/EN + clavier + focus + responsive sans débordement horizontal.
