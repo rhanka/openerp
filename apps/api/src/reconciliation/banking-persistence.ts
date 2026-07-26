@@ -13,7 +13,8 @@ import type {
   BankTransactionSnapshot,
   BankTransactionReconciliationStatus,
   ReconciliationCandidateKind,
-  ReconciliationLink
+  ReconciliationLink,
+  ReconciliationLinkStatus
 } from "@sentropic/openerp-domain/banking";
 import type { BillingMoney, Payment } from "@sentropic/openerp-domain/billing";
 
@@ -534,9 +535,11 @@ export async function listBankTransactions(
 
 export async function listStoredProposals(
   db: Queryable,
-  context: TenantContext
+  context: TenantContext,
+  options: { status?: ReconciliationLinkStatus } = {}
 ): Promise<ReconciliationLink[]> {
   assertTenantContext(context);
+  const status = options.status ?? "proposed";
   const result = await db.query<ReconciliationLink>(
     `select l.id,
             l.organization_id as "organizationId",
@@ -552,10 +555,13 @@ export async function listStoredProposals(
        join bank_transactions bt
          on bt.id = l.bank_transaction_id and bt.organization_id = l.organization_id
       where l.organization_id = $1
-        and l.status = 'proposed'
-        and bt.reconciliation_status = 'unmatched'
+        and l.status = $2
+        and bt.reconciliation_status = case $2::text
+          when 'confirmed' then 'matched'
+          else 'unmatched'
+        end
       order by bt.posted_at desc, l.created_at asc`,
-    [context.organizationId]
+    [context.organizationId, status]
   );
   return result.rows;
 }
@@ -991,6 +997,33 @@ export async function ignoreBankTransaction(
     const updated = ignored.rows[0];
     if (!updated) throw new BankingConflictError("bank transaction changed before ignore");
     await recordBankingAudit(client, context, "banking.bank_transaction.ignored", "bank_transaction", updated.id, {
+      reconciliationStatus: updated.reconciliationStatus
+    });
+    return updated;
+  });
+}
+
+/** Restores only an ignored transaction to the unmatched worklist state. */
+export async function unignoreBankTransaction(
+  pool: QueryablePool,
+  context: TenantContext,
+  transactionId: string
+): Promise<BankTransaction> {
+  return withBankingTransaction(pool, context, async (client) => {
+    const transaction = await findTransactionForUpdate(client, context, transactionId);
+    if (transaction.reconciliationStatus !== "ignored") {
+      throw new BankingConflictError("only ignored bank transactions can be unignored");
+    }
+    const unmatched = await client.query<BankTransaction>(
+      `update bank_transactions
+          set reconciliation_status = 'unmatched', updated_at = now()
+        where id = $1 and organization_id = $2 and reconciliation_status = 'ignored'
+        returning ${TRANSACTION_COLUMNS}`,
+      [transaction.id, context.organizationId]
+    );
+    const updated = unmatched.rows[0];
+    if (!updated) throw new BankingConflictError("bank transaction changed before unignore");
+    await recordBankingAudit(client, context, "banking.bank_transaction.unignored", "bank_transaction", updated.id, {
       reconciliationStatus: updated.reconciliationStatus
     });
     return updated;

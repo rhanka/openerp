@@ -10,8 +10,11 @@ import {
   confirmReconciliationProposal,
   ignoreBankTransaction,
   importBankingSnapshot,
+  listStoredProposals,
   rejectReconciliationProposal,
-  refreshReconciliationProposals
+  refreshReconciliationProposals,
+  unignoreBankTransaction,
+  unmatchReconciliationProposal
 } from "../../src/reconciliation/banking-persistence";
 import { buildApp, headerTenantResolver } from "../../src/http/app";
 import { createEphemeralDb, type EphemeralDb } from "./helpers/ephemeral-db";
@@ -367,5 +370,47 @@ describeOrSkip("D9 banking persistence against PostgreSQL", () => {
     expect(refreshed.created).toHaveLength(1);
     expect(refreshed.created[0]?.status).toBe("proposed");
     expect(refreshed.proposals.map((proposal) => proposal.id)).toContain(refreshed.created[0]?.id);
+  });
+
+  it("makes a dormant proposed link visible again after ignore then unignore", async () => {
+    const tenant = await seedTenant("unignore");
+    const transaction = (await importBankingSnapshot(pool, tenant, importInput("unignore-transaction"))).imported[0]!;
+    const ignored = await ignoreBankTransaction(pool, tenant, transaction.id);
+    const paymentId = await insertPayment(tenant, 10000);
+    const dormantProposalId = await insertProposedLink(tenant, transaction.id, paymentId);
+
+    expect(ignored.reconciliationStatus).toBe("ignored");
+    expect(await listStoredProposals(pool, tenant)).toEqual([]);
+
+    const restored = await unignoreBankTransaction(pool, tenant, transaction.id);
+    const visible = await listStoredProposals(pool, tenant);
+
+    expect(restored.reconciliationStatus).toBe("unmatched");
+    expect(visible.map((link) => link.id)).toContain(dormantProposalId);
+  });
+
+  it("retrieves a confirmed link through suggestions and unmatches it using that link id", async () => {
+    const tenant = await seedTenant("confirmed-read");
+    const transaction = (await importBankingSnapshot(pool, tenant, importInput("confirmed-read-transaction"))).imported[0]!;
+    const paymentId = await insertPayment(tenant, 10000);
+    const proposalId = await insertProposedLink(tenant, transaction.id, paymentId);
+    await confirmReconciliationProposal(pool, tenant, proposalId);
+    const app = buildApp({ db: pool, resolveTenant: headerTenantResolver });
+    const headers = {
+      "x-organization-id": tenant.organizationId,
+      "x-user-identity-id": tenant.actorUserId
+    };
+
+    const confirmed = await app.request("/banking/reconciliation/suggestions?status=confirmed", { headers });
+    const confirmedItems = (await confirmed.json() as { items: Array<{ id: string; status: string }> }).items;
+    const unmatch = await app.request(`/banking/reconciliation/${confirmedItems[0]!.id}/unmatch`, { method: "POST", headers });
+    const proposed = await app.request("/banking/reconciliation/suggestions", { headers });
+
+    expect(confirmed.status).toBe(200);
+    expect(confirmedItems).toEqual([expect.objectContaining({ id: proposalId, status: "confirmed" })]);
+    expect(unmatch.status).toBe(200);
+    expect((await proposed.json() as { items: Array<{ id: string; status: string }> }).items).toEqual([
+      expect.objectContaining({ id: proposalId, status: "proposed" })
+    ]);
   });
 });
