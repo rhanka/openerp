@@ -42,6 +42,10 @@ const adminRoutes: Array<{
     labels: { en: "Taxes", fr: "Taxes" }
   },
   {
+    path: "/admin/billing/reconciliation",
+    labels: { en: "Bank reconciliation", fr: "Rapprochement bancaire" }
+  },
+  {
     path: "/admin/reporting/saved-views",
     labels: { en: "Saved views", fr: "Vues" }
   },

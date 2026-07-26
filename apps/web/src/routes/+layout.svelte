@@ -181,7 +181,8 @@
   const billingItems = $derived(navGroup([
     { label: t(locale, "nav.invoices"), href: "/admin/billing/invoices" },
     { label: t(locale, "nav.taxes"), href: "/admin/billing/taxes" },
-    { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" }
+    { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" },
+    { label: t(locale, "nav.reconciliation"), href: "/admin/billing/reconciliation" }
   ]));
 
   const reportingItems = $derived(navGroup([
