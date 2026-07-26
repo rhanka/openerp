@@ -103,6 +103,15 @@ import type {
   UpdateOpportunityInput,
   UpdatePipelineStageInput
 } from "@sentropic/openerp-domain/crm";
+import type {
+  BankTransaction,
+  BankTransactionList,
+  BankTransactionReconciliationStatus,
+  BankingRefreshResult,
+  ReconciliationLink,
+  ReconciliationLinkStatus,
+  ReconciliationSuggestionList
+} from "@sentropic/openerp-domain/banking";
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -168,8 +177,8 @@ export function createApiClient(options: ApiClientOptions) {
       body: init.body !== undefined ? JSON.stringify(init.body) : undefined
     });
     if (!response.ok) {
-      const body = (await safeJson(response)) as { code?: string } | null;
-      const err = new Error(`API ${response.status} for ${path}`) as ApiError;
+      const body = (await safeJson(response)) as { code?: string; message?: string } | null;
+      const err = new Error(body?.message ?? `API ${response.status} for ${path}`) as ApiError;
       err.status = response.status;
       if (body?.code) err.code = body.code;
       throw err;
@@ -188,8 +197,8 @@ export function createApiClient(options: ApiClientOptions) {
       headers: reqHeaders
     });
     if (!response.ok) {
-      const body = (await safeJson(response)) as { code?: string } | null;
-      const err = new Error(`API ${response.status} for ${path}`) as ApiError;
+      const body = (await safeJson(response)) as { code?: string; message?: string } | null;
+      const err = new Error(body?.message ?? `API ${response.status} for ${path}`) as ApiError;
       err.status = response.status;
       if (body?.code) err.code = body.code;
       throw err;
@@ -232,6 +241,68 @@ export function createApiClient(options: ApiClientOptions) {
           }
         }
       );
+    },
+
+    async listBankTransactions(query: {
+      status?: BankTransactionReconciliationStatus;
+      limit?: number;
+      offset?: number;
+    } = {}): Promise<BankTransaction[]> {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined || value === null) continue;
+        params.set(key, String(value));
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const body = await request<BankTransactionList>(`/banking/transactions${suffix}`);
+      return body.items;
+    },
+
+    async listReconciliationSuggestions(
+      status: ReconciliationLinkStatus = "proposed"
+    ): Promise<ReconciliationLink[]> {
+      const params = new URLSearchParams({ status });
+      const body = await request<ReconciliationSuggestionList>(
+        `/banking/reconciliation/suggestions?${params.toString()}`
+      );
+      return body.items;
+    },
+
+    async refreshReconciliationSuggestions(): Promise<BankingRefreshResult> {
+      return request<BankingRefreshResult>("/banking/reconciliation/refresh", { method: "POST" });
+    },
+
+    async confirmReconciliation(linkId: string): Promise<ReconciliationLink> {
+      return request<ReconciliationLink>(
+        `/banking/reconciliation/${encodeURIComponent(linkId)}/confirm`,
+        { method: "POST" }
+      );
+    },
+
+    async rejectReconciliation(linkId: string): Promise<ReconciliationLink> {
+      return request<ReconciliationLink>(
+        `/banking/reconciliation/${encodeURIComponent(linkId)}/reject`,
+        { method: "POST" }
+      );
+    },
+
+    async unmatchReconciliation(linkId: string): Promise<ReconciliationLink> {
+      return request<ReconciliationLink>(
+        `/banking/reconciliation/${encodeURIComponent(linkId)}/unmatch`,
+        { method: "POST" }
+      );
+    },
+
+    async ignoreBankTransaction(id: string): Promise<BankTransaction> {
+      return request<BankTransaction>(`/banking/transactions/${encodeURIComponent(id)}/ignore`, {
+        method: "POST"
+      });
+    },
+
+    async unignoreBankTransaction(id: string): Promise<BankTransaction> {
+      return request<BankTransaction>(`/banking/transactions/${encodeURIComponent(id)}/unignore`, {
+        method: "POST"
+      });
     },
 
     async listCompanies(query: { limit?: number; offset?: number; status?: CompanyStatus } = {}): Promise<Company[]> {
@@ -1292,6 +1363,17 @@ export type {
   UpdateTaxCategoryInput,
   CreateTaxRateVersionInput,
   UpdateTaxRateVersionInput
+};
+
+// Re-export banking types so web pages can import from the client module.
+export type {
+  BankTransaction,
+  BankTransactionList,
+  BankTransactionReconciliationStatus,
+  BankingRefreshResult,
+  ReconciliationLink,
+  ReconciliationLinkStatus,
+  ReconciliationSuggestionList
 };
 
 // Re-export workflow types so web pages can import from the client module

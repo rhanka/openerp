@@ -67,3 +67,19 @@ export interface ReconciliationLink {
   createdAt: string;
   updatedAt: string;
 }
+
+/** Read model returned by the banking transactions worklist endpoint. */
+export interface BankTransactionList {
+  items: BankTransaction[];
+}
+
+/** Read model returned by the stored reconciliation proposal endpoint. */
+export interface ReconciliationSuggestionList {
+  items: ReconciliationLink[];
+}
+
+/** Result of the explicit proposal refresh operation. */
+export interface BankingRefreshResult {
+  created: ReconciliationLink[];
+  proposals: ReconciliationLink[];
+}
