@@ -166,7 +166,9 @@ jobs:
 
       - name: Pin image tags to this commit
         run: |
-          sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" infra/k8s/overlays/dev/kustomization.yaml
+          # Pin every selectable registry component; the chosen overlay then
+          # renders the same commit SHA without a registry-specific workflow edit.
+          find infra/k8s/components -path '*/registry-*/kustomization.yaml' -exec sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" {} +
 
       - name: Recreate migration Job (Job pod templates are immutable)
         run: kubectl -n openerp-dev delete job openerp-migrate --ignore-not-found
@@ -236,7 +238,9 @@ jobs:
 
       - name: Pin image tags to this commit
         run: |
-          sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" infra/k8s/overlays/prod/kustomization.yaml
+          # Pin every selectable registry component; the chosen overlay then
+          # renders the same commit SHA without a registry-specific workflow edit.
+          find infra/k8s/components -path '*/registry-*/kustomization.yaml' -exec sed -i "s|newTag: latest|newTag: ${{ github.sha }}|g" {} +
 
       - name: Recreate migration Job (Job pod templates are immutable)
         run: kubectl -n openerp-prod delete job openerp-migrate --ignore-not-found

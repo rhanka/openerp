@@ -3,6 +3,11 @@ kind: Kustomization
 namespace: openerp-dev
 resources:
 - ../../base
+components:
+# Registry selector: change this one line to registry-ghcr after its target
+# access is verified, or to registry-ovh-TODO-POC-K8S only after poc-k8s fills
+# the exact OVH registry paths. registry-scaleway is the rollback baseline.
+- ../../components/registry-scaleway
 patches:
 - target:
     kind: Ingress
@@ -11,13 +16,3 @@ patches:
 - path: resources-patch.yaml
 commonLabels:
   openerp.env: dev
-images:
-- name: openerp/api
-  newName: rg.fr-par.scw.cloud/openerp/openerp-api
-  newTag: latest # CI rewrites to the commit SHA before apply (deploy.yml "Pin image tags")
-- name: openerp/web
-  newName: rg.fr-par.scw.cloud/openerp/openerp-web
-  newTag: latest
-- name: openerp/worker
-  newName: rg.fr-par.scw.cloud/openerp/openerp-worker
-  newTag: latest
