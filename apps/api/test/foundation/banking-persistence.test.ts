@@ -16,6 +16,7 @@ import {
   listStoredProposals,
   refreshReconciliationProposals,
   rejectReconciliationProposal,
+  unignoreBankTransaction,
   unmatchReconciliationProposal,
   type QueryablePool
 } from "../../src/reconciliation/banking-persistence";
@@ -119,10 +120,11 @@ function makePool() {
       }
       if (sql.includes("update bank_transactions") && sql.includes("set reconciliation_status = 'unmatched'")) {
         const [id, organizationId] = values as string[];
-        const found = transactions.find((t) => t.id === id && t.organizationId === organizationId && t.reconciliationStatus === "matched");
+        const expectedStatus = sql.includes("reconciliation_status = 'ignored'") ? "ignored" : "matched";
+        const found = transactions.find((t) => t.id === id && t.organizationId === organizationId && t.reconciliationStatus === expectedStatus);
         if (!found) return { rows: [] };
         found.reconciliationStatus = "unmatched";
-        return { rows: [{ id: found.id } as T] };
+        return { rows: [expectedStatus === "ignored" ? found as T : { id: found.id } as T] };
       }
       if (sql.includes("update bank_transactions") && sql.includes("set reconciliation_status = 'ignored'")) {
         const [id, organizationId] = values as string[];
@@ -155,8 +157,20 @@ function makePool() {
         return { rows: [link as T] };
       }
       if (sql.includes("from reconciliation_links l") && sql.includes("join bank_transactions bt")) {
-        const organizationId = values[0] as string;
-        return { rows: links.filter((l) => l.organizationId === organizationId && l.status === "proposed" && transactions.some((t) => t.id === l.bankTransactionId && t.organizationId === organizationId && t.reconciliationStatus === "unmatched")) as T[] };
+        const [organizationId, requestedStatus] = values as [string, ReconciliationLink["status"] | undefined];
+        const status = requestedStatus ?? "proposed";
+        const transactionStatus = status === "confirmed" ? "matched" : "unmatched";
+        return {
+          rows: links.filter((l) =>
+            l.organizationId === organizationId
+            && l.status === status
+            && transactions.some((t) =>
+              t.id === l.bankTransactionId
+              && t.organizationId === organizationId
+              && t.reconciliationStatus === transactionStatus
+            )
+          ) as T[]
+        };
       }
       if (sql.includes("from reconciliation_links") && sql.includes("status = 'rejected'")) {
         const organizationId = values[0] as string;
@@ -328,6 +342,24 @@ describe("banking reconciliation persistence (D9)", () => {
     expect(fake.queryLog.slice(beforeGetQueries).every((sql) => sql === "begin read only" || sql === "commit" || sql.startsWith("select"))).toBe(true);
   });
 
+  it("keeps proposed suggestions as the default, returns confirmed links on request, and rejects invalid statuses", async () => {
+    const fake = makePool();
+    await importBankingSnapshot(fake.pool, TENANT_1, input());
+    fake.payments.push(payment("payment-1"));
+    const proposal = (await refreshReconciliationProposals(fake.pool, TENANT_1)).created[0]!;
+    await confirmReconciliationProposal(fake.pool, TENANT_1, proposal.id);
+    const app = buildApp({ db: fake.pool, resolveTenant: headerTenantResolver });
+    const headers = { "x-organization-id": ORG_1, "x-user-identity-id": "user-1" };
+
+    const defaultSuggestions = await app.request("/banking/reconciliation/suggestions", { headers });
+    const confirmedSuggestions = await app.request("/banking/reconciliation/suggestions?status=confirmed", { headers });
+    const invalidSuggestions = await app.request("/banking/reconciliation/suggestions?status=active", { headers });
+
+    expect((await defaultSuggestions.json() as { items: ReconciliationLink[] }).items).toEqual([]);
+    expect((await confirmedSuggestions.json() as { items: ReconciliationLink[] }).items.map((link) => link.id)).toEqual([proposal.id]);
+    expect(invalidSuggestions.status).toBe(400);
+  });
+
   it("does not resurface a rejected pair during later refreshes", async () => {
     const fake = makePool();
     await importBankingSnapshot(fake.pool, TENANT_1, input());
@@ -428,6 +460,39 @@ describe("banking reconciliation persistence (D9)", () => {
     ]);
   });
 
+  it("unignores an ignored transaction and records the matching audit action", async () => {
+    const fake = makePool();
+    const transaction = (await importBankingSnapshot(fake.pool, TENANT_1, input())).imported[0]!;
+    await ignoreBankTransaction(fake.pool, TENANT_1, transaction.id);
+
+    const restored = await unignoreBankTransaction(fake.pool, TENANT_1, transaction.id);
+
+    expect(restored.reconciliationStatus).toBe("unmatched");
+    expect(fake.audits.at(-1)).toBe("banking.bank_transaction.unignored");
+  });
+
+  it("rejects unignore from a non-ignored transaction", async () => {
+    const fake = makePool();
+    const transaction = (await importBankingSnapshot(fake.pool, TENANT_1, input())).imported[0]!;
+
+    await expect(unignoreBankTransaction(fake.pool, TENANT_1, transaction.id)).rejects.toBeInstanceOf(BankingConflictError);
+  });
+
+  it("does not unignore unknown transactions", async () => {
+    const fake = makePool();
+
+    await expect(unignoreBankTransaction(fake.pool, TENANT_1, "missing-transaction")).rejects.toBeInstanceOf(BankingNotFoundError);
+  });
+
+  it("keeps unignore tenant-isolated", async () => {
+    const fake = makePool();
+    const transaction = (await importBankingSnapshot(fake.pool, TENANT_1, input())).imported[0]!;
+    await ignoreBankTransaction(fake.pool, TENANT_1, transaction.id);
+
+    await expect(unignoreBankTransaction(fake.pool, TENANT_2, transaction.id)).rejects.toBeInstanceOf(BankingNotFoundError);
+    expect(fake.transactions[0]?.reconciliationStatus).toBe("ignored");
+  });
+
   it("keeps stored records tenant-isolated", async () => {
     const fake = makePool();
     const [transaction] = (await importBankingSnapshot(fake.pool, TENANT_1, input())).imported;
@@ -488,7 +553,13 @@ describe("banking reconciliation persistence (D9)", () => {
 
     const malformedLimit = await app.request("/banking/transactions?limit=0", { headers });
     const malformedOffset = await app.request("/banking/transactions?offset=1e3", { headers });
+    const malformedSuggestionStatus = await app.request("/banking/reconciliation/suggestions?status=active", { headers });
+    const malformedUnignoreId = await app.request("/banking/transactions/not-a-transaction/unignore", { method: "POST", headers });
+    const missingUnignore = await app.request("/banking/transactions/00000000-0000-4000-8000-000000000099/unignore", { method: "POST", headers });
     expect(malformedLimit.status).toBe(400);
     expect(malformedOffset.status).toBe(400);
+    expect(malformedSuggestionStatus.status).toBe(400);
+    expect(malformedUnignoreId.status).toBe(400);
+    expect(missingUnignore.status).toBe(404);
   });
 });

@@ -39,7 +39,14 @@ export function buildBankingRoutes(): RouteContract[] {
       method: "GET",
       path: "/banking/reconciliation/suggestions",
       audited: false,
-      responseSchema: "ReconciliationSuggestionList"
+      responseSchema: "ReconciliationSuggestionList",
+      queryParameters: [
+        {
+          name: "status",
+          description: "Filter persisted reconciliation links by their durable status. Defaults to proposed.",
+          schema: { type: "string", enum: ["proposed", "confirmed", "rejected"] }
+        }
+      ]
     },
     {
       method: "POST",
@@ -80,6 +87,15 @@ export function buildBankingRoutes(): RouteContract[] {
     {
       method: "POST",
       path: "/banking/transactions/:id/ignore",
+      audited: true,
+      responseSchema: "BankTransaction",
+      hasRequestBody: false,
+      errorStatuses: [409],
+      successStatus: 200
+    },
+    {
+      method: "POST",
+      path: "/banking/transactions/:id/unignore",
       audited: true,
       responseSchema: "BankTransaction",
       hasRequestBody: false,
