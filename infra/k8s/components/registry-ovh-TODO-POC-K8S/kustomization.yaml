@@ -1,0 +1,16 @@
+# TODO(POC-K8S): replace every full newName value with the exact OVH registry
+# host and repository path supplied by the OVH tenant owner. Do not activate
+# this component until images are published there and pull authentication has
+# been confirmed. The reserved .invalid domain intentionally cannot be used.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+images:
+  - name: openerp/api
+    newName: todo-poc-k8s-supply-full-ovh-image-reference.invalid/todo-poc-k8s-supply-api-repository
+    newTag: latest
+  - name: openerp/web
+    newName: todo-poc-k8s-supply-full-ovh-image-reference.invalid/todo-poc-k8s-supply-web-repository
+    newTag: latest
+  - name: openerp/worker
+    newName: todo-poc-k8s-supply-full-ovh-image-reference.invalid/todo-poc-k8s-supply-worker-repository
+    newTag: latest
