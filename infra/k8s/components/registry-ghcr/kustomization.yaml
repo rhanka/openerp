@@ -1,0 +1,14 @@
+# GHCR is already populated by the non-fatal mirror in deploy.yml. Selecting
+# this component changes only where the overlay pulls its pinned images from.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+images:
+  - name: openerp/api
+    newName: ghcr.io/rhanka/openerp-api
+    newTag: latest
+  - name: openerp/web
+    newName: ghcr.io/rhanka/openerp-web
+    newTag: latest
+  - name: openerp/worker
+    newName: ghcr.io/rhanka/openerp-worker
+    newTag: latest
