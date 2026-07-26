@@ -10,7 +10,6 @@
  *
  * Run: node dist/mcp-server.js (after `npm run build`).
  */
-import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,6 +26,9 @@ import type {
 } from "./fdx.js";
 import { createOfxUploadProvider } from "./providers/ofx-upload.js";
 import { createPlaidSandboxProvider } from "./providers/plaid-sandbox.js";
+import { resolveServerContext } from "./server-context.js";
+
+export { resolveServerContext } from "./server-context.js";
 
 /** Provider ids this connector can build — used by bank_list_providers without instantiating any. */
 const PROVIDER_IDS = ["plaid-sandbox", "ofx-upload"] as const;
@@ -57,52 +59,6 @@ export function createConnector(context: StpConnectorContext): Connector {
       }
       return provider;
     },
-  };
-}
-
-/** Fixed for this server process' single stdio session — there is no per-call client session to key on. */
-const SERVER_SESSION_ID = randomUUID();
-
-/**
- * Minimal secret lookup for the sandbox context: reads from process.env only, nothing persisted.
- * Providers still read their own provider-specific credentials directly (see
- * providers/plaid-sandbox.ts); this is the StpConnectorContext-shaped seam for callers that go
- * through `context.getSecret` instead.
- */
-async function getSecret(name: string): Promise<string> {
-  const value = process.env[name];
-  if (value === undefined) {
-    throw new Error(`bank-connector: secret "${name}" is not set in the environment`);
-  }
-  return value;
-}
-
-/**
- * Server-side context resolver (ARCH-11). Builds a StpConnectorContext with NO client input at
- * all — this function takes zero arguments, so there is no channel for a tool caller to influence
- * tenantRef. In a real deployment the context is provided by the core (resolveTenant / S2S OBO
- * session, ARCH-11); the tenant is NEVER a client input. This standalone sandbox server has no
- * real core session yet, so it establishes a mono-tenant context from server config/env
- * (STP_TENANT_REF, defaulting to "local"). requestId is fresh per call; the MCP session id is
- * fixed for this process' stdio session.
- */
-export function resolveServerContext(): StpConnectorContext {
-  const tenantRef = process.env.STP_TENANT_REF ?? "local";
-  return {
-    requestId: randomUUID(),
-    principal: {
-      sub: process.env.STP_PRINCIPAL_SUB ?? "bank-connector-server",
-      tenantRef,
-      roles: [],
-    },
-    session: {
-      mcpSessionId: SERVER_SESSION_ID,
-      clientId: process.env.STP_CLIENT_ID ?? "openerp-bank-connector-mcp",
-      source: process.env.STP_MCP_SOURCE ?? "claude-code",
-    },
-    tenantRef,
-    consentRefs: [],
-    getSecret,
   };
 }
 

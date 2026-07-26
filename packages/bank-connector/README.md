@@ -73,10 +73,44 @@ The `plaid-sandbox` provider is only exercised end-to-end when `PLAID_CLIENT_ID`
 Plaid-to-FDX mapping functions on a fixed fixture instead (`test/plaid-mapping.test.ts`), no
 network call.
 
+## One-shot OFX import CLI (v1)
+
+The connector also supplies a manual, OFX-only producer for the existing
+`POST /banking/import` API boundary. It is not an upload endpoint, worker, or
+scheduled process. Raw OFX is read once inside this connector process, turned
+into a normalized snapshot, and never sent over HTTP.
+
+Build first, then run exactly one `.ofx` source located below an explicitly
+configured import base:
+
+```sh
+export OPENERP_BANK_IMPORT_BEARER_TOKEN="$OPENERP_AGENT_TOKEN"
+export BANK_CONNECTOR_OFX_IMPORT_BASE_DIR="$PWD/tmp/bank-import"
+export OPENERP_BANK_IMPORT_API_URL="http://127.0.0.1:4000"
+npm run build -w @sentropic/openerp-bank-connector
+npm run import:ofx -w @sentropic/openerp-bank-connector -- --file statement.ofx
+```
+
+`OPENERP_AGENT_TOKEN` must be an existing short-lived signed JWT for the same
+mono-tenant environment configured for the connector process. Obtain it through
+the existing authenticated `POST /auth/exchange-agent-token` flow using a
+verified human session Bearer token; the API issues the agent token for at most
+15 minutes. The CLI sends it only as `Authorization: Bearer ...`; it does not
+accept `--tenant`/`--org`, send a tenant header, or put a tenant field in JSON.
+
+The source must be a regular, non-symlink lowercase `.ofx` file beneath the
+real-path-resolved base. The default maximum is 5 MiB (lower it with
+`BANK_CONNECTOR_OFX_IMPORT_MAX_BYTES`), and a file may contain one account and
+at most 2,000 transactions. The command emits aggregate-only JSON:
+`sourceRows`, `pendingOmitted`, `submitted`, `newlyImported`, `replayNoOps`,
+and `code`. It never prints the source path, OFX contents, transaction details,
+credentials, or raw API response. A successful replay is a no-op; it does not
+compare or update content under an existing `ACCTID`/`FITID` identity.
+
 ## Known limitations (skeleton)
 
 - No pagination loop wired into `bank_list_transactions` for `plaid-sandbox` — a single
   `transactions/sync` page is returned with `nextCursor` for the caller to re-request.
-- `ofx-upload` assumes one `<BANKACCTFROM>`/`<CURDEF>` per file (no multi-account OFX splitting).
+- `ofx-upload` accepts exactly one `<BANKACCTFROM>`/`<CURDEF>` per file (no multi-account OFX splitting).
 - No vault, no S2S auth, no per-org scoping, no webhook ingestion — all deferred to the platform
   phase (C1+ in the study).
