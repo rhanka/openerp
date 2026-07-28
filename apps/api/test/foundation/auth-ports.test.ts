@@ -14,6 +14,9 @@ import { createStubJwksPort } from "../../src/auth/stub-jwks-port";
 import { buildAuthHonoPorts } from "../../src/auth/ports";
 import type { ApiEnv } from "../../src/config/env";
 import type { EmailSender } from "../../src/foundation/email-sender";
+import { createIdentityProvider } from "../../src/foundation/identity-provider";
+import { buildApp } from "../../src/http/app";
+import { createJwtTenantResolver } from "../../src/http/tenant-resolvers";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,6 +35,8 @@ const TEST_SECRET = randomBytes(32);
 const AUTH_ENV: ApiEnv = {
   databaseUrl: "postgresql://example.test/openerp",
   sessionSecret: TEST_SECRET.toString("base64url"),
+  sessionIssuer: "openerp-dev",
+  sessionAudience: undefined,
   appVersion: "test",
   oauthIssuerUrl: undefined,
   oauthClientId: undefined,
@@ -79,6 +84,7 @@ describe("OpenERPSessionPort", () => {
     const fakeRow = {
       id: "sess_1",
       user_identity_id: "uid_1",
+      organization_id: "org_1",
       session_token_hash: "hash_token",
       refresh_token_hash: "hash_refresh",
       device_name: "Test Device",
@@ -97,6 +103,7 @@ describe("OpenERPSessionPort", () => {
     const record = await port.create({
       id: "sess_1",
       userId: "uid_1",
+      organizationId: "org_1",
       sessionTokenHash: "hash_token",
       refreshTokenHash: "hash_refresh",
       deviceInfo: { name: "Test Device", ipAddress: "127.0.0.1", userAgent: "TestAgent" },
@@ -107,6 +114,7 @@ describe("OpenERPSessionPort", () => {
 
     expect(record.id).toBe("sess_1");
     expect(record.userId).toBe("uid_1");
+    expect(record.organizationId).toBe("org_1");
     expect(record.sessionTokenHash).toBe("hash_token");
     expect(record.refreshTokenHash).toBe("hash_refresh");
     expect(record.revokedAt).toBeNull();
@@ -117,6 +125,25 @@ describe("OpenERPSessionPort", () => {
     const port = createOpenERPSessionPort(db);
     const result = await port.findByTokenHash("unknown_hash");
     expect(result).toBeNull();
+  });
+
+  it("fails closed before persistence when a human session has no organization", async () => {
+    const { db, query } = spyQueryable(() => []);
+    const port = createOpenERPSessionPort(db);
+    const now = new Date("2026-06-10T00:00:00.000Z");
+
+    await expect(
+      port.create(
+        {
+          id: "sess_without_org",
+          userId: "uid_1",
+          sessionTokenHash: "hash_token",
+          expiresAt: new Date("2026-06-11T00:00:00.000Z"),
+          now,
+        } as never
+      )
+    ).rejects.toThrow(/organization/i);
+    expect(query).not.toHaveBeenCalled();
   });
 
   it("findByRefreshTokenHash returns null for unknown hash", async () => {
@@ -299,6 +326,50 @@ describe("OpenERPCookiePort", () => {
     const req = new Request("https://example.com");
     expect(port.readSessionToken(req)).toBeNull();
   });
+
+  it("uses only the OpenERP cookie names and serializes raw tokens without Secure outside production", () => {
+    const now = new Date("2026-07-28T12:00:00.000Z");
+    const port = createOpenERPCookiePort({ isProduction: false, now: () => now });
+    const expiresAt = new Date(now.getTime() + 3600 * 1000);
+    const session = port.serializeSessionCookie({ token: "raw.jwt-token", expiresAt });
+    const refresh = port.serializeRefreshCookie({ token: "raw-refresh-token", expiresAt });
+
+    expect(session).toContain("openerp_session=raw.jwt-token");
+    expect(refresh).toContain("openerp_refresh=raw-refresh-token");
+    for (const cookie of [session, refresh]) {
+      expect(cookie).toContain("HttpOnly");
+      expect(cookie).toContain("SameSite=Lax");
+      expect(cookie).toContain("Path=/");
+      expect(cookie).not.toContain("Secure");
+    }
+    const platformDefaultOnly = new Request("https://example.com", {
+      headers: { cookie: "session=platform-session; refreshToken=platform-refresh" },
+    });
+    expect(port.readSessionToken(platformDefaultOnly)).toBeNull();
+    expect(port.readRefreshToken(platformDefaultOnly)).toBeNull();
+  });
+
+  it("sets Secure in production and clears both OpenERP cookies", () => {
+    const now = new Date("2026-07-28T12:00:00.000Z");
+    const port = createOpenERPCookiePort({ isProduction: true, now: () => now });
+    const expiresAt = new Date(now.getTime() + 3600 * 1000);
+
+    for (const cookie of [
+      port.serializeSessionCookie({ token: "raw.jwt-token", expiresAt }),
+      port.serializeRefreshCookie({ token: "raw-refresh-token", expiresAt }),
+      port.serializeClearedSessionCookie(),
+      port.serializeClearedRefreshCookie(),
+    ]) {
+      expect(cookie).toContain("HttpOnly");
+      expect(cookie).toContain("SameSite=Lax");
+      expect(cookie).toContain("Path=/");
+      expect(cookie).toContain("Secure");
+    }
+    expect(port.serializeClearedSessionCookie()).toContain("openerp_session=; ");
+    expect(port.serializeClearedRefreshCookie()).toContain("openerp_refresh=; ");
+    expect(port.serializeClearedSessionCookie()).toContain("Max-Age=0");
+    expect(port.serializeClearedRefreshCookie()).toContain("Max-Age=0");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -348,7 +419,7 @@ describe("OpenERPTokenPort", () => {
 
     const expiresAt = new Date(Date.now() + 3600 * 1000);
     const token = await port1.signSessionToken(
-      { userId: "uid_1", sessionId: "sess_1", role: "user" },
+      { userId: "uid_1", sessionId: "sess_1", role: "user", org: "org_abc" },
       expiresAt
     );
     const result = await port2.verifySessionToken(token);
@@ -373,6 +444,45 @@ describe("OpenERPTokenPort", () => {
     });
     expect(typeof token).toBe("string");
     expect(token.split(".")).toHaveLength(3);
+  });
+
+  it("mints a JWT accepted by the real IdentityProvider and tenant resolver", async () => {
+    const issuer = "openerp-dev";
+    const audience = "openerp-api";
+    const port = createOpenERPTokenPort({ secret, issuer, audience } as never);
+    const identityProvider = createIdentityProvider({ secret, issuer, audience });
+    const expiresAt = new Date(Date.now() + 3600 * 1000);
+    const token = await port.signSessionToken(
+      {
+        userId: "uid_1",
+        sessionId: "sess_1",
+        role: "user",
+        org: "org_abc",
+      },
+      expiresAt
+    );
+
+    await expect(identityProvider.verify(token)).resolves.toMatchObject({
+      actorType: "human",
+      organizationId: "org_abc",
+      scopes: ["session"],
+      subjectUserIdentityId: "uid_1",
+    });
+
+    const app = buildApp({
+      db: { query: async () => ({ rows: [] }) },
+      resolveTenant: createJwtTenantResolver(identityProvider),
+    });
+    app.get("/tenant-token-proof", (c) => c.json(c.get("tenant")));
+    const response = await app.request("/tenant-token-proof", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      actorUserId: "uid_1",
+      organizationId: "org_abc",
+    });
   });
 });
 

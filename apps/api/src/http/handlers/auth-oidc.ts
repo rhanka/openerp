@@ -13,6 +13,10 @@ import {
 import { createOpenERPTokenPort } from "../../auth/openerp-token-port";
 import { createOpenERPSessionPort } from "../../auth/openerp-session-port";
 import { createOpenERPCookiePort } from "../../auth/openerp-cookie-port";
+import {
+  resolveIdentitySessionSecret,
+  resolveIdentitySigningConfiguration,
+} from "../../foundation/identity-configuration";
 
 import type { AppBindings } from "../app";
 
@@ -117,6 +121,8 @@ function sanitizeRedirectTo(raw: string | null | undefined): string {
 interface SessionMintDeps {
   db: Queryable;
   sessionSecret: Uint8Array;
+  sessionIssuer: string;
+  sessionAudience?: string;
   sessionTtlSeconds: number;
   sub: string;
   orgId: string;
@@ -124,8 +130,12 @@ interface SessionMintDeps {
 }
 
 async function mintAndPersistSession(deps: SessionMintDeps): Promise<string> {
-  const { db, sessionSecret, sessionTtlSeconds, sub, orgId, email } = deps;
-  const tokenPort = createOpenERPTokenPort({ secret: sessionSecret });
+  const { db, sessionSecret, sessionIssuer, sessionAudience, sessionTtlSeconds, sub, orgId, email } = deps;
+  const tokenPort = createOpenERPTokenPort({
+    secret: sessionSecret,
+    issuer: sessionIssuer,
+    ...(sessionAudience ? { audience: sessionAudience } : {}),
+  });
   const sessionPort = createOpenERPSessionPort(db);
   const cookiePort = createOpenERPCookiePort();
 
@@ -143,6 +153,7 @@ async function mintAndPersistSession(deps: SessionMintDeps): Promise<string> {
   await sessionPort.create({
     id: sessionId,
     userId: sub,
+    organizationId: orgId,
     sessionTokenHash: tokenHash,
     mfaVerified: false,
     expiresAt,
@@ -160,19 +171,17 @@ export function mountAuthOidcRoutes(
   app: Hono<AppBindings>,
   options: AuthOidcRouteOptions = {}
 ): void {
+  const sessionSecretValue = resolveIdentitySessionSecret(process.env, "dev-pending-secret");
   const {
     enabled = false,
     oidcClient,
-    pendingSecret = new TextEncoder().encode(
-      process.env.OPENERP_SESSION_SECRET ?? process.env.SESSION_SECRET ?? "dev-pending-secret"
-    ),
+    pendingSecret = new TextEncoder().encode(sessionSecretValue),
     sessionTtlSeconds = 3600,
     db: optDb,
   } = options;
 
-  const sessionSecret = new TextEncoder().encode(
-    process.env.OPENERP_SESSION_SECRET ?? process.env.SESSION_SECRET ?? "dev-pending-secret"
-  );
+  const sessionSecret = new TextEncoder().encode(sessionSecretValue);
+  const identitySigning = resolveIdentitySigningConfiguration(process.env);
 
   // -------------------------------------------------------------------------
   // GET /auth/login
@@ -251,6 +260,8 @@ export function mountAuthOidcRoutes(
       const cookieHeader = await mintAndPersistSession({
         db,
         sessionSecret,
+        sessionIssuer: identitySigning.issuer,
+        ...(identitySigning.audience ? { sessionAudience: identitySigning.audience } : {}),
         sessionTtlSeconds,
         sub,
         orgId: org.organizationId,
@@ -319,6 +330,8 @@ export function mountAuthOidcRoutes(
     const cookieHeader = await mintAndPersistSession({
       db,
       sessionSecret,
+      sessionIssuer: identitySigning.issuer,
+      ...(identitySigning.audience ? { sessionAudience: identitySigning.audience } : {}),
       sessionTtlSeconds,
       sub: pending.sub,
       orgId: organizationId,
@@ -338,7 +351,11 @@ export function mountAuthOidcRoutes(
 
     const db = optDb ?? c.get("db");
     const cookiePort = createOpenERPCookiePort();
-    const tokenPort = createOpenERPTokenPort({ secret: sessionSecret });
+    const tokenPort = createOpenERPTokenPort({
+      secret: sessionSecret,
+      issuer: identitySigning.issuer,
+      ...(identitySigning.audience ? { audience: identitySigning.audience } : {}),
+    });
     const sessionPort = createOpenERPSessionPort(db);
 
     const sessionJwt = cookiePort.readSessionToken(c.req.raw);
@@ -349,7 +366,8 @@ export function mountAuthOidcRoutes(
       }
     }
 
-    c.header("Set-Cookie", cookiePort.serializeClearedSessionCookie());
+    c.header("Set-Cookie", cookiePort.serializeClearedSessionCookie(), { append: true });
+    c.header("Set-Cookie", cookiePort.serializeClearedRefreshCookie(), { append: true });
     return c.json({ ok: true }, 200);
   });
 }

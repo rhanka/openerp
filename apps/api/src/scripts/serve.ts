@@ -3,7 +3,7 @@ import process from "node:process";
 
 import { createPgPool } from "../db/pg-client.js";
 import { startServer } from "../server.js";
-import { buildDevServerOptions } from "./dev-server-options.js";
+import { buildProductionServerOptions } from "./dev-server-options.js";
 
 // Cluster/production API entrypoint. Wires the pg pool to the Hono app and
 // listens on 0.0.0.0:OPENERP_API_PORT (default 3000, matching the Deployment
@@ -18,7 +18,7 @@ async function main(): Promise<void> {
   }
   const pool = createPgPool({ connectionString: url });
   const handle = startServer({
-    ...buildDevServerOptions(pool),
+    ...buildProductionServerOptions(pool),
     port: Number(process.env.OPENERP_API_PORT ?? process.env.PORT ?? "3000"),
     hostname: "0.0.0.0"
   });

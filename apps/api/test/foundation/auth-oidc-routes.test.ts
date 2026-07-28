@@ -46,6 +46,7 @@ interface MemberRow {
 interface SessionRow {
   id: string;
   user_identity_id: string;
+  organization_id: string;
   session_token_hash: string;
   refresh_token_hash: string | null;
   device_name: string | null;
@@ -78,7 +79,8 @@ function makeDb(memberRows: MemberRow[] = []) {
       const row: SessionRow = {
         id: values[0] as string,
         user_identity_id: values[1] as string,
-        session_token_hash: values[2] as string,
+        organization_id: values[2] as string,
+        session_token_hash: values[3] as string,
         refresh_token_hash: null,
         device_name: null,
         ip_address: null,

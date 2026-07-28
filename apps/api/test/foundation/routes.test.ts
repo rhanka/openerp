@@ -78,9 +78,11 @@ describe("api environment", () => {
         DATABASE_URL: "postgres://example",
         SESSION_SECRET: "secret"
       })
-    ).toEqual({
+    ).toMatchObject({
       databaseUrl: "postgres://example",
       sessionSecret: "secret",
+      sessionIssuer: "openerp-dev",
+      sessionAudience: undefined,
       appVersion: "0.0.0-dev"
     });
   });

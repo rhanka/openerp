@@ -2,16 +2,25 @@ import { Buffer } from "node:buffer";
 
 import { createAuthWebAuthnAuthenticationService } from "@sentropic/auth-hono/webauthn-authentication";
 import type { AuthHonoChallengePort, AuthHonoPorts } from "@sentropic/auth-hono";
+import type { OrganizationMember } from "@sentropic/openerp-domain";
 import { describe, expect, it, vi } from "vitest";
 
 import { createOpenERPAuditLogPort } from "../../src/auth/openerp-audit-log-port";
 import { createOpenERPChallengePort } from "../../src/auth/openerp-challenge-port";
+import { createOpenERPCookiePort } from "../../src/auth/openerp-cookie-port";
 import { createOpenERPCredentialPort } from "../../src/auth/openerp-credential-port";
 import { createOpenERPEmailDeliveryPort } from "../../src/auth/openerp-email-delivery-port";
 import { createOpenERPEmailVerificationPort } from "../../src/auth/openerp-email-verification-port";
+import { createOpenERPPendingTenantSelectionPort } from "../../src/auth/openerp-pending-tenant-port";
+import { createOpenERPTenantSessionService, OpenERPTenantSessionError } from "../../src/auth/openerp-tenant-session";
+import type { OpenERPPendingTenantSelectionPort } from "../../src/auth/openerp-pending-tenant-port";
+import type { OpenERPSessionPort, OpenERPSessionRecord } from "../../src/auth/openerp-session-port";
+import { createOpenERPTokenPort } from "../../src/auth/openerp-token-port";
 import type { Queryable } from "../../src/db/client";
 import type { EmailSender } from "../../src/foundation/email-sender";
+import { createIdentityProvider } from "../../src/foundation/identity-provider";
 import { insertPasskeyCredential } from "../../src/foundation/passkey-credentials";
+import { createJwtTenantResolver } from "../../src/http/tenant-resolvers";
 
 interface CredentialRow {
   id: string;
@@ -568,5 +577,380 @@ describe("OpenERP auth audit port", () => {
       },
     });
     await expect(port.record("error", "auth.login_failed")).rejects.toThrow("audit database unavailable");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tenant session host flow (Lot 2, deliberately unmounted)
+// ---------------------------------------------------------------------------
+
+describe("OpenERP pending tenant selection port", () => {
+  it("persists only a hash and atomically consumes the pending selection", async () => {
+    const rows: Array<{
+      id: string;
+      user_identity_id: string;
+      ceremony_id: string;
+      token_hash: string;
+      expires_at: Date;
+      consumed_at: Date | null;
+      created_at: Date;
+    }> = [];
+    const db: Queryable = {
+      async query<T = unknown>(text: string, values: unknown[] = []): Promise<{ rows: T[] }> {
+        if (text.includes("auth_pending_tenant_selection_create")) {
+          const row = {
+            id: "pending-1",
+            user_identity_id: values[0] as string,
+            ceremony_id: values[1] as string,
+            token_hash: values[2] as string,
+            expires_at: values[3] as Date,
+            consumed_at: null,
+            created_at: values[4] as Date,
+          };
+          rows.push(row);
+          return { rows: [row as unknown as T] };
+        }
+        if (text.includes("auth_pending_tenant_selection_find_valid")) {
+          const row = rows.find(
+            (candidate) =>
+              candidate.token_hash === values[0] &&
+              candidate.consumed_at === null &&
+              candidate.expires_at > (values[1] as Date)
+          );
+          return { rows: row ? [row as unknown as T] : [] };
+        }
+        if (text.includes("auth_pending_tenant_selection_consume")) {
+          const row = rows.find(
+            (candidate) =>
+              candidate.id === values[0] &&
+              candidate.user_identity_id === values[1] &&
+              candidate.ceremony_id === values[2] &&
+              candidate.token_hash === values[3] &&
+              candidate.consumed_at === null &&
+              candidate.expires_at > (values[4] as Date)
+          );
+          if (row) row.consumed_at = values[4] as Date;
+          return { rows: [{ consumed: Boolean(row) } as unknown as T] };
+        }
+        throw new Error(`unexpected query: ${text}`);
+      },
+    };
+    const port = createOpenERPPendingTenantSelectionPort(db);
+    const now = new Date("2026-07-28T12:00:00.000Z");
+    const created = await port.create({
+      userIdentityId: TENANT_USER_ID,
+      ceremonyId: "ceremony-1",
+      tokenHash: "sha256:pending-token-hash",
+      expiresAt: new Date(now.getTime() + 300_000),
+      now,
+    });
+
+    expect(rows[0]).toMatchObject({ token_hash: "sha256:pending-token-hash" });
+    expect(rows[0]).not.toHaveProperty("token");
+    expect(await port.findValid(created.tokenHash, now)).toMatchObject({ id: created.id });
+    await expect(
+      Promise.all([
+        port.consume({
+          id: created.id,
+          userIdentityId: TENANT_USER_ID,
+          ceremonyId: "ceremony-1",
+          tokenHash: created.tokenHash,
+          now,
+        }),
+        port.consume({
+          id: created.id,
+          userIdentityId: TENANT_USER_ID,
+          ceremonyId: "ceremony-1",
+          tokenHash: created.tokenHash,
+          now,
+        }),
+      ])
+    ).resolves.toEqual([true, false]);
+  });
+});
+
+const TENANT_SESSION_SECRET = new TextEncoder().encode("openerp-tenant-session-test-secret-32bytes");
+const TENANT_SESSION_ISSUER = "openerp-test";
+const TENANT_SESSION_AUDIENCE = "openerp-api";
+const TENANT_USER_ID = "tenant-user-1";
+
+function tenantMember(organizationId: string): OrganizationMember {
+  return {
+    id: `membership-${organizationId}`,
+    userIdentityId: TENANT_USER_ID,
+    organizationId,
+    status: "active",
+    preferredLocale: null,
+    joinedAt: "2026-07-28T12:00:00.000Z",
+    updatedAt: "2026-07-28T12:00:00.000Z",
+  };
+}
+
+function makeTenantSessionHarness(initialMemberships: OrganizationMember[]) {
+  const now = new Date("2026-07-28T12:00:00.000Z");
+  const sessions = new Map<string, OpenERPSessionRecord>();
+  const pending = new Map<string, {
+    id: string;
+    userIdentityId: string;
+    ceremonyId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    consumedAt: Date | null;
+    createdAt: Date;
+  }>();
+  const memberships = [...initialMemberships];
+  let sequence = 0;
+  const tokenPort = createOpenERPTokenPort({
+    secret: TENANT_SESSION_SECRET,
+    issuer: TENANT_SESSION_ISSUER,
+    audience: TENANT_SESSION_AUDIENCE,
+  });
+  const identityProvider = createIdentityProvider({
+    secret: TENANT_SESSION_SECRET,
+    issuer: TENANT_SESSION_ISSUER,
+    audience: TENANT_SESSION_AUDIENCE,
+  });
+  const sessionPort: OpenERPSessionPort = {
+    async create(input) {
+      const record: OpenERPSessionRecord = {
+        id: input.id,
+        userId: input.userId,
+        organizationId: input.organizationId,
+        sessionTokenHash: input.sessionTokenHash,
+        refreshTokenHash: input.refreshTokenHash ?? null,
+        deviceName: input.deviceInfo?.name ?? null,
+        ipAddress: input.deviceInfo?.ipAddress ?? null,
+        userAgent: input.deviceInfo?.userAgent ?? null,
+        mfaVerified: input.mfaVerified ?? false,
+        expiresAt: input.expiresAt,
+        createdAt: input.now,
+        lastActivityAt: input.now,
+        revokedAt: null,
+      };
+      sessions.set(record.id, record);
+      return record;
+    },
+    async findById(id) {
+      return sessions.get(id) ?? null;
+    },
+    async findByTokenHash(hash) {
+      return [...sessions.values()].find((session) => session.sessionTokenHash === hash) ?? null;
+    },
+    async findByRefreshTokenHash(hash) {
+      return [...sessions.values()].find((session) => session.refreshTokenHash === hash) ?? null;
+    },
+    async touch(id, at) {
+      const session = sessions.get(id);
+      if (session) session.lastActivityAt = at;
+    },
+    async updateTokens(input) {
+      const session = sessions.get(input.sessionId);
+      if (!session) return null;
+      session.sessionTokenHash = input.sessionTokenHash;
+      session.refreshTokenHash = input.refreshTokenHash;
+      session.expiresAt = input.expiresAt;
+      return session;
+    },
+    async revoke(id) {
+      const session = sessions.get(id);
+      if (!session || session.revokedAt) return false;
+      session.revokedAt = now;
+      return true;
+    },
+    async revokeAllForUser(userId) {
+      let count = 0;
+      for (const session of sessions.values()) {
+        if (session.userId === userId && !session.revokedAt) {
+          session.revokedAt = now;
+          count += 1;
+        }
+      }
+      return count;
+    },
+    async listForUser(userId) {
+      return [...sessions.values()].filter((session) => session.userId === userId);
+    },
+  };
+  const pendingSelections: OpenERPPendingTenantSelectionPort = {
+    async create(input) {
+      const record = {
+        id: `pending-${++sequence}`,
+        userIdentityId: input.userIdentityId,
+        ceremonyId: input.ceremonyId,
+        tokenHash: input.tokenHash,
+        expiresAt: input.expiresAt,
+        consumedAt: null,
+        createdAt: input.now,
+      };
+      pending.set(record.tokenHash, record);
+      return record;
+    },
+    async findValid(tokenHash, at) {
+      const record = pending.get(tokenHash);
+      return record && !record.consumedAt && record.expiresAt > at ? record : null;
+    },
+    async consume(input) {
+      const record = pending.get(input.tokenHash);
+      if (
+        !record ||
+        record.id !== input.id ||
+        record.userIdentityId !== input.userIdentityId ||
+        record.ceremonyId !== input.ceremonyId ||
+        record.consumedAt ||
+        record.expiresAt <= input.now
+      ) {
+        return false;
+      }
+      record.consumedAt = input.now;
+      return true;
+    },
+  };
+  const service = createOpenERPTenantSessionService({
+    accountPolicy: {
+      async canAuthenticate() {
+        return { allowed: true };
+      },
+      async resolveSessionRole() {
+        return "user";
+      },
+    },
+    activeMembershipsForUser: async (userId) =>
+      userId === TENANT_USER_ID ? [...memberships] : [],
+    clock: {
+      now: () => now,
+      addSeconds: (date, seconds) => new Date(date.getTime() + seconds * 1000),
+    },
+    cookies: createOpenERPCookiePort({ isProduction: true, now: () => now }),
+    identityProvider,
+    pendingSelections,
+    random: {
+      token: () => `opaque-token-${++sequence}`,
+      uuid: () => `session-${++sequence}`,
+    },
+    sessions: sessionPort,
+    tokens: tokenPort,
+    users: {
+      async findById(id) {
+        if (id !== TENANT_USER_ID) return null;
+        return {
+          id,
+          email: "alice@tenant.test",
+          displayName: "Alice Tenant",
+          role: "user",
+          emailVerified: true,
+          accountStatus: "active",
+          approvalDueAt: null,
+          createdAt: now,
+          updatedAt: now,
+        };
+      },
+    },
+  });
+  return { identityProvider, memberships, pending, service, sessions };
+}
+
+describe("OpenERP tenant session host flow", () => {
+  it("mints a one-membership session accepted by the real IdentityProvider and tenant resolver", async () => {
+    const harness = makeTenantSessionHarness([tenantMember("org-alpha")]);
+    const issued = await harness.service.issueForVerifiedUser({
+      userId: TENANT_USER_ID,
+      ceremonyId: "login-ceremony-1",
+    });
+
+    expect(issued.kind).toBe("session");
+    if (issued.kind !== "session") throw new Error("expected a tenant session");
+    await expect(harness.identityProvider.verify(issued.tokens.sessionToken)).resolves.toMatchObject({
+      actorType: "human",
+      organizationId: "org-alpha",
+      scopes: ["session"],
+      subjectUserIdentityId: TENANT_USER_ID,
+    });
+    await expect(
+      createJwtTenantResolver(harness.identityProvider)(
+        new Request("https://openerp.test/protected", {
+          headers: { authorization: `Bearer ${issued.tokens.sessionToken}` },
+        })
+      )
+    ).resolves.toEqual({ organizationId: "org-alpha", actorUserId: TENANT_USER_ID });
+    expect(issued.cookieHeaders).toEqual([
+      expect.stringContaining("openerp_session="),
+      expect.stringContaining("openerp_refresh="),
+    ]);
+    expect(issued.cookieHeaders.join("; ")).toContain("Secure");
+  });
+
+  it("rejects zero memberships without creating a session or pending cookie", async () => {
+    const harness = makeTenantSessionHarness([]);
+    await expect(
+      harness.service.issueForVerifiedUser({ userId: TENANT_USER_ID, ceremonyId: "login-ceremony-0" })
+    ).rejects.toMatchObject({ code: "NO_ACTIVE_MEMBERSHIPS", status: 403 });
+    expect(harness.sessions).toHaveLength(0);
+    expect(harness.pending).toHaveLength(0);
+  });
+
+  it("requires single-use pending selection for several memberships and rejects a non-member", async () => {
+    const harness = makeTenantSessionHarness([tenantMember("org-alpha"), tenantMember("org-beta")]);
+    const pending = await harness.service.issueForVerifiedUser({
+      userId: TENANT_USER_ID,
+      ceremonyId: "login-ceremony-many",
+    });
+
+    expect(pending.kind).toBe("tenant-selection-required");
+    if (pending.kind !== "tenant-selection-required") throw new Error("expected tenant selection");
+    expect(pending.cookieHeader).toContain("openerp_auth_pending=");
+    expect(pending.cookieHeader).not.toContain("openerp_session=");
+    const rawPendingToken = /openerp_auth_pending=([^;]+)/.exec(pending.cookieHeader)?.[1];
+    expect(rawPendingToken).toBeTruthy();
+
+    await expect(
+      harness.service.selectTenant({ pendingToken: rawPendingToken!, organizationId: "org-forged" })
+    ).rejects.toBeInstanceOf(OpenERPTenantSessionError);
+    expect(harness.sessions).toHaveLength(0);
+
+    const selected = await harness.service.selectTenant({ pendingToken: rawPendingToken!, organizationId: "org-beta" });
+    expect(selected.tokens.sessionToken).toEqual(expect.any(String));
+    await expect(
+      harness.service.selectTenant({ pendingToken: rawPendingToken!, organizationId: "org-beta" })
+    ).rejects.toMatchObject({ code: "PENDING_TENANT_SELECTION_INVALID", status: 410 });
+  });
+
+  it("preserves the persisted tenant on refresh and fails closed when membership is revoked", async () => {
+    const harness = makeTenantSessionHarness([tenantMember("org-alpha")]);
+    const issued = await harness.service.issueForVerifiedUser({
+      userId: TENANT_USER_ID,
+      ceremonyId: "login-ceremony-refresh",
+    });
+    if (issued.kind !== "session") throw new Error("expected a tenant session");
+
+    const refreshed = await harness.service.refresh(issued.tokens.refreshToken);
+    expect(refreshed?.kind).toBe("session");
+    await expect(harness.identityProvider.verify(refreshed!.tokens.sessionToken)).resolves.toMatchObject({
+      organizationId: "org-alpha",
+    });
+
+    harness.memberships.splice(0, harness.memberships.length);
+    expect(await harness.service.refresh(refreshed!.tokens.refreshToken)).toBeNull();
+  });
+
+  it("revokes the stored session and IdentityProvider token, then clears both cookies", async () => {
+    const harness = makeTenantSessionHarness([tenantMember("org-alpha")]);
+    const issued = await harness.service.issueForVerifiedUser({
+      userId: TENANT_USER_ID,
+      ceremonyId: "login-ceremony-logout",
+    });
+    if (issued.kind !== "session") throw new Error("expected a tenant session");
+
+    const loggedOut = await harness.service.logout(issued.tokens.sessionToken);
+    expect(loggedOut?.cookieHeaders).toEqual([
+      expect.stringContaining("openerp_session=;"),
+      expect.stringContaining("openerp_refresh=;"),
+    ]);
+    await expect(
+      createJwtTenantResolver(harness.identityProvider)(
+        new Request("https://openerp.test/protected", {
+          headers: { authorization: `Bearer ${issued.tokens.sessionToken}` },
+        })
+      )
+    ).resolves.toBeNull();
   });
 });
