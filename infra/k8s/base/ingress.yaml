@@ -27,6 +27,18 @@ spec:
             name: openerp-api
             port:
               number: 3000
+      # The web tier owns /api/locale (the header language switcher posts its
+      # form there). An Exact rule is required so it wins over the /api prefix
+      # below, which otherwise sends the POST to the API and gets it rejected
+      # by the tenant middleware — the switcher was dead in every deployed
+      # environment while working locally, where no ingress sits in front.
+      - path: /api/locale
+        pathType: Exact
+        backend:
+          service:
+            name: openerp-web
+            port:
+              number: 8080
       - path: /api
         pathType: Prefix
         backend:
