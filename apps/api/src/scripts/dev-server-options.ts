@@ -1,5 +1,5 @@
 import type { Queryable } from "../db/client";
-import { readApiEnv, readPlatformAuthEnabled } from "../config/env";
+import { readApiEnv } from "../config/env";
 import { createIdentityProvider } from "../foundation/identity-provider";
 import {
   resolveIdentitySessionSecret,
@@ -51,20 +51,22 @@ function buildServerOptions(
       ? headerTenantResolver
       : createJwtTenantResolver(identityProvider);
   const sessionTtlSeconds = Number(env.OPENERP_SESSION_TTL_SECONDS ?? "3600");
-  const platformAuthEnabled = readPlatformAuthEnabled(env);
-  const platformAuth = platformAuthEnabled
-    ? {
-        enabled: true as const,
-        env: readApiEnv({
-          ...env,
-          DATABASE_URL: env.OPENERP_DATABASE_URL ?? env.DATABASE_URL,
-          SESSION_SECRET: sessionSecret,
-        }),
-        identityProvider,
-        rp: { id: rpID, expectedOrigin: webOrigin },
-        sessionTtlSeconds,
-      }
-    : { enabled: false as const };
+  // The platform surface is the only authentication left, so it is mounted
+  // unconditionally. Gating it would let an environment ship with no way to
+  // sign in at all, which is exactly what a missing flag would have produced
+  // once the legacy ceremonies were removed. It needs nothing beyond the
+  // database URL and session secret that are already mandatory above.
+  const platformAuth = {
+    enabled: true as const,
+    env: readApiEnv({
+      ...env,
+      DATABASE_URL: env.OPENERP_DATABASE_URL ?? env.DATABASE_URL,
+      SESSION_SECRET: sessionSecret,
+    }),
+    identityProvider,
+    rp: { id: rpID, expectedOrigin: webOrigin },
+    sessionTtlSeconds,
+  };
 
   return {
     db,
