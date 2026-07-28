@@ -66,6 +66,11 @@ jobs:
       - name: Run e2e
         run: npm run test:e2e -w @sentropic/openerp-web
 
+      - name: Run e2e (platform auth UI)
+        env:
+          OPENERP_PLATFORM_AUTH_UI_ENABLED: "1"
+        run: npm run test:e2e -w @sentropic/openerp-web
+
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
