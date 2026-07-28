@@ -30,6 +30,11 @@ spec:
             - name: http
               containerPort: 8080
           env:
+            # Drives the Secure attribute on the cookies the web tier sets
+            # itself: openerp_locale and the legacy login-finish session. No
+            # image sets it, so without this they go out without Secure.
+            - name: NODE_ENV
+              value: production
             # Must stay OPENERP_API_URL: every +page.server.ts and the passkey
             # proxy routes read this name and otherwise fall back to
             # http://127.0.0.1:4000, which only exists on a developer machine.

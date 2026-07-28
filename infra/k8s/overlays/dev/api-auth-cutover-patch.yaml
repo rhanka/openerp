@@ -8,8 +8,6 @@ spec:
       containers:
       - name: api
         env:
-        - name: NODE_ENV
-          value: production
         - name: OPENERP_PLATFORM_AUTH_ENABLED
           valueFrom:
             configMapKeyRef:
