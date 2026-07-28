@@ -8,6 +8,12 @@ declare global {
         token: string;
         userIdentityId: string;
         organizationId: string;
+        user?: {
+          displayName: string | null;
+          email: string | null;
+          id: string;
+          role: string;
+        };
       } | null;
     }
   }

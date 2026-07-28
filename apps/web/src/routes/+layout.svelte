@@ -2,7 +2,7 @@
   import "../app.css";
 
   import { page } from "$app/state";
-  import { afterNavigate } from "$app/navigation";
+  import { afterNavigate, goto } from "$app/navigation";
   import { browser } from "$app/environment";
   import {
     AppHeader,
@@ -37,6 +37,7 @@
   } from "@sentropic/chat-ui";
 
   import { t, type LocaleCode } from "$lib/i18n";
+  import { createOpenERPAuthTransport } from "$lib/auth-transport";
   import { setCanvasContext, installWindowAccessor } from "$lib/canvas-context";
 
   import type { LayoutData } from "./$types";
@@ -45,6 +46,7 @@
 
   const locale: LocaleCode = $derived(data.locale);
   const chatEnabled: boolean = $derived(data.chatEnabled ?? false);
+  const platformAuthUiEnabled: boolean = $derived(data.platformAuthUiEnabled === true);
   const session = $derived(data.session);
   const currentPath = $derived(page.url?.pathname ?? "/");
 
@@ -104,6 +106,22 @@
     window.location.reload();
   }
 
+  async function handleLogout(): Promise<void> {
+    if (!platformAuthUiEnabled) {
+      signOutFormRef?.requestSubmit();
+      return;
+    }
+    // Suppress the generic 401 redirect here: an old JSON-wrapped cookie is
+    // intentionally invalid to platform logout but still needs the retained
+    // bridge to clear local session/refresh cookies during the transition.
+    const result = await createOpenERPAuthTransport(locale, { onUnauthorized: () => undefined }).logout();
+    if (result.ok) {
+      if (browser) await goto("/login");
+      return;
+    }
+    signOutFormRef?.requestSubmit();
+  }
+
   // Identity user for the DS IdentityMenu — the session carries token + IDs only
   // (no name/email yet); displayName drives the avatar initials.
   const identityUser = $derived(
@@ -146,7 +164,7 @@
     setCanvasContext(currentPath);
   });
 
-  const preAuthRoutes = ["/login", "/register-passkey"];
+  const preAuthRoutes = ["/login", "/register-passkey", "/select-organization"];
   const isPreAuth = $derived(preAuthRoutes.some((r) => currentPath === r || currentPath.startsWith(r + "/")));
 
   // Active module detection for 2-level IA (UXDR-009)
@@ -329,7 +347,7 @@
           user={identityUser}
           compact={true}
           onLogin={() => { if (browser) window.location.href = "/login"; }}
-          onLogout={() => signOutFormRef?.requestSubmit()}
+          onLogout={handleLogout}
           loginLabel={t(locale, "auth.signIn")}
           logoutLabel={t(locale, "auth.signOut")}
         />
@@ -353,7 +371,7 @@
           isAuthenticated={!!session}
           user={identityUser}
           onLogin={() => { if (browser) window.location.href = "/login"; }}
-          onLogout={() => signOutFormRef?.requestSubmit()}
+          onLogout={handleLogout}
           loginLabel={t(locale, "auth.signIn")}
           logoutLabel={t(locale, "auth.signOut")}
         />
