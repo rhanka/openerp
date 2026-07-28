@@ -34,6 +34,7 @@ const TEST_SECRET = randomBytes(32);
 
 const AUTH_ENV: ApiEnv = {
   databaseUrl: "postgresql://example.test/openerp",
+  platformAuthEnabled: false,
   sessionSecret: TEST_SECRET.toString("base64url"),
   sessionIssuer: "openerp-dev",
   sessionAudience: undefined,

@@ -4,6 +4,12 @@ import type { IdentityProvider } from "@sentropic/openerp-domain";
 
 import type { Queryable, TenantContext } from "../db/client";
 import type { PasskeyService } from "../foundation/passkey-service";
+import type { ApiEnv } from "../config/env";
+import type { EmailSender } from "../foundation/email-sender";
+import {
+  createOpenERPAuthRouter,
+  type PlatformAuthWebAuthnVerifierOverrides,
+} from "../auth/router";
 import { mountApprovalRequestRoutes } from "./handlers/approval-requests";
 import { mountAuditEventsRoutes } from "./handlers/audit-events";
 import { mountCrmCompanyRoutes } from "./handlers/crm-companies";
@@ -66,6 +72,26 @@ export interface BuildAppOptions {
     sessionTtlSeconds?: number;
   };
   /**
+   * Identity provider for routes that must survive independently of the
+   * legacy WebAuthn mount (notably the OFX agent-token exchange endpoint).
+   */
+  identityProvider?: IdentityProvider;
+  /**
+   * Default-off dark mount for the platform auth surface. Its dependencies are
+   * intentionally absent unless the explicit environment flag enables it.
+   */
+  platformAuth?:
+    | { enabled: false }
+    | {
+        enabled: true;
+        emailSender?: EmailSender;
+        env: ApiEnv;
+        identityProvider: IdentityProvider;
+        rp: { id: string; expectedOrigin: string };
+        sessionTtlSeconds: number;
+        webAuthn?: PlatformAuthWebAuthnVerifierOverrides;
+      };
+  /**
    * OIDC RP routes (AUTH-39-A). When `enabled === true` the four /auth/* routes
    * (GET /auth/login, GET /auth/oauth/callback, POST /auth/org-select,
    * POST /auth/logout) delegate to the provided oidcClient. When `enabled` is
@@ -84,6 +110,7 @@ export interface BuildAppOptions {
 const PUBLIC_PATH_PREFIXES = [
   "/readyz",
   "/webauthn/",
+  "/api/v1/auth/",
   "/openapi.json",
   "/auth/login",
   "/auth/oauth/callback",
@@ -144,9 +171,27 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
         ? { sessionTtlSeconds: options.passkey.sessionTtlSeconds }
         : {})
     });
-    mountAgentTokenExchangeRoute(app, {
-      identityProvider: options.passkey.identityProvider
+  }
+
+  const agentTokenIdentityProvider =
+    options.identityProvider ??
+    options.passkey?.identityProvider ??
+    (options.platformAuth?.enabled ? options.platformAuth.identityProvider : undefined);
+  if (agentTokenIdentityProvider) {
+    mountAgentTokenExchangeRoute(app, { identityProvider: agentTokenIdentityProvider });
+  }
+
+  if (options.platformAuth?.enabled) {
+    const platformAuthRouter = createOpenERPAuthRouter({
+      db: options.db,
+      ...(options.platformAuth.emailSender ? { emailSender: options.platformAuth.emailSender } : {}),
+      env: options.platformAuth.env,
+      identityProvider: options.platformAuth.identityProvider,
+      rp: options.platformAuth.rp,
+      sessionTtlSeconds: options.platformAuth.sessionTtlSeconds,
+      ...(options.platformAuth.webAuthn ? { webAuthn: options.platformAuth.webAuthn } : {}),
     });
+    app.route("/api/v1/auth", platformAuthRouter);
   }
 
   // OIDC RP routes (AUTH-39-A). Routes are always mounted; when disabled they

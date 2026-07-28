@@ -37,5 +37,21 @@ describe("dev server options", () => {
       challenge: expect.any(String),
       rpId: "127.0.0.1"
     });
+    const platformHealth = await app.request("/api/v1/auth/health");
+    expect(platformHealth.status).toBe(404);
+  });
+
+  it("mounts the platform surface only when OPENERP_PLATFORM_AUTH_ENABLED is literal 1", async () => {
+    const db = makeChallengeDb();
+    const app = buildApp(buildDevServerOptions(db, {
+      OPENERP_DATABASE_URL: "postgresql://openerp.test/dev-options",
+      OPENERP_PLATFORM_AUTH_ENABLED: "1",
+      OPENERP_SMTP_HOST: "smtp.test",
+      OPENERP_SMTP_FROM_ADDRESS: "auth@openerp.test",
+    }));
+
+    const response = await app.request("/api/v1/auth/health");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ status: "ok", service: "openerp-auth" });
   });
 });
