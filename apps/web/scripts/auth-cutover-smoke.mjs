@@ -31,7 +31,15 @@ try {
   await assertProtectedApi(registeredToken, 200);
 
   const initialCredential = await credentialFor(registeredToken);
-  assert.equal(initialCredential.counter, 0, "registration must persist a fresh credential counter");
+  // The counter is whatever the authenticator reported while signing the
+  // attestation, not necessarily zero: Chrome's virtual authenticator already
+  // returns 1 there. Storing it verbatim is what WebAuthn asks for, and it is
+  // the baseline the monotonicity check below compares against. What proves
+  // registration is not an authentication use is lastUsedAt staying unset.
+  assert.ok(
+    Number.isInteger(initialCredential.counter) && initialCredential.counter >= 0,
+    "registration must persist the authenticator's signature counter",
+  );
   assert.equal(initialCredential.lastUsedAt, null, "registration must not look like an authentication use");
 
   await refreshSession(page);
