@@ -1,11 +1,34 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { goto } from "$app/navigation";
+  import AuthRegister from "@sentropic/auth-ui/components/AuthRegister.svelte";
+  import type { AuthRegisterProps } from "@sentropic/auth-ui/components/AuthRegister.svelte";
   import { Alert, Button, Card, Container, Form, FormGroup, Input, Row, Stack } from "@sentropic/design-system-svelte";
   import { startRegistration } from "@simplewebauthn/browser";
+  import type { SvelteComponent } from "svelte";
 
+  import {
+    createOpenERPAuthTransport,
+    requiresTenantSelection,
+    resolveAuthUiLabels,
+    safeRelativeReturnUrl,
+  } from "$lib/auth-transport";
   import { t, type LocaleCode } from "$lib/i18n";
 
+  // See the login host: the published component renders this documented slot,
+  // while its 0.7.1 Svelte declaration does not include a slot map.
+  const AuthRegisterWithLinks = AuthRegister as unknown as new (...args: any[]) => SvelteComponent<
+    AuthRegisterProps,
+    Record<string, never>,
+    { "login-link": Record<string, never> }
+  >;
+
   const locale: LocaleCode = $derived(page.data.locale as LocaleCode);
+  const platformAuthUiEnabled = $derived(page.data.platformAuthUiEnabled === true);
+  const authTransport = $derived(createOpenERPAuthTransport(locale));
+  const authLabels = $derived(resolveAuthUiLabels(locale));
+  const returnUrl = $derived(safeRelativeReturnUrl(page.url.searchParams.get("returnUrl")));
+  const loginHref = $derived(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
 
   let email = $state("alice@northwind.local");
   let label = $state("Demo passkey");
@@ -62,8 +85,21 @@
       return "";
     }
   }
+
+  async function handlePlatformRegistration(session: import("@sentropic/auth-ui").AuthUiSession): Promise<void> {
+    if (requiresTenantSelection(session)) {
+      await goto(`/select-organization?returnUrl=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+    await goto(returnUrl);
+  }
 </script>
 
+{#if platformAuthUiEnabled}
+  <AuthRegisterWithLinks transport={authTransport} labels={authLabels} onRegistered={handlePlatformRegistration}>
+    <a slot="login-link" href={loginHref}>{t(locale, "register.action.login")}</a>
+  </AuthRegisterWithLinks>
+{:else}
 <Container size="xl" as="section">
 <Stack gap={6}>
   <Row justify="between" align="start">
@@ -126,3 +162,4 @@
     margin-top: 1rem;
   }
 </style>
+{/if}
