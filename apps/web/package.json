@@ -9,7 +9,8 @@
     "prelint": "svelte-kit sync",
     "lint": "svelte-check --tsconfig ./tsconfig.json",
     "test": "echo 'apps/web: no unit tests; use test:e2e for Playwright'",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "smoke:auth-cutover": "node scripts/auth-cutover-smoke.mjs"
   },
   "dependencies": {
     "@lucide/svelte": "^0.562.0",
