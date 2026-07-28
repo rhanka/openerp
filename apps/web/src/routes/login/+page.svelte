@@ -81,6 +81,7 @@
 </script>
 
 {#if platformAuthUiEnabled}
+  <h1 class="st-visually-hidden">{t(locale, "login.page.title")}</h1>
   <AuthLoginWithLinks transport={authTransport} labels={authLabels} onLoggedIn={handlePlatformLogin}>
     <a slot="no-account" href={registerHref}>{t(locale, "login.action.register")}</a>
     <a slot="register-new-device" href={registerHref}>{t(locale, "login.action.register")}</a>

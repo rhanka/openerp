@@ -96,6 +96,7 @@
 </script>
 
 {#if platformAuthUiEnabled}
+  <h1 class="st-visually-hidden">{t(locale, "auth.register.title")}</h1>
   <AuthRegisterWithLinks transport={authTransport} labels={authLabels} onRegistered={handlePlatformRegistration}>
     <a slot="login-link" href={loginHref}>{t(locale, "register.action.login")}</a>
   </AuthRegisterWithLinks>

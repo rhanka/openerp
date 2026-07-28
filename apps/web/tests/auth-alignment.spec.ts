@@ -236,7 +236,7 @@ test.describe("platform auth-ui pages", () => {
     await page.goto("/login");
     await page.waitForLoadState("domcontentloaded");
 
-    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Sign in" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign in with passkey" })).toBeVisible();
     await expect(page.getByLabel("Email address")).not.toBeAttached();
     await expect(page.getByRole("link", { name: "Create a passkey" })).toBeVisible();
@@ -254,7 +254,7 @@ test.describe("platform auth-ui pages", () => {
     await page.goto("/register-passkey");
     await page.waitForLoadState("domcontentloaded");
 
-    await expect(page.getByRole("heading", { name: "Créer un compte" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Créer un compte" })).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(page.getByRole("button", { name: "Obtenir un code" })).toBeVisible();
     await page.getByLabel("Email").fill("platform.user@example.test");

@@ -270,7 +270,7 @@ test.describe("UI review: shell ergonomics — pre-auth routes", () => {
           await page.goto(route.path);
           await page.waitForLoadState("domcontentloaded");
 
-          await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
+          await expect(page.getByRole("heading", { level: 1, name: route.labels[locale], exact: true })).toBeVisible();
           await expect(page.getByRole("button", { name: route.formAction[locale], exact: true })).toBeVisible();
 
           const appHeader = page.getByRole("banner");
