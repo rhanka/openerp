@@ -76,7 +76,11 @@
       await goto(`/select-organization?returnUrl=${encodeURIComponent(returnUrl)}`);
       return;
     }
-    await goto(returnUrl);
+    // The session cookie is set by the ceremony, but the root layout's server
+    // load already ran on this page with no session. Without invalidating, the
+    // shell keeps believing the visitor is anonymous and renders no identity
+    // menu, so there is no way to sign out until a full reload.
+    await goto(returnUrl, { invalidateAll: true });
   }
 </script>
 

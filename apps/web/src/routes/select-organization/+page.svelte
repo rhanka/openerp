@@ -65,7 +65,10 @@
         error = t(locale, "organizationSelection.unavailable");
         return;
       }
-      await goto(returnUrl);
+      // Selecting the tenant is what finally issues the application session,
+      // so the shell must reload its server data rather than keep the
+      // sessionless state this page was rendered with.
+      await goto(returnUrl, { invalidateAll: true });
     } catch {
       error = t(locale, "organizationSelection.unavailable");
     } finally {

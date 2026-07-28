@@ -91,7 +91,10 @@
       await goto(`/select-organization?returnUrl=${encodeURIComponent(returnUrl)}`);
       return;
     }
-    await goto(returnUrl);
+    // Enrolment establishes the session cookie, but this page's root layout
+    // load ran without one. Invalidate so the shell picks the session up and
+    // renders the identity menu instead of treating the visitor as anonymous.
+    await goto(returnUrl, { invalidateAll: true });
   }
 </script>
 
