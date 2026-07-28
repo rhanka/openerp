@@ -1,6 +1,13 @@
+import {
+  resolveIdentitySessionSecret,
+  resolveIdentitySigningConfiguration,
+} from "../foundation/identity-configuration.js";
+
 export interface ApiEnv {
   databaseUrl: string;
   sessionSecret: string;
+  sessionIssuer: string;
+  sessionAudience: string | undefined;
   appVersion: string;
   oauthIssuerUrl: string | undefined;
   oauthClientId: string | undefined;
@@ -16,15 +23,18 @@ export interface ApiEnv {
 
 export function readApiEnv(env: NodeJS.ProcessEnv): ApiEnv {
   const databaseUrl = env.DATABASE_URL;
-  const sessionSecret = env.SESSION_SECRET;
+  const sessionSecret = resolveIdentitySessionSecret(env);
   const appVersion = env.APP_VERSION ?? "0.0.0-dev";
 
   if (!databaseUrl) throw new Error("DATABASE_URL is required");
   if (!sessionSecret) throw new Error("SESSION_SECRET is required");
+  const identitySigning = resolveIdentitySigningConfiguration(env);
 
   return {
     databaseUrl,
     sessionSecret,
+    sessionIssuer: identitySigning.issuer,
+    sessionAudience: identitySigning.audience,
     appVersion,
     oauthIssuerUrl: env.OAUTH_ISSUER_URL,
     oauthClientId: env.OAUTH_CLIENT_ID,

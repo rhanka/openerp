@@ -1,4 +1,4 @@
-import type { AuthHonoPorts } from "@sentropic/auth-hono";
+import type { AuthHonoPorts, AuthHonoSessionPort, AuthHonoTokenPort } from "@sentropic/auth-hono";
 import type { Queryable } from "../db/client.js";
 import type { ApiEnv } from "../config/env.js";
 import { createOpenERPSessionPort } from "./openerp-session-port.js";
@@ -12,6 +12,7 @@ import { createOpenERPRandomPort } from "./openerp-random-port.js";
 import { createOpenERPCredentialPort } from "./openerp-credential-port.js";
 import { createOpenERPChallengePort } from "./openerp-challenge-port.js";
 import { createOpenERPEmailVerificationPort } from "./openerp-email-verification-port.js";
+import { createOpenERPPendingTenantSelectionPort } from "./openerp-pending-tenant-port.js";
 import { createStubMagicLinksPort } from "./stub-magic-links-port.js";
 import { createOpenERPEmailDeliveryPort } from "./openerp-email-delivery-port.js";
 import { createStubOauthStateStorePort } from "./stub-oauth-state-store-port.js";
@@ -31,13 +32,19 @@ export {
   createOpenERPCredentialPort,
   createOpenERPChallengePort,
   createOpenERPEmailVerificationPort,
+  createOpenERPPendingTenantSelectionPort,
   createStubMagicLinksPort,
   createOpenERPEmailDeliveryPort,
   createStubOauthStateStorePort,
   createStubJwksPort,
 };
 
-export type { OpenERPSessionClaims, OpenERPTokenPortOptions } from "./openerp-token-port.js";
+export type { OpenERPSessionClaims, OpenERPTokenPort, OpenERPTokenPortOptions } from "./openerp-token-port.js";
+export type {
+  OpenERPCreateSessionInput,
+  OpenERPSessionPort,
+  OpenERPSessionRecord,
+} from "./openerp-session-port.js";
 
 /**
  * Compose all AuthHonoPorts for OpenERP.
@@ -64,10 +71,17 @@ export function buildAuthHonoPorts(
 
   return {
     // Live adapters
-    sessions: createOpenERPSessionPort(db),
+    // The platform's type does not expose organizationId. The concrete port
+    // remains tenant-aware and rejects generic platform session creation; the
+    // Lot 2 host session service is the only human-session issuer.
+    sessions: createOpenERPSessionPort(db) as AuthHonoSessionPort,
     users: createOpenERPUserPort(db),
     cookies: createOpenERPCookiePort(),
-    tokens: createOpenERPTokenPort({ secret }),
+    tokens: createOpenERPTokenPort({
+      secret,
+      issuer: env.sessionIssuer,
+      ...(env.sessionAudience ? { audience: env.sessionAudience } : {}),
+    }) as AuthHonoTokenPort,
     accountPolicy: createOpenERPAccountPolicyPort(),
     auditLog: createOpenERPAuditLogPort(db),
     clock: createOpenERPClockPort(),
