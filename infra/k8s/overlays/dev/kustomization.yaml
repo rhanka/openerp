@@ -3,15 +3,13 @@ kind: Kustomization
 namespace: openerp-dev
 resources:
 - ../../base
-- auth-cutover-support.yaml
 patches:
 - target:
     kind: Ingress
     name: openerp
   path: ingress-patch.yaml
 - path: resources-patch.yaml
-- path: api-auth-cutover-patch.yaml
-- path: web-auth-cutover-patch.yaml
+- path: api-auth-config-patch.yaml
 commonLabels:
   openerp.env: dev
 images:

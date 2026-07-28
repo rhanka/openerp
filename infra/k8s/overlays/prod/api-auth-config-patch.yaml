@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-api
+spec:
+  template:
+    spec:
+      containers:
+      - name: api
+        env:
+        # The WebAuthn tuple must match the browser's first-party origin. The
+        # defaults target localhost, so without these every ceremony would be
+        # rejected for an origin/RP-ID mismatch on the real hostname.
+        - name: OPENERP_WEB_ORIGIN
+          value: https://openerp.sent-tech.ca
+        - name: OPENERP_WEBAUTHN_RP_ID
+          value: openerp.sent-tech.ca
+        # No SMTP here yet: passkey sign-in needs none, and the transport is
+        # resolved on first delivery, so the API boots. Enrolment — which sends
+        # a verification code — stays unavailable until mail is configured.

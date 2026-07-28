@@ -175,9 +175,6 @@ jobs:
             exit 1
           fi
 
-      - name: Verify coordinated platform-auth manifests
-        run: npm run check:auth-cutover
-
       - name: Create/refresh Secret
         run: |
           kubectl -n openerp-dev create secret generic openerp-runtime \
@@ -192,12 +189,6 @@ jobs:
 
       - name: Recreate migration Job (Job pod templates are immutable)
         run: kubectl -n openerp-dev delete job openerp-migrate --ignore-not-found
-
-      # Keep the legacy web pods serving while the shared ConfigMap switches
-      # the API template on. This is the only permitted temporary half state:
-      # API=on plus existing web=off, bounded by the API health proof below.
-      - name: Hold web rollout for API-first preflight
-        run: kubectl -n openerp-dev rollout pause deploy/openerp-web
 
       - name: Apply Kustomize
         run: kubectl apply -k infra/k8s/overlays/dev
@@ -225,10 +216,8 @@ jobs:
         run: |
           kubectl -n openerp-dev exec deploy/openerp-api -- node -e "fetch('http://127.0.0.1:3000/api/v1/auth/health').then(async r=>{const body=await r.json();if(r.status!==200||body.status!=='ok'||body.service!=='openerp-auth'){console.error(r.status,body);process.exit(1)}console.log('platform-auth',JSON.stringify(body))}).catch(e=>{console.error(e);process.exit(1)})"
 
-      - name: Enable platform auth UI after API proof
-        run: |
-          kubectl -n openerp-dev rollout resume deploy/openerp-web
-          kubectl -n openerp-dev rollout status deploy/openerp-web --timeout=120s
+      - name: Wait for the web rollout
+        run: kubectl -n openerp-dev rollout status deploy/openerp-web --timeout=120s
 
       # The fixture is deliberately pre-provisioned in the target DEV DB;
       # registration cannot create an identity or organization. It is unique
@@ -260,17 +249,6 @@ jobs:
         run: |
           kubectl -n openerp-dev get certificate,ingress
           curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/readyz
-
-      # The hold above is bounded to this run. Leaving it set freezes every
-      # later release of the web tier: when Apply Kustomize failed on the
-      # immutable Postgres Service, the deployment stayed paused and the web
-      # pods kept serving a stale image with the cut-over flag unread. With a
-      # single replica and the default rolling update, resuming can never
-      # replace a healthy pod with an unhealthy one, so clearing the hold is
-      # safe even when the run failed.
-      - name: Always clear the web rollout hold
-        if: always()
-        run: kubectl -n openerp-dev rollout resume deploy/openerp-web || true
 
       - name: Diagnostics on failure
         if: failure()
@@ -319,9 +297,6 @@ jobs:
             echo "Refusing deploy: expected cluster server to contain hlhedx.c1.bhs5.k8s.ovh.net"
             exit 1
           fi
-
-      - name: Verify coordinated platform-auth manifests
-        run: npm run check:auth-cutover
 
       - name: Create/refresh Secret
         run: |
