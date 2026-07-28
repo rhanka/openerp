@@ -1,4 +1,9 @@
-import type { AuthHonoPorts, AuthHonoSessionPort, AuthHonoTokenPort } from "@sentropic/auth-hono";
+import type {
+  AuthHonoPorts,
+  AuthHonoSessionPort,
+  AuthHonoTokenPort,
+  OauthStateStorePort,
+} from "@sentropic/auth-hono";
 import type { Queryable } from "../db/client.js";
 import type { ApiEnv } from "../config/env.js";
 import { createOpenERPSessionPort } from "./openerp-session-port.js";
@@ -15,7 +20,6 @@ import { createOpenERPEmailVerificationPort } from "./openerp-email-verification
 import { createOpenERPPendingTenantSelectionPort } from "./openerp-pending-tenant-port.js";
 import { createStubMagicLinksPort } from "./stub-magic-links-port.js";
 import { createOpenERPEmailDeliveryPort } from "./openerp-email-delivery-port.js";
-import { createStubOauthStateStorePort } from "./stub-oauth-state-store-port.js";
 import { createStubJwksPort } from "./stub-jwks-port.js";
 import type { EmailSender } from "../foundation/email-sender.js";
 import { createSmtpEmailSender } from "../foundation/smtp-email-sender.js";
@@ -35,7 +39,6 @@ export {
   createOpenERPPendingTenantSelectionPort,
   createStubMagicLinksPort,
   createOpenERPEmailDeliveryPort,
-  createStubOauthStateStorePort,
   createStubJwksPort,
 };
 
@@ -50,11 +53,8 @@ export type {
  * Compose all AuthHonoPorts for OpenERP.
  *
  * Twelve live adapters wrap OpenERP host policy, PostgreSQL persistence,
- * audited email delivery, cookie/session state, and signing. The three
+ * audited email delivery, cookie/session state, and signing. The two
  * deliberately disabled capabilities remain centralized and fail closed.
- *
- * No routes are mounted yet — A0-oidc-client + A0-handlers + A1 cutover
- * bring this bundle online.
  */
 export interface BuildAuthHonoPortsOptions {
   /** Tests may supply a capturing transport. Production defaults to SMTP. */
@@ -94,10 +94,29 @@ export function buildAuthHonoPorts(
     emailVerification: createOpenERPEmailVerificationPort(db),
     emailDelivery: createOpenERPEmailDeliveryPort({ db, sender: emailSender }),
 
-    // Deliberately disabled capabilities. No Lot 0–1 route can invoke these.
+    // Deliberately disabled capabilities. OpenERP mounts no OAuth provider
+    // router; this required platform port therefore fails closed.
     magicLinks: createStubMagicLinksPort(),
-    oauthStateStore: createStubOauthStateStorePort(),
+    oauthStateStore: createDisabledOauthStateStore(),
     jwks: createStubJwksPort(),
+  };
+}
+
+function createDisabledOauthStateStore(): OauthStateStorePort {
+  const disabled = (): never => {
+    throw new Error("OAuth provider capability is disabled");
+  };
+
+  return {
+    findClient: disabled,
+    saveAuthCode: disabled,
+    consumeAuthCode: disabled,
+    saveTokenMeta: disabled,
+    findTokenMeta: disabled,
+    revokeToken: disabled,
+    isTokenRevoked: disabled,
+    recordDpopJti: disabled,
+    purgeExpired: disabled,
   };
 }
 
