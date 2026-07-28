@@ -166,6 +166,15 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG_DATA_DEV }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: 'Preflight: refuse any cluster that is not OVH'
+        run: |
+          cluster_server="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          if [[ "$cluster_server" != *"hlhedx.c1.bhs5.k8s.ovh.net"* ]]; then
+            echo "Invalid cluster server: $cluster_server"
+            echo "Refusing deploy: expected cluster server to contain hlhedx.c1.bhs5.k8s.ovh.net"
+            exit 1
+          fi
+
       - name: Verify coordinated platform-auth manifests
         run: npm run check:auth-cutover
 
@@ -247,8 +256,7 @@ jobs:
           OPENERP_AUTH_SMOKE_FIXTURE="$fixture" \
           npm run smoke:auth-cutover -w @sentropic/openerp-web
 
-      - name: Public endpoint check (informational until the prod cert matures)
-        continue-on-error: true
+      - name: Public endpoint check
         run: |
           kubectl -n openerp-dev get certificate,ingress
           curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/readyz
@@ -303,6 +311,15 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG_DATA_PROD }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: 'Preflight: refuse any cluster that is not OVH'
+        run: |
+          cluster_server="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          if [[ "$cluster_server" != *"hlhedx.c1.bhs5.k8s.ovh.net"* ]]; then
+            echo "Invalid cluster server: $cluster_server"
+            echo "Refusing deploy: expected cluster server to contain hlhedx.c1.bhs5.k8s.ovh.net"
+            exit 1
+          fi
+
       - name: Verify coordinated platform-auth manifests
         run: npm run check:auth-cutover
 
@@ -341,8 +358,7 @@ jobs:
           kubectl -n openerp-prod exec deploy/openerp-api -- node -e "fetch('http://127.0.0.1:3000/readyz').then(r=>{if(r.status!==200){console.error('status',r.status);process.exit(1)}return r.text()}).then(t=>{console.log('readyz',t);process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})"
           kubectl -n openerp-prod get pods
 
-      - name: Public endpoint check (informational until the prod cert matures)
-        continue-on-error: true
+      - name: Public endpoint check
         run: |
           kubectl -n openerp-prod get certificate,ingress
           curl --fail --silent --show-error https://openerp.sent-tech.ca/readyz
