@@ -22,10 +22,6 @@
   let error = $state("");
 
   onMount(() => {
-    if (page.data.platformAuthUiEnabled !== true) {
-      void goto("/login");
-      return;
-    }
     void loadMemberships();
   });
 

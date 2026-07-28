@@ -219,7 +219,6 @@ test("auth alignment pass-through forwards locale and all platform Set-Cookie he
 });
 
 test.describe("platform auth-ui pages", () => {
-  test.skip(process.env.OPENERP_PLATFORM_AUTH_UI_ENABLED !== "1", "Requires OPENERP_PLATFORM_AUTH_UI_ENABLED=1.");
 
   test("renders the published login and registration components when the web flag is on", async ({
     page,
