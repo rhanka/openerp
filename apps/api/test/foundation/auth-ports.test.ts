@@ -9,7 +9,6 @@ import { createOpenERPAccountPolicyPort } from "../../src/auth/openerp-account-p
 import { createOpenERPClockPort } from "../../src/auth/openerp-clock-port";
 import { createOpenERPRandomPort } from "../../src/auth/openerp-random-port";
 import { createStubMagicLinksPort } from "../../src/auth/stub-magic-links-port";
-import { createStubOauthStateStorePort } from "../../src/auth/stub-oauth-state-store-port";
 import { createStubJwksPort } from "../../src/auth/stub-jwks-port";
 import { buildAuthHonoPorts } from "../../src/auth/ports";
 import type { ApiEnv } from "../../src/config/env";
@@ -630,13 +629,6 @@ describe("Stub ports throw tagged errors", () => {
     await expect(
       port.create({ email: "a@a.com", tokenHash: "h", expiresAt: new Date(), now: new Date() })
     ).rejects.toMatchObject({ name: "OpenERPMagicLinkStubError" });
-  });
-
-  it("oauth state store port throws OpenERPOauthStateStubError", async () => {
-    const port = createStubOauthStateStorePort();
-    await expect(port.findClient("client_id")).rejects.toMatchObject({
-      name: "OpenERPOauthStateStubError",
-    });
   });
 
   it("jwks port throws OpenERPJwksStubError", async () => {

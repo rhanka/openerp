@@ -42,8 +42,6 @@ import { mountWebhookAdminRoutes } from "./handlers/webhook-admin";
 import { mountUsersRoutes } from "./handlers/users";
 import { mountWebAuthnRoutes } from "./handlers/webauthn";
 import { mountAgentTokenExchangeRoute } from "./handlers/auth-token-exchange";
-import { mountAuthOidcRoutes } from "./handlers/auth-oidc";
-import type { OidcClient } from "../auth/oidc-client";
 import { setWorkflowEvaluator, setWebhookEvaluator } from "../foundation/audit-emit";
 import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
 import { makeWebhookEvaluator } from "../webhook/webhook-evaluator";
@@ -91,20 +89,6 @@ export interface BuildAppOptions {
         sessionTtlSeconds: number;
         webAuthn?: PlatformAuthWebAuthnVerifierOverrides;
       };
-  /**
-   * OIDC RP routes (AUTH-39-A). When `enabled === true` the four /auth/* routes
-   * (GET /auth/login, GET /auth/oauth/callback, POST /auth/org-select,
-   * POST /auth/logout) delegate to the provided oidcClient. When `enabled` is
-   * false (default), the routes return 503 { code: "AUTH_OIDC_DISABLED" }
-   * without touching any other state.
-   *
-   * Guarded by OPENERP_OIDC_ENABLED=1 at the call site in server.ts.
-   */
-  oidc?: {
-    enabled: boolean;
-    oidcClient?: OidcClient;
-    sessionTtlSeconds?: number;
-  };
 }
 
 const PUBLIC_PATH_PREFIXES = [
@@ -112,10 +96,6 @@ const PUBLIC_PATH_PREFIXES = [
   "/webauthn/",
   "/api/v1/auth/",
   "/openapi.json",
-  "/auth/login",
-  "/auth/oauth/callback",
-  "/auth/org-select",
-  "/auth/logout",
 ] as const;
 
 function isPublicPath(path: string): boolean {
@@ -193,18 +173,6 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
     });
     app.route("/api/v1/auth", platformAuthRouter);
   }
-
-  // OIDC RP routes (AUTH-39-A). Routes are always mounted; when disabled they
-  // return 503 so callers get a clear signal rather than a 404/405.
-  mountAuthOidcRoutes(app, {
-    enabled: options.oidc?.enabled ?? false,
-    db: options.db,
-    // exactOptionalPropertyTypes: only pass optional props when defined.
-    ...(options.oidc?.oidcClient !== undefined ? { oidcClient: options.oidc.oidcClient } : {}),
-    ...(options.oidc?.sessionTtlSeconds !== undefined
-      ? { sessionTtlSeconds: options.oidc.sessionTtlSeconds }
-      : {}),
-  });
 
   mountUsersRoutes(app);
   mountApprovalRequestRoutes(app);
