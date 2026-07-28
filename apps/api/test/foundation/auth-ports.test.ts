@@ -55,9 +55,22 @@ const AUTH_ENV: ApiEnv = {
 // ---------------------------------------------------------------------------
 
 describe("buildAuthHonoPorts", () => {
-  it("requires configured SMTP in production composition but accepts an explicit test transport", () => {
+  it("defers the SMTP requirement to the first delivery and accepts an explicit test transport", async () => {
     const { db } = spyQueryable();
-    expect(() => buildAuthHonoPorts(db, AUTH_ENV)).toThrow("OPENERP_SMTP_HOST");
+    // Composition must succeed without mail configured: authentication is
+    // mounted unconditionally and passkey sign-in never sends anything, so an
+    // eager check would stop the whole API from booting. The requirement still
+    // has to bite, but only where it is actionable — on an actual send.
+    const unconfigured = buildAuthHonoPorts(db, AUTH_ENV);
+    expect(unconfigured.emailDelivery).toBeDefined();
+    await expect(
+      unconfigured.emailDelivery.sendVerificationCode({
+        email: "someone@openerp.test",
+        code: "123456",
+        expiresAt: new Date("2026-01-01T00:00:00.000Z"),
+      }),
+    ).rejects.toThrow("OPENERP_SMTP_HOST");
+
     const sender: EmailSender = {
       id: "test-capturing-transport",
       async send() {

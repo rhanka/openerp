@@ -67,7 +67,7 @@ export function buildAuthHonoPorts(
   options: BuildAuthHonoPortsOptions = {}
 ): AuthHonoPorts {
   const secret = new TextEncoder().encode(env.sessionSecret);
-  const emailSender = options.emailSender ?? createProductionEmailSender(env);
+  const emailSender = options.emailSender ?? createLazyProductionEmailSender(env);
 
   return {
     // Live adapters
@@ -117,6 +117,23 @@ function createDisabledOauthStateStore(): OauthStateStorePort {
     isTokenRevoked: disabled,
     recordDpopJti: disabled,
     purgeExpired: disabled,
+  };
+}
+
+/**
+ * Authentication is mounted unconditionally, so building the SMTP transport
+ * eagerly would stop an environment from booting merely because it has not
+ * configured mail yet — and passkey sign-in needs no mail at all. Defer the
+ * check to the first delivery, where it is actionable.
+ */
+function createLazyProductionEmailSender(env: ApiEnv): EmailSender {
+  let delegate: EmailSender | undefined;
+  const resolve = (): EmailSender => (delegate ??= createProductionEmailSender(env));
+  return {
+    get id(): string {
+      return resolve().id;
+    },
+    send: (message) => resolve().send(message),
   };
 }
 

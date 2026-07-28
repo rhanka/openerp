@@ -19,9 +19,10 @@ function makeChallengeDb(): Queryable {
 }
 
 describe("dev server options", () => {
-  it("exposes no ceremony surface at all until the platform flag is set", async () => {
+  it("leaves no legacy ceremony surface behind", async () => {
     const db = makeChallengeDb();
     const app = buildApp(buildDevServerOptions(db, {
+      OPENERP_DATABASE_URL: "postgresql://openerp.test/dev-options",
       OPENERP_WEB_ORIGIN: "http://127.0.0.1:4173",
       OPENERP_WEBAUTHN_RP_ID: "127.0.0.1"
     }));
@@ -36,16 +37,15 @@ describe("dev server options", () => {
     });
     expect(legacy.status).toBe(401);
     await expect(legacy.json()).resolves.toEqual({ code: "TENANT_RESOLUTION_REQUIRED" });
-
-    const platformHealth = await app.request("/api/v1/auth/health");
-    expect(platformHealth.status).toBe(404);
   });
 
-  it("mounts the platform surface only when OPENERP_PLATFORM_AUTH_ENABLED is literal 1", async () => {
+  it("mounts the platform surface unconditionally, with no flag to forget", async () => {
     const db = makeChallengeDb();
+    // Deliberately no OPENERP_PLATFORM_AUTH_ENABLED: since it is the only
+    // authentication left, an environment that omitted the flag would ship
+    // with no way to sign in at all.
     const app = buildApp(buildDevServerOptions(db, {
       OPENERP_DATABASE_URL: "postgresql://openerp.test/dev-options",
-      OPENERP_PLATFORM_AUTH_ENABLED: "1",
       OPENERP_SMTP_HOST: "smtp.test",
       OPENERP_SMTP_FROM_ADDRESS: "auth@openerp.test",
     }));
