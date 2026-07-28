@@ -253,6 +253,17 @@ jobs:
           kubectl -n openerp-dev get certificate,ingress
           curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/readyz
 
+      # The hold above is bounded to this run. Leaving it set freezes every
+      # later release of the web tier: when Apply Kustomize failed on the
+      # immutable Postgres Service, the deployment stayed paused and the web
+      # pods kept serving a stale image with the cut-over flag unread. With a
+      # single replica and the default rolling update, resuming can never
+      # replace a healthy pod with an unhealthy one, so clearing the hold is
+      # safe even when the run failed.
+      - name: Always clear the web rollout hold
+        if: always()
+        run: kubectl -n openerp-dev rollout resume deploy/openerp-web || true
+
       - name: Diagnostics on failure
         if: failure()
         run: |
