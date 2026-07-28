@@ -30,7 +30,10 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            - name: API_BASE_URL
+            # Must stay OPENERP_API_URL: every +page.server.ts and the passkey
+            # proxy routes read this name and otherwise fall back to
+            # http://127.0.0.1:4000, which only exists on a developer machine.
+            - name: OPENERP_API_URL
               value: http://openerp-api:3000
           readinessProbe:
             tcpSocket:
