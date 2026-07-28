@@ -1,0 +1,73 @@
+# One DEV-only source controls both traffic switches.  The deployments consume
+# this same key below, so an ordinary overlay apply cannot enable one half of
+# the platform-auth path without the other.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openerp-auth-cutover
+data:
+  enabled: "1"
+---
+# Captures only the DEV burn-in verification email.  It is intentionally not
+# part of base or prod: production must use its operator-managed SMTP service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-mailpit
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: mailpit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openerp
+      app.kubernetes.io/component: mailpit
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openerp
+        app.kubernetes.io/component: mailpit
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: mailpit
+          image: axllent/mailpit:v1.27.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: smtp
+              containerPort: 1025
+            - name: http
+              containerPort: 8025
+          readinessProbe:
+            httpGet:
+              path: /api/v1/info
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openerp-mailpit
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: mailpit
+spec:
+  selector:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: mailpit
+  ports:
+    - name: smtp
+      port: 1025
+      targetPort: smtp
+    - name: http
+      port: 8025
+      targetPort: http

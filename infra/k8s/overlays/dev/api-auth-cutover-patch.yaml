@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-api
+spec:
+  template:
+    spec:
+      containers:
+      - name: api
+        env:
+        - name: NODE_ENV
+          value: production
+        - name: OPENERP_PLATFORM_AUTH_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: openerp-auth-cutover
+              key: enabled
+        # The WebAuthn tuple must match the browser's first-party DEV origin.
+        # Defaults target localhost and would make every ceremony fail.
+        - name: OPENERP_WEB_ORIGIN
+          value: https://openerp-dev.sent-tech.ca
+        - name: OPENERP_WEBAUTHN_RP_ID
+          value: openerp-dev.sent-tech.ca
+        # DEV captures only synthetic burn-in email through the in-namespace
+        # Mailpit service. Production receives none of these values.
+        - name: OPENERP_SMTP_HOST
+          value: openerp-mailpit
+        - name: OPENERP_SMTP_PORT
+          value: "1025"
+        - name: OPENERP_SMTP_SECURE
+          value: "false"
+        - name: OPENERP_SMTP_FROM_ADDRESS
+          value: auth@openerp-dev.invalid
