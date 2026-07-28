@@ -1,18 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-const platformAuthUiEnabled = process.env.OPENERP_PLATFORM_AUTH_UI_ENABLED === "1";
-
-const authScreenSelectors = platformAuthUiEnabled
-  ? {
-      loginButton: /Se connecter avec WebAuthn|Sign in with passkey/i,
-      registerAction: /Obtenir un code|Get verification code/i,
-      registerHeading: /Créer un compte|Create an account/
-    }
-  : {
-      loginButton: /Se connecter avec une passkey|Sign in with a passkey/i,
-      registerAction: /Enregistrer la passkey|Register passkey/i,
-      registerHeading: /Créer une passkey|Create a passkey/
-    };
+const authScreenSelectors = {
+  loginButton: /Se connecter avec WebAuthn|Sign in with passkey/i,
+  registerAction: /Obtenir un code|Get verification code/i,
+  registerHeading: /Créer un compte|Create an account/
+};
 
 test("foundation shell exposes admin navigation without layout overlap", async ({ page }) => {
   await page.goto("/");
@@ -178,9 +170,6 @@ test("live approvals can be decided from the UI", async ({ page, request }, test
 test("login page renders the passkey form", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { level: 1, name: /Connexion|Sign in/ })).toBeVisible();
-  if (!platformAuthUiEnabled) {
-    await expect(page.getByPlaceholder("alice@northwind.local")).toBeVisible();
-  }
   await expect(page.getByRole("button", { name: authScreenSelectors.loginButton })).toBeVisible();
 });
 
@@ -203,16 +192,16 @@ test("auth pages follow the active locale", async ({ page, context, baseURL }) =
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", { level: 1, name: "Connexion" })).toBeVisible();
   await expect(page.getByRole("button", {
-    name: platformAuthUiEnabled ? "Se connecter avec WebAuthn" : "Se connecter avec une passkey"
+    name: "Se connecter avec WebAuthn"
   })).toBeVisible();
   await page.goto("/register-passkey");
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", {
     level: 1,
-    name: platformAuthUiEnabled ? "Créer un compte" : "Créer une passkey"
+    name: "Créer un compte"
   })).toBeVisible();
   await expect(page.getByRole("button", {
-    name: platformAuthUiEnabled ? "Obtenir un code" : "Enregistrer la passkey"
+    name: "Obtenir un code"
   })).toBeVisible();
 
   await context.clearCookies();
@@ -225,17 +214,17 @@ test("auth pages follow the active locale", async ({ page, context, baseURL }) =
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await expect(page.getByRole("button", {
-    name: platformAuthUiEnabled ? "Sign in with passkey" : "Sign in with a passkey"
+    name: "Sign in with passkey"
   })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create a passkey" })).toBeVisible();
   await page.goto("/register-passkey");
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", {
     level: 1,
-    name: platformAuthUiEnabled ? "Create an account" : "Create a passkey"
+    name: "Create an account"
   })).toBeVisible();
   await expect(page.getByRole("button", {
-    name: platformAuthUiEnabled ? "Get verification code" : "Register passkey"
+    name: "Get verification code"
   })).toBeVisible();
 });
 

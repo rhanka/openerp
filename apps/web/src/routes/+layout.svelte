@@ -46,14 +46,12 @@
 
   const locale: LocaleCode = $derived(data.locale);
   const chatEnabled: boolean = $derived(data.chatEnabled ?? false);
-  const platformAuthUiEnabled: boolean = $derived(data.platformAuthUiEnabled === true);
   const session = $derived(data.session);
   const currentPath = $derived(page.url?.pathname ?? "/");
 
   // AppHeader compact/drawer state (client-only isMobile via matchMedia, never SSR)
   let menuOpen = $state(false);
   let isMobile = $state(false);
-  let signOutFormRef: HTMLFormElement | undefined = $state();
 
   // Recherche globale (pill --icon canonique ; la feature est un stub tracké)
   let searchOpen = $state(false);
@@ -107,19 +105,11 @@
   }
 
   async function handleLogout(): Promise<void> {
-    if (!platformAuthUiEnabled) {
-      signOutFormRef?.requestSubmit();
-      return;
-    }
-    // Suppress the generic 401 redirect here: an old JSON-wrapped cookie is
-    // intentionally invalid to platform logout but still needs the retained
-    // bridge to clear local session/refresh cookies during the transition.
-    const result = await createOpenERPAuthTransport(locale, { onUnauthorized: () => undefined }).logout();
-    if (result.ok) {
-      if (browser) await goto("/login");
-      return;
-    }
-    signOutFormRef?.requestSubmit();
+    // Platform logout is the only sign-out path. Suppress the generic 401
+    // redirect: an already-invalid session must still land on /login rather
+    // than bounce through the transport's unauthorized handler.
+    await createOpenERPAuthTransport(locale, { onUnauthorized: () => undefined }).logout();
+    if (browser) await goto("/login", { invalidateAll: true });
   }
 
   // Identity user for the DS IdentityMenu — the session carries token + IDs only
@@ -399,15 +389,6 @@
 
 <!-- Skip link DS : premier élément focusable (WCAG 2.4.1) -->
 <SkipLink href="#main-content">{t(locale, "shell.skipToContent")}</SkipLink>
-
-<!-- Hidden sign-out form — submitted by the IdentityMenu (header or drawer). -->
-<form
-  bind:this={signOutFormRef}
-  method="POST"
-  action="/auth/logout"
-  class="shell__signout-form"
-  aria-hidden="true"
-></form>
 
 <!--
   UXDR-009 : AppShell variant=workspace + IA 2 niveaux.

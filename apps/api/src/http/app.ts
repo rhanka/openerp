@@ -40,7 +40,6 @@ import { mountWorkflowRoutes } from "./handlers/workflow-definitions";
 import { mountWebhookRoutes } from "./handlers/webhook-endpoints";
 import { mountWebhookAdminRoutes } from "./handlers/webhook-admin";
 import { mountUsersRoutes } from "./handlers/users";
-import { mountWebAuthnRoutes } from "./handlers/webauthn";
 import { mountAgentTokenExchangeRoute } from "./handlers/auth-token-exchange";
 import { setWorkflowEvaluator, setWebhookEvaluator } from "../foundation/audit-emit";
 import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
@@ -93,7 +92,6 @@ export interface BuildAppOptions {
 
 const PUBLIC_PATH_PREFIXES = [
   "/readyz",
-  "/webauthn/",
   "/api/v1/auth/",
   "/openapi.json",
 ] as const;
@@ -141,17 +139,6 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   // OpenAPI 3.1 description of the REST surface for Sentropic chat / agent tooling.
   // Contains only route metadata — no tenant data.
   app.get("/openapi.json", (c) => c.json(buildOpenApiDocument()));
-
-  if (options.passkey) {
-    mountWebAuthnRoutes(app, {
-      db: options.db,
-      passkeyService: options.passkey.service,
-      identityProvider: options.passkey.identityProvider,
-      ...(options.passkey.sessionTtlSeconds !== undefined
-        ? { sessionTtlSeconds: options.passkey.sessionTtlSeconds }
-        : {})
-    });
-  }
 
   const agentTokenIdentityProvider =
     options.identityProvider ??

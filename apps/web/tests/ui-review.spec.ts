@@ -2,8 +2,6 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 type Locale = "en" | "fr";
 
-const platformAuthUiEnabled = process.env.OPENERP_PLATFORM_AUTH_UI_ENABLED === "1";
-
 const reviewMatrix: Array<{
   name: string;
   width: number;
@@ -77,31 +75,18 @@ const preAuthRoutes: Array<{
   path: string;
   labels: Record<Locale, string>;
   formAction: Record<Locale, string>;
-}> = platformAuthUiEnabled
-  ? [
-      {
-        path: "/login",
-        labels: { en: "Sign in", fr: "Connexion" },
-        formAction: { en: "Sign in with passkey", fr: "Se connecter avec WebAuthn" }
-      },
-      {
-        path: "/register-passkey",
-        labels: { en: "Create an account", fr: "Créer un compte" },
-        formAction: { en: "Get verification code", fr: "Obtenir un code" }
-      }
-    ]
-  : [
-      {
-        path: "/login",
-        labels: { en: "Sign in", fr: "Connexion" },
-        formAction: { en: "Sign in with a passkey", fr: "Se connecter avec une passkey" }
-      },
-      {
-        path: "/register-passkey",
-        labels: { en: "Create a passkey", fr: "Créer une passkey" },
-        formAction: { en: "Register passkey", fr: "Enregistrer la passkey" }
-      }
-    ];
+}> = [
+  {
+    path: "/login",
+    labels: { en: "Sign in", fr: "Connexion" },
+    formAction: { en: "Sign in with passkey", fr: "Se connecter avec WebAuthn" }
+  },
+  {
+    path: "/register-passkey",
+    labels: { en: "Create an account", fr: "Créer un compte" },
+    formAction: { en: "Get verification code", fr: "Obtenir un code" }
+  }
+];
 
 test.describe("UI review: shell ergonomics — admin routes", () => {
   for (const viewport of reviewMatrix) {
@@ -434,22 +419,16 @@ test("UI review: keyboard flow on /login reaches authentication controls directl
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
 
-  // On pre-auth: header controls then directly to auth controls (no sidebar, no identity).
-  // AuthLogin uses discoverable passkeys, so the first control is its sign-in action;
-  // the legacy page still exposes its email field first.
-  if (platformAuthUiEnabled) {
-    const signInWithPasskey = page.getByRole("button", { name: "Sign in with passkey" });
-    await expect(signInWithPasskey).toBeVisible();
-    await tabUntilFocused(page, signInWithPasskey, 11);
-    await page.keyboard.press("Tab");
-    await expect(page.getByRole("button", { name: "Lost your device?" })).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(page.getByRole("link", { name: "Create a passkey" })).toBeFocused();
-  } else {
-    await tabUntilFocused(page, page.getByLabel("Email address"), 11);
-    await page.keyboard.press("Tab");
-    await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
-  }
+  // On pre-auth: header controls then directly to auth controls (no sidebar, no
+  // identity). AuthLogin uses discoverable passkeys, so the first control is its
+  // sign-in action rather than an email field.
+  const signInWithPasskey = page.getByRole("button", { name: "Sign in with passkey" });
+  await expect(signInWithPasskey).toBeVisible();
+  await tabUntilFocused(page, signInWithPasskey, 11);
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Lost your device?" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Create a passkey" })).toBeFocused();
 });
 
 // ─── UXDR-008: Shell complet — drawer mobile, header identité, skip link ───────
@@ -627,9 +606,12 @@ test.describe("UXDR-008: déconnexion — cookie effacé + redirect /login", () 
     await page.waitForURL(/\/login/);
     expect(page.url()).toContain("/login");
 
-    const cookies = await context.cookies();
-    const sessionCookie = cookies.find((c) => c.name === "openerp_session");
-    expect(sessionCookie).toBeUndefined();
+    // Clearing the cookies is the API's job now that the local sign-out bridge
+    // is gone: the platform logout endpoint revokes the session and answers
+    // with the expiring Set-Cookie headers. This suite runs without an API, so
+    // it asserts the part it can prove — the shell leaves for /login. The
+    // clearing itself is asserted against a real API by the cut-over smoke,
+    // apps/web/scripts/auth-cutover-smoke.mjs (assertNoApplicationSession).
   });
 });
 

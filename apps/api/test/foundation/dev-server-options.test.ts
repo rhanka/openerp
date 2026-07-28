@@ -19,24 +19,24 @@ function makeChallengeDb(): Queryable {
 }
 
 describe("dev server options", () => {
-  it("mounts public WebAuthn routes for local development", async () => {
+  it("exposes no ceremony surface at all until the platform flag is set", async () => {
     const db = makeChallengeDb();
     const app = buildApp(buildDevServerOptions(db, {
       OPENERP_WEB_ORIGIN: "http://127.0.0.1:4173",
       OPENERP_WEBAUTHN_RP_ID: "127.0.0.1"
     }));
 
-    const res = await app.request("/webauthn/login/begin", {
+    // The removed local WebAuthn mount must not come back under any name. Its
+    // handler is gone and /webauthn/ is no longer a public prefix, so the
+    // tenant guard now answers first — the ceremony is unreachable either way.
+    const legacy = await app.request("/webauthn/login/begin", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{}"
     });
+    expect(legacy.status).toBe(401);
+    await expect(legacy.json()).resolves.toEqual({ code: "TENANT_RESOLUTION_REQUIRED" });
 
-    expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toMatchObject({
-      challenge: expect.any(String),
-      rpId: "127.0.0.1"
-    });
     const platformHealth = await app.request("/api/v1/auth/health");
     expect(platformHealth.status).toBe(404);
   });
