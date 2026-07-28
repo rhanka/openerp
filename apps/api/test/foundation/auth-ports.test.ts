@@ -8,13 +8,12 @@ import { createOpenERPTokenPort } from "../../src/auth/openerp-token-port";
 import { createOpenERPAccountPolicyPort } from "../../src/auth/openerp-account-policy-port";
 import { createOpenERPClockPort } from "../../src/auth/openerp-clock-port";
 import { createOpenERPRandomPort } from "../../src/auth/openerp-random-port";
-import { createStubCredentialsPort } from "../../src/auth/stub-credentials-port";
-import { createStubChallengesPort } from "../../src/auth/stub-challenges-port";
-import { createStubEmailVerificationPort } from "../../src/auth/stub-email-verification-port";
 import { createStubMagicLinksPort } from "../../src/auth/stub-magic-links-port";
-import { createStubEmailDeliveryPort } from "../../src/auth/stub-email-delivery-port";
 import { createStubOauthStateStorePort } from "../../src/auth/stub-oauth-state-store-port";
 import { createStubJwksPort } from "../../src/auth/stub-jwks-port";
+import { buildAuthHonoPorts } from "../../src/auth/ports";
+import type { ApiEnv } from "../../src/config/env";
+import type { EmailSender } from "../../src/foundation/email-sender";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -29,6 +28,44 @@ function spyQueryable(rowFactory: (text: string, values: unknown[]) => unknown[]
 }
 
 const TEST_SECRET = randomBytes(32);
+
+const AUTH_ENV: ApiEnv = {
+  databaseUrl: "postgresql://example.test/openerp",
+  sessionSecret: TEST_SECRET.toString("base64url"),
+  appVersion: "test",
+  oauthIssuerUrl: undefined,
+  oauthClientId: undefined,
+  oauthClientSecret: undefined,
+  oauthRedirectUri: undefined,
+  smtpHost: undefined,
+  smtpPort: undefined,
+  smtpSecure: undefined,
+  smtpUser: undefined,
+  smtpPassword: undefined,
+  smtpFromAddress: undefined,
+};
+
+// ---------------------------------------------------------------------------
+// AuthHono composition
+// ---------------------------------------------------------------------------
+
+describe("buildAuthHonoPorts", () => {
+  it("requires configured SMTP in production composition but accepts an explicit test transport", () => {
+    const { db } = spyQueryable();
+    expect(() => buildAuthHonoPorts(db, AUTH_ENV)).toThrow("OPENERP_SMTP_HOST");
+    const sender: EmailSender = {
+      id: "test-capturing-transport",
+      async send() {
+        return { providerId: "test-capturing-transport" };
+      },
+    };
+    const ports = buildAuthHonoPorts(db, AUTH_ENV, { emailSender: sender });
+    expect(ports.emailDelivery).toBeDefined();
+    expect(ports.credentials).toBeDefined();
+    expect(ports.challenges).toBeDefined();
+    expect(ports.emailVerification).toBeDefined();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // SessionPort
@@ -124,6 +161,7 @@ describe("OpenERPUserPort", () => {
       display_name: "Alice",
       actor_type: "human",
       status: "active",
+      email_verified: true,
       created_at: now,
       updated_at: now,
     };
@@ -166,6 +204,7 @@ describe("OpenERPUserPort", () => {
       display_name: "Bob",
       actor_type: "human",
       status: "deactivated",
+      email_verified: false,
       created_at: now,
       updated_at: now,
     };
@@ -175,6 +214,27 @@ describe("OpenERPUserPort", () => {
     const user = await port.findById("uid_2");
     expect(user!.accountStatus).toBe("disabled_by_admin");
     expect(user!.emailVerified).toBe(false);
+  });
+
+  it("persists email verification separately from invitation or account status", async () => {
+    const now = new Date("2026-06-10T00:00:00.000Z");
+    const row = {
+      id: "uid_3",
+      email: "invited@example.com",
+      display_name: "Invited",
+      actor_type: "human",
+      status: "invited",
+      email_verified: true,
+      created_at: now,
+      updated_at: now,
+    };
+    const { db, query } = spyQueryable(() => [row]);
+    const port = createOpenERPUserPort(db);
+
+    const updated = await port.update("uid_3", { emailVerified: true });
+
+    expect(updated).toMatchObject({ accountStatus: "pending_admin_approval", emailVerified: true });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("email_verified = $2"), ["uid_3", true]);
   });
 
   it("count returns parsed integer", async () => {
@@ -454,42 +514,11 @@ describe("OpenERPRandomPort", () => {
 // ---------------------------------------------------------------------------
 
 describe("Stub ports throw tagged errors", () => {
-  it("credentials port throws OpenERPCredentialStubError", async () => {
-    const port = createStubCredentialsPort();
-    await expect(port.findById("x")).rejects.toMatchObject({
-      name: "OpenERPCredentialStubError",
-    });
-    await expect(port.listForUser("x")).rejects.toMatchObject({
-      name: "OpenERPCredentialStubError",
-    });
-  });
-
-  it("challenges port throws OpenERPChallengeStubError", async () => {
-    const port = createStubChallengesPort();
-    await expect(
-      port.create({ challenge: "c", type: "registration", expiresAt: new Date() })
-    ).rejects.toMatchObject({ name: "OpenERPChallengeStubError" });
-  });
-
-  it("email verification port throws OpenERPEmailVerificationStubError", async () => {
-    const port = createStubEmailVerificationPort();
-    await expect(port.countRecent("a@a.com", new Date())).rejects.toMatchObject({
-      name: "OpenERPEmailVerificationStubError",
-    });
-  });
-
   it("magic links port throws OpenERPMagicLinkStubError", async () => {
     const port = createStubMagicLinksPort();
     await expect(
       port.create({ email: "a@a.com", tokenHash: "h", expiresAt: new Date(), now: new Date() })
     ).rejects.toMatchObject({ name: "OpenERPMagicLinkStubError" });
-  });
-
-  it("email delivery port throws OpenERPEmailDeliveryStubError", async () => {
-    const port = createStubEmailDeliveryPort();
-    await expect(
-      port.sendVerificationCode({ email: "a@a.com", code: "123", expiresAt: new Date() })
-    ).rejects.toMatchObject({ name: "OpenERPEmailDeliveryStubError" });
   });
 
   it("oauth state store port throws OpenERPOauthStateStubError", async () => {

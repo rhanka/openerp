@@ -32,6 +32,17 @@ export interface RecordAuditEventInput {
   onBehalfOf?: string | null;
 }
 
+/**
+ * Authentication happens before a tenant and a human actor have been selected.
+ * Those events must be explicit system records, rather than forged tenant rows.
+ */
+export interface RecordSystemAuditEventInput {
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  afterSummary?: Record<string, unknown> | null;
+}
+
 // ---------------------------------------------------------------------------
 // Workflow evaluator registration.
 //
@@ -194,4 +205,24 @@ export async function recordAuditEvent(
       }
     }
   }
+}
+
+/**
+ * Append a non-tenant system event. The auth migration exposes a narrow
+ * SECURITY DEFINER function for this representation, so regular app-role
+ * table access remains tenant-scoped and failures stay observable.
+ */
+export async function recordSystemAuditEvent(
+  db: Queryable,
+  input: RecordSystemAuditEventInput
+): Promise<void> {
+  await db.query<{ id: string }>(
+    `select auth_system_audit_record($1, $2, $3, $4::jsonb) as id`,
+    [
+      input.action,
+      input.resourceType,
+      input.resourceId,
+      JSON.stringify(input.afterSummary ?? null)
+    ]
+  );
 }

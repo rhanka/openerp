@@ -6,6 +6,12 @@ export interface ApiEnv {
   oauthClientId: string | undefined;
   oauthClientSecret: string | undefined;
   oauthRedirectUri: string | undefined;
+  smtpHost: string | undefined;
+  smtpPort: string | undefined;
+  smtpSecure: string | undefined;
+  smtpUser: string | undefined;
+  smtpPassword: string | undefined;
+  smtpFromAddress: string | undefined;
 }
 
 export function readApiEnv(env: NodeJS.ProcessEnv): ApiEnv {
@@ -24,5 +30,11 @@ export function readApiEnv(env: NodeJS.ProcessEnv): ApiEnv {
     oauthClientId: env.OAUTH_CLIENT_ID,
     oauthClientSecret: env.OAUTH_CLIENT_SECRET,
     oauthRedirectUri: env.OAUTH_REDIRECT_URI,
+    smtpHost: env.OPENERP_SMTP_HOST,
+    smtpPort: env.OPENERP_SMTP_PORT,
+    smtpSecure: env.OPENERP_SMTP_SECURE,
+    smtpUser: env.OPENERP_SMTP_USER,
+    smtpPassword: env.OPENERP_SMTP_PASSWORD,
+    smtpFromAddress: env.OPENERP_SMTP_FROM_ADDRESS,
   };
 }
