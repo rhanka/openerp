@@ -780,6 +780,7 @@
   "nav.drawer.title": "Main navigation",
   "auth.signIn": "Sign in",
   "auth.signOut": "Sign out",
+  "auth.register.title": "Create an account",
   "auth.platformError.authenticationForbidden": "This account cannot sign in.",
   "auth.platformError.emailVerificationInvalid": "The verification code is invalid or expired.",
   "auth.platformError.emailVerificationRequired": "Verify your email before continuing.",

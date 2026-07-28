@@ -177,7 +177,7 @@ test("live approvals can be decided from the UI", async ({ page, request }, test
 
 test("login page renders the passkey form", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByRole("heading", { name: /Connexion|Sign in/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Connexion|Sign in/ })).toBeVisible();
   if (!platformAuthUiEnabled) {
     await expect(page.getByPlaceholder("alice@northwind.local")).toBeVisible();
   }
@@ -186,7 +186,7 @@ test("login page renders the passkey form", async ({ page }) => {
 
 test("register-passkey page renders the bootstrap form", async ({ page }) => {
   await page.goto("/register-passkey");
-  await expect(page.getByRole("heading", { name: authScreenSelectors.registerHeading })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: authScreenSelectors.registerHeading })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
   await expect(page.getByRole("button", { name: authScreenSelectors.registerAction })).toBeVisible();
 });
@@ -201,13 +201,14 @@ test("auth pages follow the active locale", async ({ page, context, baseURL }) =
   }]);
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
-  await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Connexion" })).toBeVisible();
   await expect(page.getByRole("button", {
     name: platformAuthUiEnabled ? "Se connecter avec WebAuthn" : "Se connecter avec une passkey"
   })).toBeVisible();
   await page.goto("/register-passkey");
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", {
+    level: 1,
     name: platformAuthUiEnabled ? "Créer un compte" : "Créer une passkey"
   })).toBeVisible();
   await expect(page.getByRole("button", {
@@ -222,7 +223,7 @@ test("auth pages follow the active locale", async ({ page, context, baseURL }) =
   }]);
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
-  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await expect(page.getByRole("button", {
     name: platformAuthUiEnabled ? "Sign in with passkey" : "Sign in with a passkey"
   })).toBeVisible();
@@ -230,6 +231,7 @@ test("auth pages follow the active locale", async ({ page, context, baseURL }) =
   await page.goto("/register-passkey");
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", {
+    level: 1,
     name: platformAuthUiEnabled ? "Create an account" : "Create a passkey"
   })).toBeVisible();
   await expect(page.getByRole("button", {

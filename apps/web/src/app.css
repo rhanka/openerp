@@ -38,6 +38,20 @@ select {
   font: inherit;
 }
 
+/* Shared DS visually-hidden pattern for semantic content that must stay in
+   the accessibility tree without duplicating a visible component label. */
+.st-visually-hidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: var(--st-borderWidth-thin);
+  margin: calc(-1 * var(--st-borderWidth-thin));
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: var(--st-borderWidth-thin);
+}
+
 /* ── AppShell workspace layout (UXDR-009) ─────────────────────────────────── */
 /* La grille shell bespoke (.shell / .shell__sidebar / .shell--no-sidebar) est
    remplacée par AppShell variant=workspace DS. Seul le shell du contenu reste
