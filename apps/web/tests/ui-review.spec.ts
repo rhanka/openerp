@@ -2,6 +2,8 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 type Locale = "en" | "fr";
 
+const platformAuthUiEnabled = process.env.OPENERP_PLATFORM_AUTH_UI_ENABLED === "1";
+
 const reviewMatrix: Array<{
   name: string;
   width: number;
@@ -74,10 +76,32 @@ const adminRoutes: Array<{
 const preAuthRoutes: Array<{
   path: string;
   labels: Record<Locale, string>;
-}> = [
-  { path: "/login", labels: { en: "Sign in", fr: "Connexion" } },
-  { path: "/register-passkey", labels: { en: "Create a passkey", fr: "Créer une passkey" } }
-];
+  formAction: Record<Locale, string>;
+}> = platformAuthUiEnabled
+  ? [
+      {
+        path: "/login",
+        labels: { en: "Sign in", fr: "Connexion" },
+        formAction: { en: "Sign in with passkey", fr: "Se connecter avec WebAuthn" }
+      },
+      {
+        path: "/register-passkey",
+        labels: { en: "Create an account", fr: "Créer un compte" },
+        formAction: { en: "Get verification code", fr: "Obtenir un code" }
+      }
+    ]
+  : [
+      {
+        path: "/login",
+        labels: { en: "Sign in", fr: "Connexion" },
+        formAction: { en: "Sign in with a passkey", fr: "Se connecter avec une passkey" }
+      },
+      {
+        path: "/register-passkey",
+        labels: { en: "Create a passkey", fr: "Créer une passkey" },
+        formAction: { en: "Register passkey", fr: "Enregistrer la passkey" }
+      }
+    ];
 
 test.describe("UI review: shell ergonomics — admin routes", () => {
   for (const viewport of reviewMatrix) {
@@ -246,7 +270,8 @@ test.describe("UI review: shell ergonomics — pre-auth routes", () => {
           await page.goto(route.path);
           await page.waitForLoadState("domcontentloaded");
 
-          await expect(page.getByRole("heading", { level: 1, name: route.labels[locale], exact: true })).toBeVisible();
+          await expect(page.getByRole("heading", { name: route.labels[locale], exact: true })).toBeVisible();
+          await expect(page.getByRole("button", { name: route.formAction[locale], exact: true })).toBeVisible();
 
           const appHeader = page.getByRole("banner");
           const brand = page.getByLabel("OpenERP home");
@@ -397,7 +422,7 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
   await expect(page.getByRole("link", { name: "Users" })).toBeFocused();
 });
 
-test("UI review: keyboard flow on /login reaches form fields directly (no sidebar)", async ({ page, context, baseURL }) => {
+test("UI review: keyboard flow on /login reaches authentication controls directly (no sidebar)", async ({ page, context, baseURL }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await context.clearCookies();
   await context.addCookies([{
@@ -409,10 +434,22 @@ test("UI review: keyboard flow on /login reaches form fields directly (no sideba
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
 
-  // On pre-auth: header controls (brand → locale select) then directly to form (no sidebar, no identity)
-  await tabUntilFocused(page, page.getByLabel("Email address"), 11);
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
+  // On pre-auth: header controls then directly to auth controls (no sidebar, no identity).
+  // AuthLogin uses discoverable passkeys, so the first control is its sign-in action;
+  // the legacy page still exposes its email field first.
+  if (platformAuthUiEnabled) {
+    const signInWithPasskey = page.getByRole("button", { name: "Sign in with passkey" });
+    await expect(signInWithPasskey).toBeVisible();
+    await tabUntilFocused(page, signInWithPasskey, 11);
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Lost your device?" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Create a passkey" })).toBeFocused();
+  } else {
+    await tabUntilFocused(page, page.getByLabel("Email address"), 11);
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
+  }
 });
 
 // ─── UXDR-008: Shell complet — drawer mobile, header identité, skip link ───────

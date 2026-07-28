@@ -1,5 +1,19 @@
 import { expect, test } from "@playwright/test";
 
+const platformAuthUiEnabled = process.env.OPENERP_PLATFORM_AUTH_UI_ENABLED === "1";
+
+const authScreenSelectors = platformAuthUiEnabled
+  ? {
+      loginButton: /Se connecter avec WebAuthn|Sign in with passkey/i,
+      registerAction: /Obtenir un code|Get verification code/i,
+      registerHeading: /Créer un compte|Create an account/
+    }
+  : {
+      loginButton: /Se connecter avec une passkey|Sign in with a passkey/i,
+      registerAction: /Enregistrer la passkey|Register passkey/i,
+      registerHeading: /Créer une passkey|Create a passkey/
+    };
+
 test("foundation shell exposes admin navigation without layout overlap", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "OpenERP" })).toBeVisible();
@@ -164,14 +178,17 @@ test("live approvals can be decided from the UI", async ({ page, request }, test
 test("login page renders the passkey form", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: /Connexion|Sign in/ })).toBeVisible();
-  await expect(page.getByPlaceholder("alice@northwind.local")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Se connecter avec une passkey|Sign in with a passkey/i })).toBeVisible();
+  if (!platformAuthUiEnabled) {
+    await expect(page.getByPlaceholder("alice@northwind.local")).toBeVisible();
+  }
+  await expect(page.getByRole("button", { name: authScreenSelectors.loginButton })).toBeVisible();
 });
 
 test("register-passkey page renders the bootstrap form", async ({ page }) => {
   await page.goto("/register-passkey");
-  await expect(page.getByRole("heading", { name: /Créer une passkey|Create a passkey/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Enregistrer la passkey|Register passkey/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: authScreenSelectors.registerHeading })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
+  await expect(page.getByRole("button", { name: authScreenSelectors.registerAction })).toBeVisible();
 });
 
 test("auth pages follow the active locale", async ({ page, context, baseURL }) => {
@@ -185,11 +202,17 @@ test("auth pages follow the active locale", async ({ page, context, baseURL }) =
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Se connecter avec une passkey/i })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: platformAuthUiEnabled ? "Se connecter avec WebAuthn" : "Se connecter avec une passkey"
+  })).toBeVisible();
   await page.goto("/register-passkey");
   await page.waitForLoadState("domcontentloaded");
-  await expect(page.getByRole("heading", { name: "Créer une passkey" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Enregistrer la passkey/i })).toBeVisible();
+  await expect(page.getByRole("heading", {
+    name: platformAuthUiEnabled ? "Créer un compte" : "Créer une passkey"
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: platformAuthUiEnabled ? "Obtenir un code" : "Enregistrer la passkey"
+  })).toBeVisible();
 
   await context.clearCookies();
   await context.addCookies([{
@@ -200,12 +223,18 @@ test("auth pages follow the active locale", async ({ page, context, baseURL }) =
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Sign in with a passkey/i })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: platformAuthUiEnabled ? "Sign in with passkey" : "Sign in with a passkey"
+  })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create a passkey" })).toBeVisible();
   await page.goto("/register-passkey");
   await page.waitForLoadState("domcontentloaded");
-  await expect(page.getByRole("heading", { name: "Create a passkey" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Register passkey/i })).toBeVisible();
+  await expect(page.getByRole("heading", {
+    name: platformAuthUiEnabled ? "Create an account" : "Create a passkey"
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: platformAuthUiEnabled ? "Get verification code" : "Register passkey"
+  })).toBeVisible();
 });
 
 test("locale switcher toggles nav labels between FR and EN", async ({ page, context, baseURL }) => {
