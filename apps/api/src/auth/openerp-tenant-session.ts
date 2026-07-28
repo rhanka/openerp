@@ -64,6 +64,12 @@ export interface OpenERPValidatedTenantSession {
   user: AuthHonoUserRecord;
 }
 
+export interface OpenERPPendingTenantSelection {
+  expiresAt: Date;
+  memberships: OrganizationMember[];
+  user: AuthHonoUserRecord;
+}
+
 export interface OpenERPTenantSessionService {
   issueForVerifiedUser(input: {
     userId: string;
@@ -71,6 +77,7 @@ export interface OpenERPTenantSessionService {
     deviceInfo?: AuthHonoDeviceInfo;
     mfaVerified?: boolean;
   }): Promise<OpenERPTenantIssuance>;
+  getPendingTenantSelection(pendingToken: string): Promise<OpenERPPendingTenantSelection | null>;
   selectTenant(input: {
     pendingToken: string;
     organizationId: string;
@@ -283,6 +290,19 @@ export function createOpenERPTenantSessionService(
         ...(input.deviceInfo ? { deviceInfo: input.deviceInfo } : {}),
         ...(input.mfaVerified !== undefined ? { mfaVerified: input.mfaVerified } : {}),
       });
+    },
+
+    async getPendingTenantSelection(pendingToken) {
+      const now = options.clock.now();
+      const tokenHash = await options.tokens.hashSecret(pendingToken);
+      const pending = await options.pendingSelections.findValid(tokenHash, now);
+      if (!pending) return null;
+
+      const user = await loadAuthenticatedHuman(pending.userIdentityId, now).catch(() => null);
+      if (!user) return null;
+      const memberships = await options.activeMembershipsForUser(user.id);
+      if (memberships.length === 0) return null;
+      return { expiresAt: pending.expiresAt, memberships, user };
     },
 
     async refresh(refreshToken) {

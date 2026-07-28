@@ -1,4 +1,5 @@
 import type { Queryable } from "../db/client";
+import { readApiEnv, readPlatformAuthEnabled } from "../config/env";
 import { createIdentityProvider } from "../foundation/identity-provider";
 import {
   resolveIdentitySessionSecret,
@@ -49,9 +50,26 @@ function buildServerOptions(
     env.OPENERP_TRUST_HEADERS === "1"
       ? headerTenantResolver
       : createJwtTenantResolver(identityProvider);
+  const sessionTtlSeconds = Number(env.OPENERP_SESSION_TTL_SECONDS ?? "3600");
+  const platformAuthEnabled = readPlatformAuthEnabled(env);
+  const platformAuth = platformAuthEnabled
+    ? {
+        enabled: true as const,
+        env: readApiEnv({
+          ...env,
+          DATABASE_URL: env.OPENERP_DATABASE_URL ?? env.DATABASE_URL,
+          SESSION_SECRET: sessionSecret,
+        }),
+        identityProvider,
+        rp: { id: rpID, expectedOrigin: webOrigin },
+        sessionTtlSeconds,
+      }
+    : { enabled: false as const };
 
   return {
     db,
+    identityProvider,
+    platformAuth,
     resolveTenant,
     passkey: {
       service: createPasskeyService({
@@ -60,7 +78,7 @@ function buildServerOptions(
         expectedOrigin: webOrigin
       }),
       identityProvider,
-      sessionTtlSeconds: Number(env.OPENERP_SESSION_TTL_SECONDS ?? "3600")
+      sessionTtlSeconds
     }
   };
 }

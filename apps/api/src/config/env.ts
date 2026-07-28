@@ -5,6 +5,7 @@ import {
 
 export interface ApiEnv {
   databaseUrl: string;
+  platformAuthEnabled: boolean;
   sessionSecret: string;
   sessionIssuer: string;
   sessionAudience: string | undefined;
@@ -21,8 +22,16 @@ export interface ApiEnv {
   smtpFromAddress: string | undefined;
 }
 
+/**
+ * The platform surface is deliberately dark by default. Only the literal
+ * value "1" enables it; unset, "0", and every other value keep it absent.
+ */
+export function readPlatformAuthEnabled(env: NodeJS.ProcessEnv): boolean {
+  return env.OPENERP_PLATFORM_AUTH_ENABLED === "1";
+}
+
 export function readApiEnv(env: NodeJS.ProcessEnv): ApiEnv {
-  const databaseUrl = env.DATABASE_URL;
+  const databaseUrl = env.OPENERP_DATABASE_URL ?? env.DATABASE_URL;
   const sessionSecret = resolveIdentitySessionSecret(env);
   const appVersion = env.APP_VERSION ?? "0.0.0-dev";
 
@@ -32,6 +41,7 @@ export function readApiEnv(env: NodeJS.ProcessEnv): ApiEnv {
 
   return {
     databaseUrl,
+    platformAuthEnabled: readPlatformAuthEnabled(env),
     sessionSecret,
     sessionIssuer: identitySigning.issuer,
     sessionAudience: identitySigning.audience,

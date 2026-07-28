@@ -83,6 +83,7 @@ describe("api environment", () => {
       sessionSecret: "secret",
       sessionIssuer: "openerp-dev",
       sessionAudience: undefined,
+      platformAuthEnabled: false,
       appVersion: "0.0.0-dev"
     });
   });
@@ -90,5 +91,19 @@ describe("api environment", () => {
   it("rejects missing required environment values", () => {
     expect(() => readApiEnv({ SESSION_SECRET: "secret" })).toThrow("DATABASE_URL is required");
     expect(() => readApiEnv({ DATABASE_URL: "postgres://example" })).toThrow("SESSION_SECRET is required");
+  });
+
+  it("keeps the platform auth surface dark unless explicitly enabled", () => {
+    expect(readApiEnv({ DATABASE_URL: "postgres://example", SESSION_SECRET: "secret" }).platformAuthEnabled).toBe(false);
+    expect(readApiEnv({
+      DATABASE_URL: "postgres://example",
+      SESSION_SECRET: "secret",
+      OPENERP_PLATFORM_AUTH_ENABLED: "0",
+    }).platformAuthEnabled).toBe(false);
+    expect(readApiEnv({
+      DATABASE_URL: "postgres://example",
+      SESSION_SECRET: "secret",
+      OPENERP_PLATFORM_AUTH_ENABLED: "1",
+    }).platformAuthEnabled).toBe(true);
   });
 });

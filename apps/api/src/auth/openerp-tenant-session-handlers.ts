@@ -5,6 +5,7 @@ import {
 } from "./openerp-tenant-session.js";
 
 export interface OpenERPTenantSessionHandlers {
+  listTenantSelection(request: Request): Promise<Response>;
   logout(request: Request): Promise<Response>;
   refresh(request: Request): Promise<Response>;
   sessionInfo(request: Request): Promise<Response>;
@@ -21,6 +22,30 @@ export function createOpenERPTenantSessionHandlers(options: {
   service: OpenERPTenantSessionService;
 }): OpenERPTenantSessionHandlers {
   return {
+    async listTenantSelection(request) {
+      const pendingToken = options.cookies.readPendingTenantToken(request);
+      if (!pendingToken) {
+        return error(410, "PENDING_TENANT_SELECTION_INVALID", "No pending tenant selection was provided.");
+      }
+      const pending = await options.service.getPendingTenantSelection(pendingToken);
+      if (!pending) {
+        return error(410, "PENDING_TENANT_SELECTION_INVALID", "The pending organization selection is invalid or has expired.");
+      }
+      return json({
+        expiresAt: pending.expiresAt.toISOString(),
+        memberships: pending.memberships.map((membership) => ({
+          organizationId: membership.organizationId,
+          preferredLocale: membership.preferredLocale,
+        })),
+        user: {
+          id: pending.user.id,
+          email: pending.user.email,
+          displayName: pending.user.displayName,
+          role: pending.user.role,
+        },
+      });
+    },
+
     async sessionInfo(request) {
       const sessionToken = readSessionToken(request, options.cookies);
       if (!sessionToken) return error(401, "SESSION_INVALID", "No session token was provided.");
