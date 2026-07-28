@@ -14,7 +14,7 @@
     "@hono/node-server": "^2.0.5",
     "@hono/zod-validator": "^0.7.6",
     "@sentropic/auth-client": "^0.1.0",
-    "@sentropic/auth-hono": "^0.4.0",
+    "@sentropic/auth-hono": "0.13.0",
     "@sentropic/h2a": "^0.1.7",
     "@sentropic/openerp-domain": "*",
     "@sentropic/openerp-i18n": "*",
@@ -23,9 +23,12 @@
     "hono": "^4.12.27",
     "intl-messageformat": "^10.7.18",
     "jose": "^5.10.0",
-    "pg": "^8.20.0"
+    "nodemailer": "^9.0.3",
+    "pg": "^8.20.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
     "tsx": "^4.22.0"
   }
 }

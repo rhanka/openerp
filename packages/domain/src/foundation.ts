@@ -359,7 +359,7 @@ export type EmailSendStatus = "queued" | "sent" | "failed";
  *  apps/api/src/foundation/email-sender.ts. */
 export interface EmailSend {
   id: string;
-  organizationId: string;
+  organizationId: string | null;
   toAddress: string;
   subject: string;
   kind: string;

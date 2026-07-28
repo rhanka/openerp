@@ -4,7 +4,6 @@ import type { EmailSend } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
 import {
   EmailSendFailedError,
-  noopEmailSender,
   sendEmail,
   type EmailSender,
   type EmailSendResult
@@ -26,7 +25,7 @@ function makeFakeDb() {
       const t = text.trim();
 
       // find by idempotency key
-      if (t.includes("from email_sends") && t.includes("where organization_id = $1 and idempotency_key = $2")) {
+      if (t.includes("from email_sends") && t.includes("organization_id = $1")) {
         const [organizationId, idempotencyKey] = values as [string, string];
         const found = emailSends.find(
           (e) => e.organizationId === organizationId && e.idempotencyKey === idempotencyKey
@@ -108,6 +107,13 @@ const MESSAGE = {
   body: "Please find your invoice attached."
 };
 
+const successfulSender: EmailSender = {
+  id: "test",
+  async send(): Promise<EmailSendResult> {
+    return { providerId: "test" };
+  }
+};
+
 function makeCountingSender(result: EmailSendResult = { providerId: "noop" }): EmailSender & { calls: number } {
   return {
     id: "noop",
@@ -123,10 +129,10 @@ describe("email-sender service (D6) — unit", () => {
   it("happy path: inserts a queued row, marks it sent, and emits an audit event", async () => {
     const { db, emailSends, audits } = makeFakeDb();
 
-    const result = await sendEmail(db, TENANT, { ...MESSAGE, idempotencyKey: "idem-1" }, noopEmailSender);
+    const result = await sendEmail(db, TENANT, { ...MESSAGE, idempotencyKey: "idem-1" }, successfulSender);
 
     expect(result.status).toBe("sent");
-    expect(result.provider).toBe("noop");
+    expect(result.provider).toBe("test");
     expect(result.sentAt).not.toBeNull();
     expect(result.toAddress).toBe(MESSAGE.toAddress);
     expect(result.idempotencyKey).toBe("idem-1");
@@ -170,6 +176,38 @@ describe("email-sender service (D6) — unit", () => {
     expect(audits.some((a) => a.action === "foundation.email_send.failed")).toBe(true);
   });
 
+  it("does not report failed or queued journal replays as successful delivery", async () => {
+    const { db, emailSends } = makeFakeDb();
+    const failingSender: EmailSender = {
+      id: "failing",
+      async send(): Promise<EmailSendResult> {
+        throw new Error("relay failed");
+      }
+    };
+
+    await expect(
+      sendEmail(db, TENANT, { ...MESSAGE, idempotencyKey: "idem-failed-replay" }, failingSender)
+    ).rejects.toBeInstanceOf(EmailSendFailedError);
+    const laterSender = makeCountingSender();
+    await expect(
+      sendEmail(db, TENANT, { ...MESSAGE, idempotencyKey: "idem-failed-replay" }, laterSender)
+    ).rejects.toThrow("relay failed");
+    expect(laterSender.calls).toBe(0);
+
+    emailSends.push({
+      ...emailSends[0]!,
+      id: "es_queued",
+      idempotencyKey: "idem-queued-replay",
+      status: "queued",
+      error: null,
+      sentAt: null
+    });
+    await expect(
+      sendEmail(db, TENANT, { ...MESSAGE, idempotencyKey: "idem-queued-replay" }, laterSender)
+    ).rejects.toThrow("still queued");
+    expect(laterSender.calls).toBe(0);
+  });
+
   it("rejects an empty tenant context", async () => {
     const { db } = makeFakeDb();
 
@@ -178,7 +216,7 @@ describe("email-sender service (D6) — unit", () => {
         db,
         { organizationId: "", actorUserId: "" },
         { ...MESSAGE, idempotencyKey: "idem-empty" },
-        noopEmailSender
+        successfulSender
       )
     ).rejects.toThrow();
   });
