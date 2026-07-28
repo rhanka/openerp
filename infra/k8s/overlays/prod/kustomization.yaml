@@ -8,6 +8,7 @@ patches:
     kind: Ingress
     name: openerp
   path: ingress-patch.yaml
+- path: api-auth-config-patch.yaml
 commonLabels:
   openerp.env: prod
 images:
