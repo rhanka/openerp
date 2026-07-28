@@ -32,6 +32,11 @@ jobs:
       - name: check:i18n
         run: npm run check:i18n
 
+      # Catches web routes an ingress prefix would hand to the API, which no
+      # test can see because a developer machine has no ingress in front.
+      - name: check:ingress
+        run: npm run check:ingress
+
       - name: lint
         run: npm run lint
 
