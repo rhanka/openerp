@@ -228,14 +228,17 @@ jobs:
         run: |
           fixture="$(kubectl -n openerp-dev exec deploy/openerp-api -- env OPENERP_AUTH_SMOKE_RUN_ID="$OPENERP_AUTH_SMOKE_RUN_ID" node_modules/.bin/tsx apps/api/src/scripts/auth-cutover-smoke-bootstrap.ts)"
           echo "$fixture" | jq -e '.single.email and .single.organizationId and .multi.email and .multi.organizationId' >/dev/null
-          kubectl -n openerp-dev port-forward svc/openerp-mailpit 18025:8025 > /tmp/openerp-mailpit-port-forward.log 2>&1 &
-          mailpit_pid=$!
-          kubectl -n openerp-dev port-forward svc/openerp-api 13000:3000 > /tmp/openerp-api-port-forward.log 2>&1 &
-          api_pid=$!
-          trap 'kill "$mailpit_pid" "$api_pid" 2>/dev/null || true' EXIT
+          # ci-deployer has pods/exec but not pods/portforward. The bridge
+          # reaches Mailpit and the API root through exec instead of asking for
+          # a second, broader grant for the same job.
+          OPENERP_BRIDGE_NAMESPACE=openerp-dev \
+          OPENERP_BRIDGE_PUBLIC_ORIGIN=https://openerp-dev.sent-tech.ca \
+          node tools/cluster-http-bridge.mjs > /tmp/openerp-bridge.log 2>&1 &
+          bridge_pid=$!
+          trap 'kill "$bridge_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:18025/api/v1/info >/dev/null && curl --fail --silent http://127.0.0.1:13000/readyz >/dev/null; then break; fi
-            if [ "$attempt" -eq 30 ]; then cat /tmp/openerp-mailpit-port-forward.log /tmp/openerp-api-port-forward.log; exit 1; fi
+            if [ "$attempt" -eq 30 ]; then cat /tmp/openerp-bridge.log; exit 1; fi
             sleep 1
           done
           npx playwright install --with-deps chromium
