@@ -1,9 +1,8 @@
-- op: replace
-  path: /metadata/annotations/cert-manager.io~1cluster-issuer
-  value: letsencrypt-prod
-- op: replace
-  path: /spec/tls/0/hosts/0
-  value: openerp-dev.sent-tech.ca
-- op: replace
-  path: /spec/rules/0/host
-  value: openerp-dev.sent-tech.ca
+# The platform owns openerp-dev.sent-tech.ca in namespace keda so HTTP requests
+# wake the web/API workloads. Never recreate a competing tenant Ingress.
+# See poc-k8s/tenants/openerp-dev/40-scale-to-zero.yaml.
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openerp
