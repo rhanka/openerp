@@ -26,6 +26,14 @@ Files expected in this directory after SUB-5:
 | `ingress.yaml` | `Ingress` | Traefik + cert-manager TLS; host and issuer overridden per overlay. |
 | `kustomization.yaml` | `Kustomization` | References all resources in this directory for overlay composition. |
 
+The dev overlay deletes the base Ingress. The platform owns
+`openerp-dev.sent-tech.ca`, its TLS certificate, and HTTP wake-up routing in
+namespace `keda`, through `poc-k8s/tenants/openerp-dev/40-scale-to-zero.yaml`.
+That platform manifest also owns the HTTPScaledObjects and the
+`allow-keda-interceptor` NetworkPolicy. Keep this ownership on the platform to
+avoid competing Ingress routes during dev deployments. The prod overlay
+continues to use the base Ingress.
+
 ---
 
 ## Dependencies
