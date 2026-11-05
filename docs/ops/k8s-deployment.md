@@ -134,7 +134,7 @@ infra/k8s/
   overlays/
     dev/
       kustomization.yaml       # namespace: openerp-dev, replica patches, env overrides
-      ingress-patch.yaml       # host: openerp-dev.sent-tech.ca, issuer letsencrypt-staging
+      ingress-patch.yaml       # deletes the base Ingress (platform owns the dev host)
     prod/
       kustomization.yaml       # namespace: openerp-prod, replica patches, env overrides
       ingress-patch.yaml       # host: openerp.sent-tech.ca, issuer letsencrypt-prod
@@ -265,11 +265,12 @@ spec:
               number: 3000
 ```
 
-For the `dev` overlay substitute:
-
-- `host: openerp-dev.sent-tech.ca`
-- `secretName: openerp-dev-tls`
-- `cert-manager.io/cluster-issuer: letsencrypt-staging`
+The `dev` overlay ships no Ingress at all: `overlays/dev/ingress-patch.yaml`
+deletes the base one. `openerp-dev.sent-tech.ca`, its TLS certificate, and the
+HTTP wake-up routing are owned by the platform in namespace `keda`
+(`poc-k8s/tenants/openerp-dev/40-scale-to-zero.yaml`), which routes the same
+paths to `openerp-web:8080` and `openerp-api:3000`. Do not restore a tenant
+Ingress for the dev host — two Ingresses on one host compete for the route.
 
 ---
 
