@@ -10,12 +10,27 @@ Local development uses the `docker-compose.yml` at the repo root. The compose fi
 
 | Service    | Image / build            | Port (host)        | Notes                              |
 |------------|--------------------------|--------------------|------------------------------------|
-| `postgres`  | `postgres:16-alpine`     | `127.0.0.1:5432`   | Single shared DB for all services  |
+| `postgres`  | `postgres:18.6-alpine`   | `127.0.0.1:5432`   | Single shared DB for all services  |
 | `api`       | `infra/docker/api.Dockerfile` | `3000`        | Hono API, hot-reload via `npm run dev` |
 | `worker`    | `infra/docker/worker.Dockerfile` | —          | Background scheduler, no HTTP port |
 | `web`       | `infra/docker/web.Dockerfile` | `8080` (prod build) | Vite dev server runs on `4173` |
 
 For active development, run `api` and `web` outside Docker (via `npm run dev`) so you get hot reload. Keep `postgres` and, optionally, `worker` running inside Docker. All services share the same Postgres instance on `localhost:5432`.
+
+> **Upgrading an existing checkout to Postgres 18.** The compose file now sets
+> `PGDATA=/var/lib/postgresql/data/pgdata`, because PostgreSQL 18 moved the image
+> default to `/var/lib/postgresql/18/docker`, which the mounted volume no longer
+> carries. A volume initialised under Postgres 16 also holds an incompatible
+> cluster, so the container refuses to start against it. Drop the local volume and
+> re-run the migrations:
+>
+> ```sh
+> docker-compose down -v
+> docker-compose up -d postgres
+> npm run migrate -w @sentropic/openerp-api
+> ```
+>
+> This discards local development data only and touches no deployed environment.
 
 Optional: a sibling sentropic checkout can overlay a local OIDC identity provider on `http://localhost:8787` for AUTH-39-A1 testing.
 
