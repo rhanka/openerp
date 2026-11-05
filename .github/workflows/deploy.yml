@@ -193,6 +193,28 @@ jobs:
       - name: Apply Kustomize
         run: kubectl apply -k infra/k8s/overlays/dev
 
+      # KEDA owns the dev replica count, so the overlay no longer pins it and a
+      # deploy can land on workloads the interceptor has scaled to zero. Every
+      # smoke below reaches the API through `kubectl exec deploy/openerp-api`,
+      # which has no pod to target while it sleeps, and a rollout wait on a
+      # zero-replica Deployment reports success without proving anything.
+      #
+      # Only HTTP traffic through the platform interceptor holds them up. A
+      # `kubectl scale` does not: the scaler anchors its cooldown on the last
+      # request it saw, so it reverts a hand-set replica count within seconds
+      # (measured on the cluster: openerp-api back to 0 about 10s after a
+      # scale to 1). Keep real requests flowing instead, for as long as the
+      # exec-based steps need a pod, and let KEDA reclaim both workloads on its
+      # own once the job stops asking.
+      - name: Keep the scale-to-zero workloads awake
+        run: |
+          nohup bash -c 'while true; do
+            curl --silent --max-time 90 --output /dev/null https://openerp-dev.sent-tech.ca/readyz || true
+            curl --silent --max-time 90 --output /dev/null https://openerp-dev.sent-tech.ca/ || true
+            sleep 20
+          done' > /tmp/openerp-keepalive.log 2>&1 &
+          echo "OPENERP_KEEPALIVE_PID=$!" >> "$GITHUB_ENV"
+
       - name: Roll Postgres onto the latest spec (StatefulSet won't update a CrashLooping pod)
         run: kubectl -n openerp-dev delete pod openerp-postgres-0 --ignore-not-found
 
@@ -252,6 +274,12 @@ jobs:
         run: |
           kubectl -n openerp-dev get certificate,ingress
           curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/readyz
+
+      # Past this point nothing needs a pod, so stop holding the pair up and
+      # let the workloads scale back to zero on the platform's own cooldown.
+      - name: Stop keeping the workloads awake
+        if: always()
+        run: kill "$OPENERP_KEEPALIVE_PID" 2>/dev/null || true
 
       - name: Diagnostics on failure
         if: failure()
