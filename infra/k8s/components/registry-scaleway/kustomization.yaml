@@ -1,0 +1,14 @@
+# Current registry-of-record baseline. Keep this component available until the
+# OVH cutover and its rollback window are closed by poc-k8s.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+images:
+  - name: openerp/api
+    newName: rg.fr-par.scw.cloud/openerp/openerp-api
+    newTag: latest
+  - name: openerp/web
+    newName: rg.fr-par.scw.cloud/openerp/openerp-web
+    newTag: latest
+  - name: openerp/worker
+    newName: rg.fr-par.scw.cloud/openerp/openerp-worker
+    newTag: latest
