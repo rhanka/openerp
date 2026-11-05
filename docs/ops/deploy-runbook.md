@@ -80,6 +80,9 @@ build
 - `curl -I https://openerp-dev.sent-tech.ca/` → HTTP 200.
 - OIDC kick-off check (only when `OPENERP_OIDC_ENABLED=1`):
   `curl -I -L --max-redirs 0 https://openerp-dev.sent-tech.ca/auth/login` → 302.
+- The dev host is served by the platform's KEDA scale-to-zero interceptor, not
+  by a tenant Ingress. After an idle period the first request waits on a cold
+  start instead of answering immediately, so retry before declaring dev down.
 
 **`migrate-prod` / `deploy-prod` / `smoke-prod`**
 - Same pattern as dev, targeting namespace `openerp-prod` and hostname

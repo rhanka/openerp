@@ -18,6 +18,7 @@ import type {
   NormalizedTransaction,
   ProviderContext,
 } from "../fdx.js";
+import { PlaidProviderError, safePlaidErrorCode } from "./plaid-pii.js";
 
 const PLAID_BASE_URL = "https://sandbox.plaid.com";
 const DEFAULT_INSTITUTION_QUERY = "Desjardins";
@@ -121,8 +122,9 @@ async function plaidApi<T>(
   });
   const json = (await response.json()) as T & PlaidErrorPayload;
   if (json.error_code) {
-    // Deliberately drop error_message: Plaid sometimes echoes request context in it.
-    throw new Error(`plaid ${path} failed: ${json.error_code}`);
+    // Deliberately retain only an allowlisted error code. Plaid error_message
+    // can echo request context, so neither it nor the response body survives.
+    throw new PlaidProviderError(path, safePlaidErrorCode(json));
   }
   return json;
 }
