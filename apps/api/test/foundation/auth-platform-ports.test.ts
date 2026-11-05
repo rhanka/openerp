@@ -3,7 +3,7 @@ import { Buffer } from "node:buffer";
 import { createAuthWebAuthnAuthenticationService } from "@sentropic/auth-hono/webauthn-authentication";
 import type { AuthHonoChallengePort, AuthHonoPorts } from "@sentropic/auth-hono";
 import type { OrganizationMember } from "@sentropic/openerp-domain";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createOpenERPAuditLogPort } from "../../src/auth/openerp-audit-log-port";
 import { createOpenERPChallengePort } from "../../src/auth/openerp-challenge-port";
@@ -673,6 +673,11 @@ const TENANT_SESSION_SECRET = new TextEncoder().encode("openerp-tenant-session-t
 const TENANT_SESSION_ISSUER = "openerp-test";
 const TENANT_SESSION_AUDIENCE = "openerp-api";
 const TENANT_USER_ID = "tenant-user-1";
+// Pinned instant for the tenant session flow. The service mints tokens from the
+// injected clock, while the IdentityProvider validates `exp` against the ambient
+// clock. The describe block below freezes the ambient clock to this same instant;
+// without that, every run dated after it fails on an expired token.
+const TENANT_SESSION_NOW = new Date("2026-07-28T12:00:00.000Z");
 
 function tenantMember(organizationId: string): OrganizationMember {
   return {
@@ -681,13 +686,13 @@ function tenantMember(organizationId: string): OrganizationMember {
     organizationId,
     status: "active",
     preferredLocale: null,
-    joinedAt: "2026-07-28T12:00:00.000Z",
-    updatedAt: "2026-07-28T12:00:00.000Z",
+    joinedAt: TENANT_SESSION_NOW.toISOString(),
+    updatedAt: TENANT_SESSION_NOW.toISOString(),
   };
 }
 
 function makeTenantSessionHarness(initialMemberships: OrganizationMember[]) {
-  const now = new Date("2026-07-28T12:00:00.000Z");
+  const now = TENANT_SESSION_NOW;
   const sessions = new Map<string, OpenERPSessionRecord>();
   const pending = new Map<string, {
     id: string;
@@ -850,6 +855,19 @@ function makeTenantSessionHarness(initialMemberships: OrganizationMember[]) {
 }
 
 describe("OpenERP tenant session host flow", () => {
+  // This flow mints real JWTs from the injected clock and verifies them through
+  // the real IdentityProvider, which checks `exp` against the ambient clock.
+  // Freezing Date keeps both clocks on the same instant, so the suite does not
+  // start failing the day the pinned instant moves into the past.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(TENANT_SESSION_NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("mints a one-membership session accepted by the real IdentityProvider and tenant resolver", async () => {
     const harness = makeTenantSessionHarness([tenantMember("org-alpha")]);
     const issued = await harness.service.issueForVerifiedUser({
