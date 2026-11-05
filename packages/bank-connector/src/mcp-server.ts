@@ -25,6 +25,7 @@ import type {
   StpConnectorContext,
 } from "./fdx.js";
 import { createOfxUploadProvider } from "./providers/ofx-upload.js";
+import { PlaidProviderError } from "./providers/plaid-pii.js";
 import { createPlaidSandboxProvider } from "./providers/plaid-sandbox.js";
 import { resolveServerContext } from "./server-context.js";
 
@@ -65,6 +66,23 @@ export function createConnector(context: StpConnectorContext): Connector {
 /** Never surface raw thrown values: keeps stack traces / unexpected payload fields out of tool errors. */
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "unknown error";
+}
+
+/**
+ * The process-level failure path is the connector's only application log.
+ * Keep it metadata-only: a provider response body must never become a log
+ * record, even while reporting a diagnosable Plaid error code.
+ */
+export function connectorFailureLogRecord(error: unknown): Record<string, string> {
+  if (error instanceof PlaidProviderError) {
+    return {
+      event: "bank_connector.request_failed",
+      provider: "plaid",
+      endpoint: error.endpoint,
+      errorCode: error.errorCode,
+    };
+  }
+  return { event: "bank_connector.request_failed" };
 }
 
 export const server = new McpServer({
@@ -167,7 +185,7 @@ async function main(): Promise<void> {
 // not when it is imported — e.g. by tests exercising resolveServerContext() / the tool input shapes.
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((error: unknown) => {
-    console.error(`bank-connector mcp-server failed to start: ${toErrorMessage(error)}`);
+    console.error(JSON.stringify(connectorFailureLogRecord(error)));
     process.exit(1);
   });
 }
