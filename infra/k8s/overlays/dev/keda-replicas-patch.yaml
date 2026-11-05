@@ -1,0 +1,13 @@
+# KEDA owns the replica count of the scale-to-zero workloads in dev: the
+# platform's HTTPScaledObjects drive them between 0 and their ceiling, and an
+# HTTP request through the interceptor is what wakes them.
+#
+# Leaving `replicas` in the rendered manifest would hand the field to CD as
+# well: every `kubectl apply -k` would reset the count under the autoscaler.
+# Removing it here leaves the live value alone after the first apply.
+#
+# Dev only, and only for the two workloads the platform scales. Postgres, the
+# worker and Mailpit stay up, and prod has no KEDA — the base keeps its
+# explicit `replicas: 1` for them.
+- op: remove
+  path: /spec/replicas
