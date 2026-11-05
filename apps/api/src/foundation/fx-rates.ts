@@ -12,7 +12,7 @@ const FX_COLUMNS = `
   source_currency as "sourceCurrency",
   target_currency as "targetCurrency",
   rate::text as rate,
-  effective_at as "effectiveAt",
+  to_char(effective_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "effectiveAt",
   source
 `;
 

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { IdempotencyRecord } from "@sentropic/openerp-domain";
 import type { Queryable } from "../../src/db/client";
@@ -184,6 +185,37 @@ describe("IdempotencyStore repository (PG-08)", () => {
     expect(purged).toBe(1);
     expect(await findIdempotencyRecord(db, context, "expired")).toBeNull();
     expect(await findIdempotencyRecord(db, context, "fresh")).not.toBeNull();
+  });
+
+  it("stores only hashes of a Plaid-shaped request and purges it at its TTL", async () => {
+    const { db } = makeFakeDb();
+    const syntheticPan = "SYNTHETIC-PAN-4012-8888-8888-1881";
+    const syntheticAccountNumber = "SYNTHETIC-ACCOUNT-000123456789";
+    const rawRequest = canonicalRequestPayload("POST", "/banking/import", {
+      access_token: "synthetic-access-token",
+      account_number: syntheticAccountNumber,
+      pan: syntheticPan
+    });
+    const requestHash = "sha256:" + createHash("sha256").update(rawRequest).digest("hex");
+
+    await registerOrReplayIdempotencyRecord(db, context, {
+      key: "banking-import:synthetic",
+      requestHash,
+      responseBodyHash: requestHash,
+      statusCode: 200,
+      ttlSeconds: 60,
+      now: "2026-07-30T12:00:00.000Z"
+    });
+
+    const stored = await findIdempotencyRecord(db, context, "banking-import:synthetic");
+    expect(stored).not.toBeNull();
+    expect(JSON.stringify(stored)).not.toContain("synthetic-access-token");
+    expect(JSON.stringify(stored)).not.toContain(syntheticAccountNumber);
+    expect(JSON.stringify(stored)).not.toContain(syntheticPan);
+    expect(stored?.expiresAt).toBe("2026-07-30T12:01:00.000Z");
+
+    expect(await purgeExpiredIdempotencyRecords(db, "2026-07-30T12:01:00.000Z")).toBe(1);
+    expect(await findIdempotencyRecord(db, context, "banking-import:synthetic")).toBeNull();
   });
 
   it("canonicalises request payloads with stable key order", () => {

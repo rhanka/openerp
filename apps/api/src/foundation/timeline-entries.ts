@@ -15,7 +15,7 @@ const TE_COLUMNS = `
   actor_user_identity_id as "actorUserIdentityId",
   entry_type as "entryType",
   payload_summary as "payloadSummary",
-  occurred_at as "occurredAt"
+  to_char(occurred_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "occurredAt"
 `;
 
 export interface InsertTimelineEntryInput {

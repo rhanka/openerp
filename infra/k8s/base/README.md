@@ -26,6 +26,14 @@ Files expected in this directory after SUB-5:
 | `ingress.yaml` | `Ingress` | Traefik + cert-manager TLS; host and issuer overridden per overlay. |
 | `kustomization.yaml` | `Kustomization` | References all resources in this directory for overlay composition. |
 
+The dev overlay deletes the base Ingress. The platform owns
+`openerp-dev.sent-tech.ca`, its TLS certificate, and HTTP wake-up routing in
+namespace `keda`, through `poc-k8s/tenants/openerp-dev/40-scale-to-zero.yaml`.
+That platform manifest also owns the HTTPScaledObjects and the
+`allow-keda-interceptor` NetworkPolicy. Keep this ownership on the platform to
+avoid competing Ingress routes during dev deployments. The prod overlay
+continues to use the base Ingress.
+
 ---
 
 ## Dependencies
@@ -58,17 +66,8 @@ Section 6 for the full key list and creation command.
 
 ---
 
-## Pre-A1 cutover state
-
-Until the OIDC client is registered at `auth.sent-tech.ca` (sentropic#288) and
-`OPENERP_OIDC_ENABLED` is flipped to `1` in the `openerp-runtime` Secret:
-
-- `OPENERP_OIDC_ENABLED=0` — the four `/auth/*` routes handled by the OIDC
-  relying-party middleware return `503 Service Unavailable`.
-- The existing WebAuthn credential flow remains active and is the only login
-  path.
-- No change to workload manifests is needed for the flip; only the Secret
-  value changes.
+L'authentification fédérée passe désormais par `@sentropic/auth-hono`
+(`AuthFederationButtons` / `oauth-client`), et non par un client OIDC maison.
 
 ---
 

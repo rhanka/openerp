@@ -147,6 +147,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # This is a fresh runner: the browser smoke imports the workspace's
+      # Playwright dependency and cannot rely on the separate build job.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install smoke dependencies
+        run: npm ci
+
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
 
@@ -155,6 +165,15 @@ jobs:
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA_DEV }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
+
+      - name: 'Preflight: refuse any cluster that is not OVH'
+        run: |
+          cluster_server="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          if [[ "$cluster_server" != *"hlhedx.c1.bhs5.k8s.ovh.net"* ]]; then
+            echo "Invalid cluster server: $cluster_server"
+            echo "Refusing deploy: expected cluster server to contain hlhedx.c1.bhs5.k8s.ovh.net"
+            exit 1
+          fi
 
       - name: Create/refresh Secret
         run: |
@@ -174,28 +193,93 @@ jobs:
       - name: Apply Kustomize
         run: kubectl apply -k infra/k8s/overlays/dev
 
+      # KEDA owns the dev replica count, so the overlay no longer pins it and a
+      # deploy can land on workloads the interceptor has scaled to zero. Every
+      # smoke below reaches the API through `kubectl exec deploy/openerp-api`,
+      # which has no pod to target while it sleeps, and a rollout wait on a
+      # zero-replica Deployment reports success without proving anything.
+      #
+      # Only HTTP traffic through the platform interceptor holds them up. A
+      # `kubectl scale` does not: the scaler anchors its cooldown on the last
+      # request it saw, so it reverts a hand-set replica count within seconds
+      # (measured on the cluster: openerp-api back to 0 about 10s after a
+      # scale to 1). Keep real requests flowing instead, for as long as the
+      # exec-based steps need a pod, and let KEDA reclaim both workloads on its
+      # own once the job stops asking.
+      - name: Keep the scale-to-zero workloads awake
+        run: |
+          nohup bash -c 'while true; do
+            curl --silent --max-time 90 --output /dev/null https://openerp-dev.sent-tech.ca/readyz || true
+            curl --silent --max-time 90 --output /dev/null https://openerp-dev.sent-tech.ca/ || true
+            sleep 20
+          done' > /tmp/openerp-keepalive.log 2>&1 &
+          echo "OPENERP_KEEPALIVE_PID=$!" >> "$GITHUB_ENV"
+
       - name: Roll Postgres onto the latest spec (StatefulSet won't update a CrashLooping pod)
         run: kubectl -n openerp-dev delete pod openerp-postgres-0 --ignore-not-found
 
       - name: Wait for migration Job
         run: kubectl -n openerp-dev wait --for=condition=complete job/openerp-migrate --timeout=300s
 
-      - name: Wait for rollouts
+      - name: Wait for API-side rollouts
         run: |
           kubectl -n openerp-dev rollout status deploy/openerp-api --timeout=120s
           kubectl -n openerp-dev rollout status deploy/openerp-worker --timeout=120s
-          kubectl -n openerp-dev rollout status deploy/openerp-web --timeout=120s
+          kubectl -n openerp-dev rollout status deploy/openerp-mailpit --timeout=120s
 
       - name: Smoke checks (in-cluster app health)
         run: |
           kubectl -n openerp-dev exec deploy/openerp-api -- node -e "fetch('http://127.0.0.1:3000/readyz').then(r=>{if(r.status!==200){console.error('status',r.status);process.exit(1)}return r.text()}).then(t=>{console.log('readyz',t);process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})"
           kubectl -n openerp-dev get pods
 
-      - name: Public endpoint check (informational until the prod cert matures)
-        continue-on-error: true
+      # This is deliberately independent of a page 200: it proves the
+      # feature-gated Hono router is mounted before browser traffic moves.
+      - name: Platform auth API smoke (DEV first)
+        run: |
+          kubectl -n openerp-dev exec deploy/openerp-api -- node -e "fetch('http://127.0.0.1:3000/api/v1/auth/health').then(async r=>{const body=await r.json();if(r.status!==200||body.status!=='ok'||body.service!=='openerp-auth'){console.error(r.status,body);process.exit(1)}console.log('platform-auth',JSON.stringify(body))}).catch(e=>{console.error(e);process.exit(1)})"
+
+      - name: Wait for the web rollout
+        run: kubectl -n openerp-dev rollout status deploy/openerp-web --timeout=120s
+
+      # The fixture is deliberately pre-provisioned in the target DEV DB;
+      # registration cannot create an identity or organization. It is unique
+      # per workflow run and contains synthetic burn-in data only.
+      - name: Platform auth screen cut-over smoke (DEV)
+        env:
+          OPENERP_AUTH_SMOKE_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          fixture="$(kubectl -n openerp-dev exec deploy/openerp-api -- env OPENERP_AUTH_SMOKE_RUN_ID="$OPENERP_AUTH_SMOKE_RUN_ID" node_modules/.bin/tsx apps/api/src/scripts/auth-cutover-smoke-bootstrap.ts)"
+          echo "$fixture" | jq -e '.single.email and .single.organizationId and .multi.email and .multi.organizationId' >/dev/null
+          # ci-deployer has pods/exec but not pods/portforward. The bridge
+          # reaches Mailpit and the API root through exec instead of asking for
+          # a second, broader grant for the same job.
+          OPENERP_BRIDGE_NAMESPACE=openerp-dev \
+          OPENERP_BRIDGE_PUBLIC_ORIGIN=https://openerp-dev.sent-tech.ca \
+          node tools/cluster-http-bridge.mjs > /tmp/openerp-bridge.log 2>&1 &
+          bridge_pid=$!
+          trap 'kill "$bridge_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18025/api/v1/info >/dev/null && curl --fail --silent http://127.0.0.1:13000/readyz >/dev/null; then break; fi
+            if [ "$attempt" -eq 30 ]; then cat /tmp/openerp-bridge.log; exit 1; fi
+            sleep 1
+          done
+          npx playwright install --with-deps chromium
+          OPENERP_AUTH_SMOKE_WEB_URL=https://openerp-dev.sent-tech.ca \
+          OPENERP_AUTH_SMOKE_API_URL=http://127.0.0.1:13000 \
+          OPENERP_AUTH_SMOKE_MAILPIT_URL=http://127.0.0.1:18025 \
+          OPENERP_AUTH_SMOKE_FIXTURE="$fixture" \
+          npm run smoke:auth-cutover -w @sentropic/openerp-web
+
+      - name: Public endpoint check
         run: |
           kubectl -n openerp-dev get certificate,ingress
           curl --fail --silent --show-error https://openerp-dev.sent-tech.ca/readyz
+
+      # Past this point nothing needs a pod, so stop holding the pair up and
+      # let the workloads scale back to zero on the platform's own cooldown.
+      - name: Stop keeping the workloads awake
+        if: always()
+        run: kill "$OPENERP_KEEPALIVE_PID" 2>/dev/null || true
 
       - name: Diagnostics on failure
         if: failure()
@@ -217,6 +301,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The manifest coordination gate is a workspace script, so provision
+      # the same Node dependencies in this otherwise fresh deploy runner.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install manifest-check dependencies
+        run: npm ci
+
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
 
@@ -225,6 +319,15 @@ jobs:
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA_PROD }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
+
+      - name: 'Preflight: refuse any cluster that is not OVH'
+        run: |
+          cluster_server="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          if [[ "$cluster_server" != *"hlhedx.c1.bhs5.k8s.ovh.net"* ]]; then
+            echo "Invalid cluster server: $cluster_server"
+            echo "Refusing deploy: expected cluster server to contain hlhedx.c1.bhs5.k8s.ovh.net"
+            exit 1
+          fi
 
       - name: Create/refresh Secret
         run: |
@@ -261,8 +364,7 @@ jobs:
           kubectl -n openerp-prod exec deploy/openerp-api -- node -e "fetch('http://127.0.0.1:3000/readyz').then(r=>{if(r.status!==200){console.error('status',r.status);process.exit(1)}return r.text()}).then(t=>{console.log('readyz',t);process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})"
           kubectl -n openerp-prod get pods
 
-      - name: Public endpoint check (informational until the prod cert matures)
-        continue-on-error: true
+      - name: Public endpoint check
         run: |
           kubectl -n openerp-prod get certificate,ingress
           curl --fail --silent --show-error https://openerp.sent-tech.ca/readyz

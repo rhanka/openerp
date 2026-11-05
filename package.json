@@ -11,6 +11,7 @@
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:i18n": "node scripts/validate-i18n.mjs",
     "check:anti-copy": "bash tools/anti-copy-grep.sh",
+    "check:ingress": "node tools/check-ingress-shadowing.mjs",
     "check:foundation": "npm run check:workspace && npm run check:i18n && npm run check:anti-copy && npm run lint && npm test && npm run build",
     "test": "npm test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
@@ -30,6 +31,7 @@
     "vite": "^6.4.3",
     "linkify-it": "^5.0.2",
     "markdown-it": "^14.3.0",
+    "postcss": "^8.5.18",
     "@modelcontextprotocol/sdk@1.29.0": {
       "@hono/node-server": "^2.0.5"
     }

@@ -19,8 +19,8 @@ const REPORT_DEFINITION_RETURN_COLUMNS = `
   name,
   parameters,
   is_shared as "isShared",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const REPORT_RUN_RETURN_COLUMNS = `
@@ -34,9 +34,9 @@ const REPORT_RUN_RETURN_COLUMNS = `
   result_rows as "resultRows",
   row_count as "rowCount",
   error_detail as "errorDetail",
-  started_at as "startedAt",
-  completed_at as "completedAt",
-  created_at as "createdAt"
+  to_char(started_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "startedAt",
+  to_char(completed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "completedAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"
 `;
 
 // ---------------------------------------------------------------------------

@@ -19,23 +19,39 @@ function makeChallengeDb(): Queryable {
 }
 
 describe("dev server options", () => {
-  it("mounts public WebAuthn routes for local development", async () => {
+  it("leaves no legacy ceremony surface behind", async () => {
     const db = makeChallengeDb();
     const app = buildApp(buildDevServerOptions(db, {
+      OPENERP_DATABASE_URL: "postgresql://openerp.test/dev-options",
       OPENERP_WEB_ORIGIN: "http://127.0.0.1:4173",
       OPENERP_WEBAUTHN_RP_ID: "127.0.0.1"
     }));
 
-    const res = await app.request("/webauthn/login/begin", {
+    // The removed local WebAuthn mount must not come back under any name. Its
+    // handler is gone and /webauthn/ is no longer a public prefix, so the
+    // tenant guard now answers first — the ceremony is unreachable either way.
+    const legacy = await app.request("/webauthn/login/begin", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{}"
     });
+    expect(legacy.status).toBe(401);
+    await expect(legacy.json()).resolves.toEqual({ code: "TENANT_RESOLUTION_REQUIRED" });
+  });
 
-    expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toMatchObject({
-      challenge: expect.any(String),
-      rpId: "127.0.0.1"
-    });
+  it("mounts the platform surface unconditionally, with no flag to forget", async () => {
+    const db = makeChallengeDb();
+    // Deliberately no OPENERP_PLATFORM_AUTH_ENABLED: since it is the only
+    // authentication left, an environment that omitted the flag would ship
+    // with no way to sign in at all.
+    const app = buildApp(buildDevServerOptions(db, {
+      OPENERP_DATABASE_URL: "postgresql://openerp.test/dev-options",
+      OPENERP_SMTP_HOST: "smtp.test",
+      OPENERP_SMTP_FROM_ADDRESS: "auth@openerp.test",
+    }));
+
+    const response = await app.request("/api/v1/auth/health");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ status: "ok", service: "openerp-auth" });
   });
 });

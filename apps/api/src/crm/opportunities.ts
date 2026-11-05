@@ -20,12 +20,12 @@ const OPPORTUNITY_RETURN_COLUMNS = `
   team_id as "teamId",
   expected_value as "expectedValue",
   currency,
-  expected_close_date as "expectedCloseDate",
+  to_char(expected_close_date, 'YYYY-MM-DD') as "expectedCloseDate",
   probability_band as "probabilityBand",
   service_summary as "serviceSummary",
   loss_reason as "lossReason",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertOpportunity(

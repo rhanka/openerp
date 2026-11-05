@@ -27,7 +27,7 @@ const TK_COLUMNS = `
   label,
   description,
   status,
-  updated_at as "updatedAt"
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export interface UpsertTranslationKeyInput {

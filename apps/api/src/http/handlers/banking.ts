@@ -13,12 +13,14 @@ import {
   listStoredProposals,
   refreshReconciliationProposals,
   rejectReconciliationProposal,
+  unignoreBankTransaction,
   unmatchReconciliationProposal,
   withBankingReadScope,
   type QueryablePool
 } from "../../reconciliation/banking-persistence";
 
 const TRANSACTION_STATUSES = new Set(["unmatched", "matched", "ignored"]);
+const SUGGESTION_STATUSES = new Set(["proposed", "confirmed", "rejected"]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function transactionPool(db: Queryable): QueryablePool {
@@ -99,9 +101,15 @@ export function mountBankingRoutes(app: Hono<AppBindings>): void {
 
   app.get("/banking/reconciliation/suggestions", async (c) => {
     // Intentionally read-only: persisted proposals are only created by POST /refresh.
+    const status = c.req.query("status");
+    if (status !== undefined && !SUGGESTION_STATUSES.has(status)) {
+      return c.json({ code: "INVALID_INPUT", message: "status must be proposed, confirmed, or rejected" }, 400);
+    }
     const pool = transactionPool(c.get("db"));
     const tenant = c.get("tenant");
-    const items = await withBankingReadScope(pool, tenant, (client) => listStoredProposals(client, tenant));
+    const items = await withBankingReadScope(pool, tenant, (client) => listStoredProposals(client, tenant, {
+      ...(status !== undefined ? { status: status as "proposed" | "confirmed" | "rejected" } : {})
+    }));
     return c.json({ items });
   });
 
@@ -163,6 +171,17 @@ export function mountBankingRoutes(app: Hono<AppBindings>): void {
     try {
       return c.json(
         await ignoreBankTransaction(transactionPool(c.get("db")), c.get("tenant"), parseUuid(c.req.param("id"), "id")),
+        200
+      );
+    } catch (error) {
+      return errorResponse(c, error);
+    }
+  });
+
+  app.post("/banking/transactions/:id/unignore", async (c) => {
+    try {
+      return c.json(
+        await unignoreBankTransaction(transactionPool(c.get("db")), c.get("tenant"), parseUuid(c.req.param("id"), "id")),
         200
       );
     } catch (error) {

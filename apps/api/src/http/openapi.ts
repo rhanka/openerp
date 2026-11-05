@@ -6,7 +6,7 @@
 // platform agent-protocol contract Q7.
 //
 // Security: bearerAuth = the verified session / agent JWT from integrations 0-A / 1-A.
-// Public paths (/webauthn/* and /openapi.json) carry no security requirement.
+// Public paths (/openapi.json) carry no security requirement.
 
 import { buildApprovalRequestRoutes } from "./routes/approval-requests";
 import { buildBillingRoutes } from "./routes/billing";
@@ -137,7 +137,6 @@ function moduleTag(path: string): string {
     banking: "banking",
     project: "project",
     "approval-requests": "approval-requests",
-    webauthn: "webauthn",
     auth: "auth"
   };
   return known[segment] ?? "foundation";
@@ -145,7 +144,7 @@ function moduleTag(path: string): string {
 
 /** Paths that must NOT carry a security requirement (public/pre-auth). */
 function isPublicPath(openApiPath: string): boolean {
-  return openApiPath.startsWith("/webauthn/") || openApiPath === "/openapi.json";
+  return openApiPath === "/openapi.json";
 }
 
 /** Extract {paramName} segments from an already-converted OpenAPI path. */

@@ -13,7 +13,8 @@ import type { Queryable } from "../db/client.js";
 //   user_identities.status (invited|active|deactivated) → AuthHonoAccountStatus
 //   user_identities.actor_type (human|agent|system) → role ("user" for human, type otherwise)
 //   user_identities.display_name → displayName
-//   email_verified is derived: active status implies verified in OpenERP's model.
+//   user_identities.email_verified → emailVerified (independent of invitation
+//   and membership status, as required by the email-code enrollment flow).
 
 interface UserRow {
   id: string;
@@ -21,6 +22,7 @@ interface UserRow {
   display_name: string | null;
   actor_type: string;
   status: string;
+  email_verified: boolean;
   created_at: Date;
   updated_at: Date | null;
 }
@@ -47,7 +49,7 @@ function toRecord(row: UserRow): AuthHonoUserRecord {
     email: row.email,
     displayName: row.display_name,
     role: actorTypeToRole(row.actor_type),
-    emailVerified: row.status === "active",
+    emailVerified: row.email_verified,
     accountStatus: statusToAccountStatus(row.status),
     approvalDueAt: null,
     createdAt: new Date(row.created_at),
@@ -59,7 +61,7 @@ export function createOpenERPUserPort(db: Queryable): AuthHonoUserPort {
   return {
     async findById(userId: string): Promise<AuthHonoUserRecord | null> {
       const result = await db.query<UserRow>(
-        `select id, email, display_name, actor_type, status, created_at, updated_at
+        `select id, email, display_name, actor_type, status, email_verified, created_at, updated_at
            from user_identities
           where id = $1`,
         [userId]
@@ -69,7 +71,7 @@ export function createOpenERPUserPort(db: Queryable): AuthHonoUserPort {
 
     async findByEmail(email: string): Promise<AuthHonoUserRecord | null> {
       const result = await db.query<UserRow>(
-        `select id, email, display_name, actor_type, status, created_at, updated_at
+        `select id, email, display_name, actor_type, status, email_verified, created_at, updated_at
            from user_identities
           where lower(email) = lower($1)`,
         [email]
@@ -90,9 +92,9 @@ export function createOpenERPUserPort(db: Queryable): AuthHonoUserPort {
 
       const result = await db.query<UserRow>(
         `insert into user_identities (
-           email, display_name, preferred_locale, mfa_state, status, actor_type
-         ) values ($1, $2, $3, $4, $5, $6)
-         returning id, email, display_name, actor_type, status, created_at, updated_at`,
+           email, display_name, preferred_locale, mfa_state, status, actor_type, email_verified
+         ) values ($1, $2, $3, $4, $5, $6, $7)
+         returning id, email, display_name, actor_type, status, email_verified, created_at, updated_at`,
         [
           input.email.toLowerCase(),
           input.displayName ?? input.email.split("@")[0],
@@ -100,6 +102,7 @@ export function createOpenERPUserPort(db: Queryable): AuthHonoUserPort {
           "not_configured",
           status,
           actorType,
+          input.emailVerified ?? false,
         ]
       );
       return toRecord(result.rows[0]!);
@@ -132,6 +135,10 @@ export function createOpenERPUserPort(db: Queryable): AuthHonoUserPort {
         values.push(status);
         sets.push(`status = $${values.length}`);
       }
+      if (input.emailVerified !== undefined) {
+        values.push(input.emailVerified);
+        sets.push(`email_verified = $${values.length}`);
+      }
 
       if (sets.length === 0) {
         return this.findById(userId);
@@ -143,7 +150,7 @@ export function createOpenERPUserPort(db: Queryable): AuthHonoUserPort {
         `update user_identities
             set ${sets.join(", ")}
           where id = $1
-          returning id, email, display_name, actor_type, status, created_at, updated_at`,
+          returning id, email, display_name, actor_type, status, email_verified, created_at, updated_at`,
         values
       );
       return result.rows[0] ? toRecord(result.rows[0]) : null;

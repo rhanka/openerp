@@ -27,6 +27,18 @@ spec:
             name: openerp-api
             port:
               number: 3000
+      # The web tier owns /api/locale (the header language switcher posts its
+      # form there). An Exact rule is required so it wins over the /api prefix
+      # below, which otherwise sends the POST to the API and gets it rejected
+      # by the tenant middleware — the switcher was dead in every deployed
+      # environment while working locally, where no ingress sits in front.
+      - path: /api/locale
+        pathType: Exact
+        backend:
+          service:
+            name: openerp-web
+            port:
+              number: 8080
       - path: /api
         pathType: Prefix
         backend:
@@ -34,8 +46,14 @@ spec:
             name: openerp-api
             port:
               number: 3000
-      - path: /auth
-        pathType: Prefix
+      # Only the agent token exchange still lives under /auth on the API. A
+      # Prefix rule here would shadow the web tier's own /auth/* routes: the
+      # shell posts its sign-out form to /auth/logout, and with the broad rule
+      # that POST reached the API instead of SvelteKit and was rejected by the
+      # tenant middleware. Everything else under /auth must fall through to the
+      # web via the / rule below.
+      - path: /auth/exchange-agent-token
+        pathType: Exact
         backend:
           service:
             name: openerp-api

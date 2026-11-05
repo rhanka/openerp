@@ -382,25 +382,29 @@ describe("foundation route registry", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. Endpoint is absent when passkey option is not provided
+// 6. Endpoint remains mounted independently of legacy passkey wiring
 // ---------------------------------------------------------------------------
 
-describe("POST /auth/exchange-agent-token — not mounted without passkey option", () => {
-  it("returns 404 when buildApp is called without passkey option", async () => {
+describe("POST /auth/exchange-agent-token — independent from legacy passkey option", () => {
+  it("remains available when buildApp has an IdentityProvider but no passkey option", async () => {
+    const provider = createIdentityProvider({ secret: SECRET, issuer: ISSUER });
     const db = makeFakeDb();
     const app = buildApp({
       db,
-      resolveTenant: headerTenantResolver
+      resolveTenant: headerTenantResolver,
+      identityProvider: provider,
     });
+    const humanToken = await provider.issueHumanSession(makeIdentity(), makeMember(), 3600);
     const res = await app.request("/auth/exchange-agent-token", {
       method: "POST",
       headers: {
+        authorization: `Bearer ${humanToken.raw}`,
         "x-organization-id": ORG_ID,
         "x-user-identity-id": USER_ID,
         "content-type": "application/json"
       },
       body: JSON.stringify({})
     });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
   });
 });

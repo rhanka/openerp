@@ -42,6 +42,10 @@ const adminRoutes: Array<{
     labels: { en: "Taxes", fr: "Taxes" }
   },
   {
+    path: "/admin/billing/reconciliation",
+    labels: { en: "Bank reconciliation", fr: "Rapprochement bancaire" }
+  },
+  {
     path: "/admin/reporting/saved-views",
     labels: { en: "Saved views", fr: "Vues" }
   },
@@ -70,9 +74,18 @@ const adminRoutes: Array<{
 const preAuthRoutes: Array<{
   path: string;
   labels: Record<Locale, string>;
+  formAction: Record<Locale, string>;
 }> = [
-  { path: "/login", labels: { en: "Sign in", fr: "Connexion" } },
-  { path: "/register-passkey", labels: { en: "Create a passkey", fr: "Créer une passkey" } }
+  {
+    path: "/login",
+    labels: { en: "Sign in", fr: "Connexion" },
+    formAction: { en: "Sign in with passkey", fr: "Se connecter avec WebAuthn" }
+  },
+  {
+    path: "/register-passkey",
+    labels: { en: "Create an account", fr: "Créer un compte" },
+    formAction: { en: "Get verification code", fr: "Obtenir un code" }
+  }
 ];
 
 test.describe("UI review: shell ergonomics — admin routes", () => {
@@ -243,6 +256,7 @@ test.describe("UI review: shell ergonomics — pre-auth routes", () => {
           await page.waitForLoadState("domcontentloaded");
 
           await expect(page.getByRole("heading", { level: 1, name: route.labels[locale], exact: true })).toBeVisible();
+          await expect(page.getByRole("button", { name: route.formAction[locale], exact: true })).toBeVisible();
 
           const appHeader = page.getByRole("banner");
           const brand = page.getByLabel("OpenERP home");
@@ -393,7 +407,7 @@ test("UI review: keyboard flow reaches locale switcher and admin nav on admin ro
   await expect(page.getByRole("link", { name: "Users" })).toBeFocused();
 });
 
-test("UI review: keyboard flow on /login reaches form fields directly (no sidebar)", async ({ page, context, baseURL }) => {
+test("UI review: keyboard flow on /login reaches authentication controls directly (no sidebar)", async ({ page, context, baseURL }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await context.clearCookies();
   await context.addCookies([{
@@ -405,10 +419,16 @@ test("UI review: keyboard flow on /login reaches form fields directly (no sideba
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
 
-  // On pre-auth: header controls (brand → locale select) then directly to form (no sidebar, no identity)
-  await tabUntilFocused(page, page.getByLabel("Email address"), 11);
+  // On pre-auth: header controls then directly to auth controls (no sidebar, no
+  // identity). AuthLogin uses discoverable passkeys, so the first control is its
+  // sign-in action rather than an email field.
+  const signInWithPasskey = page.getByRole("button", { name: "Sign in with passkey" });
+  await expect(signInWithPasskey).toBeVisible();
+  await tabUntilFocused(page, signInWithPasskey, 11);
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Lost your device?" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Create a passkey" })).toBeFocused();
 });
 
 // ─── UXDR-008: Shell complet — drawer mobile, header identité, skip link ───────
@@ -586,9 +606,12 @@ test.describe("UXDR-008: déconnexion — cookie effacé + redirect /login", () 
     await page.waitForURL(/\/login/);
     expect(page.url()).toContain("/login");
 
-    const cookies = await context.cookies();
-    const sessionCookie = cookies.find((c) => c.name === "openerp_session");
-    expect(sessionCookie).toBeUndefined();
+    // Clearing the cookies is the API's job now that the local sign-out bridge
+    // is gone: the platform logout endpoint revokes the session and answers
+    // with the expiring Set-Cookie headers. This suite runs without an API, so
+    // it asserts the part it can prove — the shell leaves for /login. The
+    // clearing itself is asserted against a real API by the cut-over smoke,
+    // apps/web/scripts/auth-cutover-smoke.mjs (assertNoApplicationSession).
   });
 });
 

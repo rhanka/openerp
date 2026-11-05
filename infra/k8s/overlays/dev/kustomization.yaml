@@ -8,6 +8,16 @@ patches:
     kind: Ingress
     name: openerp
   path: ingress-patch.yaml
+- target:
+    kind: Deployment
+    name: openerp-api
+  path: keda-replicas-patch.yaml
+- target:
+    kind: Deployment
+    name: openerp-web
+  path: keda-replicas-patch.yaml
+- path: resources-patch.yaml
+- path: api-auth-config-patch.yaml
 commonLabels:
   openerp.env: dev
 images:

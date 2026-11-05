@@ -4,6 +4,12 @@ import type { IdentityProvider } from "@sentropic/openerp-domain";
 
 import type { Queryable, TenantContext } from "../db/client";
 import type { PasskeyService } from "../foundation/passkey-service";
+import type { ApiEnv } from "../config/env";
+import type { EmailSender } from "../foundation/email-sender";
+import {
+  createOpenERPAuthRouter,
+  type PlatformAuthWebAuthnVerifierOverrides,
+} from "../auth/router";
 import { mountApprovalRequestRoutes } from "./handlers/approval-requests";
 import { mountAuditEventsRoutes } from "./handlers/audit-events";
 import { mountCrmCompanyRoutes } from "./handlers/crm-companies";
@@ -34,10 +40,7 @@ import { mountWorkflowRoutes } from "./handlers/workflow-definitions";
 import { mountWebhookRoutes } from "./handlers/webhook-endpoints";
 import { mountWebhookAdminRoutes } from "./handlers/webhook-admin";
 import { mountUsersRoutes } from "./handlers/users";
-import { mountWebAuthnRoutes } from "./handlers/webauthn";
 import { mountAgentTokenExchangeRoute } from "./handlers/auth-token-exchange";
-import { mountAuthOidcRoutes } from "./handlers/auth-oidc";
-import type { OidcClient } from "../auth/oidc-client";
 import { setWorkflowEvaluator, setWebhookEvaluator } from "../foundation/audit-emit";
 import { makeWorkflowEvaluator } from "../workflow/workflow-evaluator";
 import { makeWebhookEvaluator } from "../webhook/webhook-evaluator";
@@ -66,29 +69,31 @@ export interface BuildAppOptions {
     sessionTtlSeconds?: number;
   };
   /**
-   * OIDC RP routes (AUTH-39-A). When `enabled === true` the four /auth/* routes
-   * (GET /auth/login, GET /auth/oauth/callback, POST /auth/org-select,
-   * POST /auth/logout) delegate to the provided oidcClient. When `enabled` is
-   * false (default), the routes return 503 { code: "AUTH_OIDC_DISABLED" }
-   * without touching any other state.
-   *
-   * Guarded by OPENERP_OIDC_ENABLED=1 at the call site in server.ts.
+   * Identity provider for routes that must survive independently of the
+   * legacy WebAuthn mount (notably the OFX agent-token exchange endpoint).
    */
-  oidc?: {
-    enabled: boolean;
-    oidcClient?: OidcClient;
-    sessionTtlSeconds?: number;
-  };
+  identityProvider?: IdentityProvider;
+  /**
+   * Default-off dark mount for the platform auth surface. Its dependencies are
+   * intentionally absent unless the explicit environment flag enables it.
+   */
+  platformAuth?:
+    | { enabled: false }
+    | {
+        enabled: true;
+        emailSender?: EmailSender;
+        env: ApiEnv;
+        identityProvider: IdentityProvider;
+        rp: { id: string; expectedOrigin: string };
+        sessionTtlSeconds: number;
+        webAuthn?: PlatformAuthWebAuthnVerifierOverrides;
+      };
 }
 
 const PUBLIC_PATH_PREFIXES = [
   "/readyz",
-  "/webauthn/",
+  "/api/v1/auth/",
   "/openapi.json",
-  "/auth/login",
-  "/auth/oauth/callback",
-  "/auth/org-select",
-  "/auth/logout",
 ] as const;
 
 function isPublicPath(path: string): boolean {
@@ -135,31 +140,26 @@ export function buildApp(options: BuildAppOptions): Hono<AppBindings> {
   // Contains only route metadata — no tenant data.
   app.get("/openapi.json", (c) => c.json(buildOpenApiDocument()));
 
-  if (options.passkey) {
-    mountWebAuthnRoutes(app, {
-      db: options.db,
-      passkeyService: options.passkey.service,
-      identityProvider: options.passkey.identityProvider,
-      ...(options.passkey.sessionTtlSeconds !== undefined
-        ? { sessionTtlSeconds: options.passkey.sessionTtlSeconds }
-        : {})
-    });
-    mountAgentTokenExchangeRoute(app, {
-      identityProvider: options.passkey.identityProvider
-    });
+  const agentTokenIdentityProvider =
+    options.identityProvider ??
+    options.passkey?.identityProvider ??
+    (options.platformAuth?.enabled ? options.platformAuth.identityProvider : undefined);
+  if (agentTokenIdentityProvider) {
+    mountAgentTokenExchangeRoute(app, { identityProvider: agentTokenIdentityProvider });
   }
 
-  // OIDC RP routes (AUTH-39-A). Routes are always mounted; when disabled they
-  // return 503 so callers get a clear signal rather than a 404/405.
-  mountAuthOidcRoutes(app, {
-    enabled: options.oidc?.enabled ?? false,
-    db: options.db,
-    // exactOptionalPropertyTypes: only pass optional props when defined.
-    ...(options.oidc?.oidcClient !== undefined ? { oidcClient: options.oidc.oidcClient } : {}),
-    ...(options.oidc?.sessionTtlSeconds !== undefined
-      ? { sessionTtlSeconds: options.oidc.sessionTtlSeconds }
-      : {}),
-  });
+  if (options.platformAuth?.enabled) {
+    const platformAuthRouter = createOpenERPAuthRouter({
+      db: options.db,
+      ...(options.platformAuth.emailSender ? { emailSender: options.platformAuth.emailSender } : {}),
+      env: options.platformAuth.env,
+      identityProvider: options.platformAuth.identityProvider,
+      rp: options.platformAuth.rp,
+      sessionTtlSeconds: options.platformAuth.sessionTtlSeconds,
+      ...(options.platformAuth.webAuthn ? { webAuthn: options.platformAuth.webAuthn } : {}),
+    });
+    app.route("/api/v1/auth", platformAuthRouter);
+  }
 
   mountUsersRoutes(app);
   mountApprovalRequestRoutes(app);

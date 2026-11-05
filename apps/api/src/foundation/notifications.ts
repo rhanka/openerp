@@ -43,8 +43,8 @@ export async function insertNotification(
        subject_key as "subjectKey",
        body_key as "bodyKey",
        payload,
-       read_at as "readAt",
-       created_at as "createdAt"`,
+       to_char(read_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "readAt",
+       to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"`,
     [
       context.organizationId,
       input.recipientUserId,

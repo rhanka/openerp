@@ -41,7 +41,12 @@ metadata:
     app.kubernetes.io/name: openerp
     app.kubernetes.io/component: postgres
 spec:
-  clusterIP: None
+  # Deliberately a normal ClusterIP service, not headless. A headless one only
+  # buys stable per-pod DNS for peer discovery, which nothing uses here: the
+  # StatefulSet runs a single replica and every client — api, worker, migrate
+  # job — connects to the service name. Declaring it headless while the live
+  # service carries a clusterIP made `kubectl apply` fail permanently on an
+  # immutable field, and no deploy could ever go green.
   selector:
     app.kubernetes.io/name: openerp
     app.kubernetes.io/component: postgres

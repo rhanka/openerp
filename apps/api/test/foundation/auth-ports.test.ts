@@ -8,13 +8,14 @@ import { createOpenERPTokenPort } from "../../src/auth/openerp-token-port";
 import { createOpenERPAccountPolicyPort } from "../../src/auth/openerp-account-policy-port";
 import { createOpenERPClockPort } from "../../src/auth/openerp-clock-port";
 import { createOpenERPRandomPort } from "../../src/auth/openerp-random-port";
-import { createStubCredentialsPort } from "../../src/auth/stub-credentials-port";
-import { createStubChallengesPort } from "../../src/auth/stub-challenges-port";
-import { createStubEmailVerificationPort } from "../../src/auth/stub-email-verification-port";
 import { createStubMagicLinksPort } from "../../src/auth/stub-magic-links-port";
-import { createStubEmailDeliveryPort } from "../../src/auth/stub-email-delivery-port";
-import { createStubOauthStateStorePort } from "../../src/auth/stub-oauth-state-store-port";
 import { createStubJwksPort } from "../../src/auth/stub-jwks-port";
+import { buildAuthHonoPorts } from "../../src/auth/ports";
+import type { ApiEnv } from "../../src/config/env";
+import type { EmailSender } from "../../src/foundation/email-sender";
+import { createIdentityProvider } from "../../src/foundation/identity-provider";
+import { buildApp } from "../../src/http/app";
+import { createJwtTenantResolver } from "../../src/http/tenant-resolvers";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -30,6 +31,60 @@ function spyQueryable(rowFactory: (text: string, values: unknown[]) => unknown[]
 
 const TEST_SECRET = randomBytes(32);
 
+const AUTH_ENV: ApiEnv = {
+  databaseUrl: "postgresql://example.test/openerp",
+  platformAuthEnabled: false,
+  sessionSecret: TEST_SECRET.toString("base64url"),
+  sessionIssuer: "openerp-dev",
+  sessionAudience: undefined,
+  appVersion: "test",
+  oauthIssuerUrl: undefined,
+  oauthClientId: undefined,
+  oauthClientSecret: undefined,
+  oauthRedirectUri: undefined,
+  smtpHost: undefined,
+  smtpPort: undefined,
+  smtpSecure: undefined,
+  smtpUser: undefined,
+  smtpPassword: undefined,
+  smtpFromAddress: undefined,
+};
+
+// ---------------------------------------------------------------------------
+// AuthHono composition
+// ---------------------------------------------------------------------------
+
+describe("buildAuthHonoPorts", () => {
+  it("defers the SMTP requirement to the first delivery and accepts an explicit test transport", async () => {
+    const { db } = spyQueryable();
+    // Composition must succeed without mail configured: authentication is
+    // mounted unconditionally and passkey sign-in never sends anything, so an
+    // eager check would stop the whole API from booting. The requirement still
+    // has to bite, but only where it is actionable — on an actual send.
+    const unconfigured = buildAuthHonoPorts(db, AUTH_ENV);
+    expect(unconfigured.emailDelivery).toBeDefined();
+    await expect(
+      unconfigured.emailDelivery.sendVerificationCode({
+        email: "someone@openerp.test",
+        code: "123456",
+        expiresAt: new Date("2026-01-01T00:00:00.000Z"),
+      }),
+    ).rejects.toThrow("OPENERP_SMTP_HOST");
+
+    const sender: EmailSender = {
+      id: "test-capturing-transport",
+      async send() {
+        return { providerId: "test-capturing-transport" };
+      },
+    };
+    const ports = buildAuthHonoPorts(db, AUTH_ENV, { emailSender: sender });
+    expect(ports.emailDelivery).toBeDefined();
+    expect(ports.credentials).toBeDefined();
+    expect(ports.challenges).toBeDefined();
+    expect(ports.emailVerification).toBeDefined();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // SessionPort
 // ---------------------------------------------------------------------------
@@ -42,6 +97,7 @@ describe("OpenERPSessionPort", () => {
     const fakeRow = {
       id: "sess_1",
       user_identity_id: "uid_1",
+      organization_id: "org_1",
       session_token_hash: "hash_token",
       refresh_token_hash: "hash_refresh",
       device_name: "Test Device",
@@ -60,6 +116,7 @@ describe("OpenERPSessionPort", () => {
     const record = await port.create({
       id: "sess_1",
       userId: "uid_1",
+      organizationId: "org_1",
       sessionTokenHash: "hash_token",
       refreshTokenHash: "hash_refresh",
       deviceInfo: { name: "Test Device", ipAddress: "127.0.0.1", userAgent: "TestAgent" },
@@ -70,6 +127,7 @@ describe("OpenERPSessionPort", () => {
 
     expect(record.id).toBe("sess_1");
     expect(record.userId).toBe("uid_1");
+    expect(record.organizationId).toBe("org_1");
     expect(record.sessionTokenHash).toBe("hash_token");
     expect(record.refreshTokenHash).toBe("hash_refresh");
     expect(record.revokedAt).toBeNull();
@@ -80,6 +138,25 @@ describe("OpenERPSessionPort", () => {
     const port = createOpenERPSessionPort(db);
     const result = await port.findByTokenHash("unknown_hash");
     expect(result).toBeNull();
+  });
+
+  it("fails closed before persistence when a human session has no organization", async () => {
+    const { db, query } = spyQueryable(() => []);
+    const port = createOpenERPSessionPort(db);
+    const now = new Date("2026-06-10T00:00:00.000Z");
+
+    await expect(
+      port.create(
+        {
+          id: "sess_without_org",
+          userId: "uid_1",
+          sessionTokenHash: "hash_token",
+          expiresAt: new Date("2026-06-11T00:00:00.000Z"),
+          now,
+        } as never
+      )
+    ).rejects.toThrow(/organization/i);
+    expect(query).not.toHaveBeenCalled();
   });
 
   it("findByRefreshTokenHash returns null for unknown hash", async () => {
@@ -124,6 +201,7 @@ describe("OpenERPUserPort", () => {
       display_name: "Alice",
       actor_type: "human",
       status: "active",
+      email_verified: true,
       created_at: now,
       updated_at: now,
     };
@@ -166,6 +244,7 @@ describe("OpenERPUserPort", () => {
       display_name: "Bob",
       actor_type: "human",
       status: "deactivated",
+      email_verified: false,
       created_at: now,
       updated_at: now,
     };
@@ -175,6 +254,27 @@ describe("OpenERPUserPort", () => {
     const user = await port.findById("uid_2");
     expect(user!.accountStatus).toBe("disabled_by_admin");
     expect(user!.emailVerified).toBe(false);
+  });
+
+  it("persists email verification separately from invitation or account status", async () => {
+    const now = new Date("2026-06-10T00:00:00.000Z");
+    const row = {
+      id: "uid_3",
+      email: "invited@example.com",
+      display_name: "Invited",
+      actor_type: "human",
+      status: "invited",
+      email_verified: true,
+      created_at: now,
+      updated_at: now,
+    };
+    const { db, query } = spyQueryable(() => [row]);
+    const port = createOpenERPUserPort(db);
+
+    const updated = await port.update("uid_3", { emailVerified: true });
+
+    expect(updated).toMatchObject({ accountStatus: "pending_admin_approval", emailVerified: true });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("email_verified = $2"), ["uid_3", true]);
   });
 
   it("count returns parsed integer", async () => {
@@ -239,6 +339,50 @@ describe("OpenERPCookiePort", () => {
     const req = new Request("https://example.com");
     expect(port.readSessionToken(req)).toBeNull();
   });
+
+  it("uses only the OpenERP cookie names and serializes raw tokens without Secure outside production", () => {
+    const now = new Date("2026-07-28T12:00:00.000Z");
+    const port = createOpenERPCookiePort({ isProduction: false, now: () => now });
+    const expiresAt = new Date(now.getTime() + 3600 * 1000);
+    const session = port.serializeSessionCookie({ token: "raw.jwt-token", expiresAt });
+    const refresh = port.serializeRefreshCookie({ token: "raw-refresh-token", expiresAt });
+
+    expect(session).toContain("openerp_session=raw.jwt-token");
+    expect(refresh).toContain("openerp_refresh=raw-refresh-token");
+    for (const cookie of [session, refresh]) {
+      expect(cookie).toContain("HttpOnly");
+      expect(cookie).toContain("SameSite=Lax");
+      expect(cookie).toContain("Path=/");
+      expect(cookie).not.toContain("Secure");
+    }
+    const platformDefaultOnly = new Request("https://example.com", {
+      headers: { cookie: "session=platform-session; refreshToken=platform-refresh" },
+    });
+    expect(port.readSessionToken(platformDefaultOnly)).toBeNull();
+    expect(port.readRefreshToken(platformDefaultOnly)).toBeNull();
+  });
+
+  it("sets Secure in production and clears both OpenERP cookies", () => {
+    const now = new Date("2026-07-28T12:00:00.000Z");
+    const port = createOpenERPCookiePort({ isProduction: true, now: () => now });
+    const expiresAt = new Date(now.getTime() + 3600 * 1000);
+
+    for (const cookie of [
+      port.serializeSessionCookie({ token: "raw.jwt-token", expiresAt }),
+      port.serializeRefreshCookie({ token: "raw-refresh-token", expiresAt }),
+      port.serializeClearedSessionCookie(),
+      port.serializeClearedRefreshCookie(),
+    ]) {
+      expect(cookie).toContain("HttpOnly");
+      expect(cookie).toContain("SameSite=Lax");
+      expect(cookie).toContain("Path=/");
+      expect(cookie).toContain("Secure");
+    }
+    expect(port.serializeClearedSessionCookie()).toContain("openerp_session=; ");
+    expect(port.serializeClearedRefreshCookie()).toContain("openerp_refresh=; ");
+    expect(port.serializeClearedSessionCookie()).toContain("Max-Age=0");
+    expect(port.serializeClearedRefreshCookie()).toContain("Max-Age=0");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -288,7 +432,7 @@ describe("OpenERPTokenPort", () => {
 
     const expiresAt = new Date(Date.now() + 3600 * 1000);
     const token = await port1.signSessionToken(
-      { userId: "uid_1", sessionId: "sess_1", role: "user" },
+      { userId: "uid_1", sessionId: "sess_1", role: "user", org: "org_abc" },
       expiresAt
     );
     const result = await port2.verifySessionToken(token);
@@ -313,6 +457,45 @@ describe("OpenERPTokenPort", () => {
     });
     expect(typeof token).toBe("string");
     expect(token.split(".")).toHaveLength(3);
+  });
+
+  it("mints a JWT accepted by the real IdentityProvider and tenant resolver", async () => {
+    const issuer = "openerp-dev";
+    const audience = "openerp-api";
+    const port = createOpenERPTokenPort({ secret, issuer, audience } as never);
+    const identityProvider = createIdentityProvider({ secret, issuer, audience });
+    const expiresAt = new Date(Date.now() + 3600 * 1000);
+    const token = await port.signSessionToken(
+      {
+        userId: "uid_1",
+        sessionId: "sess_1",
+        role: "user",
+        org: "org_abc",
+      },
+      expiresAt
+    );
+
+    await expect(identityProvider.verify(token)).resolves.toMatchObject({
+      actorType: "human",
+      organizationId: "org_abc",
+      scopes: ["session"],
+      subjectUserIdentityId: "uid_1",
+    });
+
+    const app = buildApp({
+      db: { query: async () => ({ rows: [] }) },
+      resolveTenant: createJwtTenantResolver(identityProvider),
+    });
+    app.get("/tenant-token-proof", (c) => c.json(c.get("tenant")));
+    const response = await app.request("/tenant-token-proof", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      actorUserId: "uid_1",
+      organizationId: "org_abc",
+    });
   });
 });
 
@@ -454,49 +637,11 @@ describe("OpenERPRandomPort", () => {
 // ---------------------------------------------------------------------------
 
 describe("Stub ports throw tagged errors", () => {
-  it("credentials port throws OpenERPCredentialStubError", async () => {
-    const port = createStubCredentialsPort();
-    await expect(port.findById("x")).rejects.toMatchObject({
-      name: "OpenERPCredentialStubError",
-    });
-    await expect(port.listForUser("x")).rejects.toMatchObject({
-      name: "OpenERPCredentialStubError",
-    });
-  });
-
-  it("challenges port throws OpenERPChallengeStubError", async () => {
-    const port = createStubChallengesPort();
-    await expect(
-      port.create({ challenge: "c", type: "registration", expiresAt: new Date() })
-    ).rejects.toMatchObject({ name: "OpenERPChallengeStubError" });
-  });
-
-  it("email verification port throws OpenERPEmailVerificationStubError", async () => {
-    const port = createStubEmailVerificationPort();
-    await expect(port.countRecent("a@a.com", new Date())).rejects.toMatchObject({
-      name: "OpenERPEmailVerificationStubError",
-    });
-  });
-
   it("magic links port throws OpenERPMagicLinkStubError", async () => {
     const port = createStubMagicLinksPort();
     await expect(
       port.create({ email: "a@a.com", tokenHash: "h", expiresAt: new Date(), now: new Date() })
     ).rejects.toMatchObject({ name: "OpenERPMagicLinkStubError" });
-  });
-
-  it("email delivery port throws OpenERPEmailDeliveryStubError", async () => {
-    const port = createStubEmailDeliveryPort();
-    await expect(
-      port.sendVerificationCode({ email: "a@a.com", code: "123", expiresAt: new Date() })
-    ).rejects.toMatchObject({ name: "OpenERPEmailDeliveryStubError" });
-  });
-
-  it("oauth state store port throws OpenERPOauthStateStubError", async () => {
-    const port = createStubOauthStateStorePort();
-    await expect(port.findClient("client_id")).rejects.toMatchObject({
-      name: "OpenERPOauthStateStubError",
-    });
   });
 
   it("jwks port throws OpenERPJwksStubError", async () => {

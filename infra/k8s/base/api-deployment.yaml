@@ -33,6 +33,11 @@ spec:
             - name: http
               containerPort: 3000
           env:
+            # Drives the Secure attribute on openerp_session, openerp_refresh
+            # and openerp_auth_pending. No image sets it, so without this the
+            # API hands out session cookies with no Secure flag over HTTPS.
+            - name: NODE_ENV
+              value: production
             - name: OPENERP_DATABASE_URL
               valueFrom:
                 secretKeyRef:

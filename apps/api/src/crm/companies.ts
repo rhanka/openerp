@@ -21,8 +21,8 @@ const COMPANY_RETURN_COLUMNS = `
   tax_region as "taxRegion",
   billing_address as "billingAddress",
   shipping_address as "shippingAddress",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 export async function insertCompany(

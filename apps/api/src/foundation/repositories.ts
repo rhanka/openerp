@@ -15,7 +15,7 @@ const AUDIT_COLUMNS = `
   after_summary as "afterSummary",
   ip_hash as "ipHash",
   user_agent_hash as "userAgentHash",
-  created_at as "createdAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"
 `;
 
 export interface ListAuditEventsFilters {

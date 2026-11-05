@@ -23,9 +23,9 @@ const ENDPOINT_PUBLIC_COLUMNS = `
   is_active as "isActive",
   is_shared as "isShared",
   consecutive_failures as "consecutiveFailures",
-  disabled_at as "disabledAt",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(disabled_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "disabledAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const DELIVERY_COLUMNS = `
@@ -39,11 +39,11 @@ const DELIVERY_COLUMNS = `
   status,
   http_status as "httpStatus",
   attempt_count as "attemptCount",
-  next_retry_at as "nextRetryAt",
+  to_char(next_retry_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "nextRetryAt",
   error_detail as "errorDetail",
-  signed_at as "signedAt",
-  delivered_at as "deliveredAt",
-  created_at as "createdAt"
+  to_char(signed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "signedAt",
+  to_char(delivered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "deliveredAt",
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt"
 `;
 
 // ---------------------------------------------------------------------------

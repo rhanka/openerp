@@ -2,7 +2,7 @@
   import "../app.css";
 
   import { page } from "$app/state";
-  import { afterNavigate } from "$app/navigation";
+  import { afterNavigate, goto } from "$app/navigation";
   import { browser } from "$app/environment";
   import {
     AppHeader,
@@ -37,6 +37,7 @@
   } from "@sentropic/chat-ui";
 
   import { t, type LocaleCode } from "$lib/i18n";
+  import { createOpenERPAuthTransport } from "$lib/auth-transport";
   import { setCanvasContext, installWindowAccessor } from "$lib/canvas-context";
 
   import type { LayoutData } from "./$types";
@@ -51,7 +52,6 @@
   // AppHeader compact/drawer state (client-only isMobile via matchMedia, never SSR)
   let menuOpen = $state(false);
   let isMobile = $state(false);
-  let signOutFormRef: HTMLFormElement | undefined = $state();
 
   // Recherche globale (pill --icon canonique ; la feature est un stub tracké)
   let searchOpen = $state(false);
@@ -104,6 +104,14 @@
     window.location.reload();
   }
 
+  async function handleLogout(): Promise<void> {
+    // Platform logout is the only sign-out path. Suppress the generic 401
+    // redirect: an already-invalid session must still land on /login rather
+    // than bounce through the transport's unauthorized handler.
+    await createOpenERPAuthTransport(locale, { onUnauthorized: () => undefined }).logout();
+    if (browser) await goto("/login", { invalidateAll: true });
+  }
+
   // Identity user for the DS IdentityMenu — the session carries token + IDs only
   // (no name/email yet); displayName drives the avatar initials.
   const identityUser = $derived(
@@ -146,7 +154,7 @@
     setCanvasContext(currentPath);
   });
 
-  const preAuthRoutes = ["/login", "/register-passkey"];
+  const preAuthRoutes = ["/login", "/register-passkey", "/select-organization"];
   const isPreAuth = $derived(preAuthRoutes.some((r) => currentPath === r || currentPath.startsWith(r + "/")));
 
   // Active module detection for 2-level IA (UXDR-009)
@@ -181,7 +189,8 @@
   const billingItems = $derived(navGroup([
     { label: t(locale, "nav.invoices"), href: "/admin/billing/invoices" },
     { label: t(locale, "nav.taxes"), href: "/admin/billing/taxes" },
-    { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" }
+    { label: t(locale, "nav.accounting"), href: "/admin/billing/accounting" },
+    { label: t(locale, "nav.reconciliation"), href: "/admin/billing/reconciliation" }
   ]));
 
   const reportingItems = $derived(navGroup([
@@ -328,7 +337,7 @@
           user={identityUser}
           compact={true}
           onLogin={() => { if (browser) window.location.href = "/login"; }}
-          onLogout={() => signOutFormRef?.requestSubmit()}
+          onLogout={handleLogout}
           loginLabel={t(locale, "auth.signIn")}
           logoutLabel={t(locale, "auth.signOut")}
         />
@@ -352,7 +361,7 @@
           isAuthenticated={!!session}
           user={identityUser}
           onLogin={() => { if (browser) window.location.href = "/login"; }}
-          onLogout={() => signOutFormRef?.requestSubmit()}
+          onLogout={handleLogout}
           loginLabel={t(locale, "auth.signIn")}
           logoutLabel={t(locale, "auth.signOut")}
         />
@@ -380,15 +389,6 @@
 
 <!-- Skip link DS : premier élément focusable (WCAG 2.4.1) -->
 <SkipLink href="#main-content">{t(locale, "shell.skipToContent")}</SkipLink>
-
-<!-- Hidden sign-out form — submitted by the IdentityMenu (header or drawer). -->
-<form
-  bind:this={signOutFormRef}
-  method="POST"
-  action="/auth/logout"
-  class="shell__signout-form"
-  aria-hidden="true"
-></form>
 
 <!--
   UXDR-009 : AppShell variant=workspace + IA 2 niveaux.

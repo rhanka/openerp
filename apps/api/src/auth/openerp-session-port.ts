@@ -6,14 +6,14 @@ import type {
 import type { Queryable } from "../db/client.js";
 
 // AuthHonoSessionPort adapter — raw pg queries against openerp_sessions.
-//
-// NOTE: auth-hono's SessionRecord does NOT carry organization_id; that column
-// lives in the DB row but is ignored here. OpenERP derives org context from its
-// own session/JWT layer elsewhere (AUTH-39-A RP model).
+// auth-hono's generic record deliberately has no tenant field, so OpenERP
+// exposes an extended record for its host session flow. Tenantless human
+// sessions are rejected before persistence and never returned from lookup.
 
 interface SessionRow {
   id: string;
   user_identity_id: string;
+  organization_id: string | null;
   session_token_hash: string;
   refresh_token_hash: string | null;
   device_name: string | null;
@@ -26,10 +26,37 @@ interface SessionRow {
   revoked_at: Date | null;
 }
 
-function toRecord(row: SessionRow): AuthHonoSessionRecord {
+export interface OpenERPSessionRecord extends AuthHonoSessionRecord {
+  organizationId: string;
+}
+
+export interface OpenERPCreateSessionInput extends AuthHonoCreateSessionInput {
+  organizationId: string;
+}
+
+export interface OpenERPSessionPort extends Omit<
+  AuthHonoSessionPort,
+  "create" | "findById" | "findByTokenHash" | "findByRefreshTokenHash" | "updateTokens" | "listForUser"
+> {
+  create(input: OpenERPCreateSessionInput): Promise<OpenERPSessionRecord>;
+  findById(sessionId: string): Promise<OpenERPSessionRecord | null>;
+  findByTokenHash(sessionTokenHash: string): Promise<OpenERPSessionRecord | null>;
+  findByRefreshTokenHash(refreshTokenHash: string): Promise<OpenERPSessionRecord | null>;
+  updateTokens(input: {
+    expiresAt: Date;
+    refreshTokenHash: string;
+    sessionId: string;
+    sessionTokenHash: string;
+  }): Promise<OpenERPSessionRecord | null>;
+  listForUser(userId: string): Promise<OpenERPSessionRecord[]>;
+}
+
+function toRecord(row: SessionRow): OpenERPSessionRecord | null {
+  if (!row.organization_id) return null;
   return {
     id: row.id,
     userId: row.user_identity_id,
+    organizationId: row.organization_id,
     sessionTokenHash: row.session_token_hash,
     refreshTokenHash: row.refresh_token_hash,
     deviceName: row.device_name,
@@ -43,22 +70,26 @@ function toRecord(row: SessionRow): AuthHonoSessionRecord {
   };
 }
 
-export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
+export function createOpenERPSessionPort(db: Queryable): OpenERPSessionPort {
   return {
-    async create(input: AuthHonoCreateSessionInput): Promise<AuthHonoSessionRecord> {
+    async create(input: OpenERPCreateSessionInput): Promise<OpenERPSessionRecord> {
+      if (!input.organizationId) {
+        throw new Error("OpenERP human sessions require an organizationId");
+      }
       const result = await db.query<SessionRow>(
         `insert into openerp_sessions (
-           id, user_identity_id, session_token_hash, refresh_token_hash,
+           id, user_identity_id, organization_id, session_token_hash, refresh_token_hash,
            device_name, ip_address, user_agent, mfa_verified, expires_at,
            created_at, last_activity_at
-         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+         ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
          returning
-           id, user_identity_id, session_token_hash, refresh_token_hash,
+           id, user_identity_id, organization_id, session_token_hash, refresh_token_hash,
            device_name, ip_address, user_agent, mfa_verified, expires_at,
            created_at, last_activity_at, revoked_at`,
         [
           input.id,
           input.userId,
+          input.organizationId,
           input.sessionTokenHash,
           input.refreshTokenHash ?? null,
           input.deviceInfo?.name ?? null,
@@ -69,12 +100,14 @@ export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
           input.now,
         ]
       );
-      return toRecord(result.rows[0]!);
+      const record = result.rows[0] ? toRecord(result.rows[0]) : null;
+      if (!record) throw new Error("OpenERP session persistence returned no organization");
+      return record;
     },
 
-    async findById(sessionId: string): Promise<AuthHonoSessionRecord | null> {
+    async findById(sessionId: string): Promise<OpenERPSessionRecord | null> {
       const result = await db.query<SessionRow>(
-        `select id, user_identity_id, session_token_hash, refresh_token_hash,
+        `select id, user_identity_id, organization_id, session_token_hash, refresh_token_hash,
                 device_name, ip_address, user_agent, mfa_verified, expires_at,
                 created_at, last_activity_at, revoked_at
            from openerp_sessions
@@ -84,9 +117,9 @@ export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
       return result.rows[0] ? toRecord(result.rows[0]) : null;
     },
 
-    async findByTokenHash(sessionTokenHash: string): Promise<AuthHonoSessionRecord | null> {
+    async findByTokenHash(sessionTokenHash: string): Promise<OpenERPSessionRecord | null> {
       const result = await db.query<SessionRow>(
-        `select id, user_identity_id, session_token_hash, refresh_token_hash,
+        `select id, user_identity_id, organization_id, session_token_hash, refresh_token_hash,
                 device_name, ip_address, user_agent, mfa_verified, expires_at,
                 created_at, last_activity_at, revoked_at
            from openerp_sessions
@@ -96,9 +129,9 @@ export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
       return result.rows[0] ? toRecord(result.rows[0]) : null;
     },
 
-    async findByRefreshTokenHash(refreshTokenHash: string): Promise<AuthHonoSessionRecord | null> {
+    async findByRefreshTokenHash(refreshTokenHash: string): Promise<OpenERPSessionRecord | null> {
       const result = await db.query<SessionRow>(
-        `select id, user_identity_id, session_token_hash, refresh_token_hash,
+        `select id, user_identity_id, organization_id, session_token_hash, refresh_token_hash,
                 device_name, ip_address, user_agent, mfa_verified, expires_at,
                 created_at, last_activity_at, revoked_at
            from openerp_sessions
@@ -122,7 +155,7 @@ export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
       refreshTokenHash: string;
       sessionId: string;
       sessionTokenHash: string;
-    }): Promise<AuthHonoSessionRecord | null> {
+    }): Promise<OpenERPSessionRecord | null> {
       const result = await db.query<SessionRow>(
         `update openerp_sessions
             set session_token_hash = $2,
@@ -130,7 +163,7 @@ export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
                 expires_at = $4
           where id = $1
           returning
-            id, user_identity_id, session_token_hash, refresh_token_hash,
+            id, user_identity_id, organization_id, session_token_hash, refresh_token_hash,
             device_name, ip_address, user_agent, mfa_verified, expires_at,
             created_at, last_activity_at, revoked_at`,
         [input.sessionId, input.sessionTokenHash, input.refreshTokenHash, input.expiresAt]
@@ -162,9 +195,9 @@ export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
       return result.rows.length;
     },
 
-    async listForUser(userId: string): Promise<AuthHonoSessionRecord[]> {
+    async listForUser(userId: string): Promise<OpenERPSessionRecord[]> {
       const result = await db.query<SessionRow>(
-        `select id, user_identity_id, session_token_hash, refresh_token_hash,
+        `select id, user_identity_id, organization_id, session_token_hash, refresh_token_hash,
                 device_name, ip_address, user_agent, mfa_verified, expires_at,
                 created_at, last_activity_at, revoked_at
            from openerp_sessions
@@ -172,7 +205,10 @@ export function createOpenERPSessionPort(db: Queryable): AuthHonoSessionPort {
           order by created_at desc`,
         [userId]
       );
-      return result.rows.map(toRecord);
+      return result.rows.flatMap((row) => {
+        const record = toRecord(row);
+        return record ? [record] : [];
+      });
     },
   };
 }

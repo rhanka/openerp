@@ -13,7 +13,8 @@ import type {
   BankTransactionSnapshot,
   BankTransactionReconciliationStatus,
   ReconciliationCandidateKind,
-  ReconciliationLink
+  ReconciliationLink,
+  ReconciliationLinkStatus
 } from "@sentropic/openerp-domain/banking";
 import type { BillingMoney, Payment } from "@sentropic/openerp-domain/billing";
 
@@ -131,8 +132,8 @@ const ACCOUNT_COLUMNS = `
   currency,
   institution,
   active,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const TRANSACTION_COLUMNS = `
@@ -146,8 +147,8 @@ const TRANSACTION_COLUMNS = `
   raw_description as "rawDescription",
   normalized_snapshot as "normalizedSnapshot",
   reconciliation_status as "reconciliationStatus",
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 const LINK_COLUMNS = `
@@ -159,8 +160,8 @@ const LINK_COLUMNS = `
   score::float8 as score,
   reasons,
   status,
-  created_at as "createdAt",
-  updated_at as "updatedAt"
+  to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+  to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
 `;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -534,9 +535,11 @@ export async function listBankTransactions(
 
 export async function listStoredProposals(
   db: Queryable,
-  context: TenantContext
+  context: TenantContext,
+  options: { status?: ReconciliationLinkStatus } = {}
 ): Promise<ReconciliationLink[]> {
   assertTenantContext(context);
+  const status = options.status ?? "proposed";
   const result = await db.query<ReconciliationLink>(
     `select l.id,
             l.organization_id as "organizationId",
@@ -546,16 +549,19 @@ export async function listStoredProposals(
             l.score::float8 as score,
             l.reasons,
             l.status,
-            l.created_at as "createdAt",
-            l.updated_at as "updatedAt"
+            to_char(l.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+            to_char(l.updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
        from reconciliation_links l
        join bank_transactions bt
          on bt.id = l.bank_transaction_id and bt.organization_id = l.organization_id
       where l.organization_id = $1
-        and l.status = 'proposed'
-        and bt.reconciliation_status = 'unmatched'
+        and l.status = $2
+        and bt.reconciliation_status = case $2::text
+          when 'confirmed' then 'matched'
+          else 'unmatched'
+        end
       order by bt.posted_at desc, l.created_at asc`,
-    [context.organizationId]
+    [context.organizationId, status]
   );
   return result.rows;
 }
@@ -612,11 +618,11 @@ async function listEligiblePaymentsForRefresh(
             invoice_id as "invoiceId",
             company_id as "companyId",
             amount,
-            payment_date as "paymentDate",
+            to_char(payment_date, 'YYYY-MM-DD') as "paymentDate",
             method,
             reference,
-            created_at as "createdAt",
-            updated_at as "updatedAt"
+            to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",
+            to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "updatedAt"
        from payments p
       where p.organization_id = $1
         and p.deleted_at is null
@@ -991,6 +997,33 @@ export async function ignoreBankTransaction(
     const updated = ignored.rows[0];
     if (!updated) throw new BankingConflictError("bank transaction changed before ignore");
     await recordBankingAudit(client, context, "banking.bank_transaction.ignored", "bank_transaction", updated.id, {
+      reconciliationStatus: updated.reconciliationStatus
+    });
+    return updated;
+  });
+}
+
+/** Restores only an ignored transaction to the unmatched worklist state. */
+export async function unignoreBankTransaction(
+  pool: QueryablePool,
+  context: TenantContext,
+  transactionId: string
+): Promise<BankTransaction> {
+  return withBankingTransaction(pool, context, async (client) => {
+    const transaction = await findTransactionForUpdate(client, context, transactionId);
+    if (transaction.reconciliationStatus !== "ignored") {
+      throw new BankingConflictError("only ignored bank transactions can be unignored");
+    }
+    const unmatched = await client.query<BankTransaction>(
+      `update bank_transactions
+          set reconciliation_status = 'unmatched', updated_at = now()
+        where id = $1 and organization_id = $2 and reconciliation_status = 'ignored'
+        returning ${TRANSACTION_COLUMNS}`,
+      [transaction.id, context.organizationId]
+    );
+    const updated = unmatched.rows[0];
+    if (!updated) throw new BankingConflictError("bank transaction changed before unignore");
+    await recordBankingAudit(client, context, "banking.bank_transaction.unignored", "bank_transaction", updated.id, {
       reconciliationStatus: updated.reconciliationStatus
     });
     return updated;
