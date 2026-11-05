@@ -387,9 +387,18 @@ describe("banking reconciliation persistence (D9)", () => {
     expect(fake.links.find((link) => link.candidateId === "payment-best")?.status).toBe("rejected");
   });
 
-  it("rejects raw payload fields, impossible timestamps, and a persisted account currency change before new transactions", async () => {
+  it("rejects raw provider fields, impossible timestamps, and a persisted account currency change before new transactions", async () => {
     const rawPayloadFake = makePool();
-    await expect(importBankingSnapshot(rawPayloadFake.pool, TENANT_1, input({ rawPayload: { token: "forbidden" } }))).rejects.toBeInstanceOf(BankingValidationError);
+    await expect(importBankingSnapshot(rawPayloadFake.pool, TENANT_1, input({
+      rawPayload: {
+        access_token: "synthetic-access-token",
+        account_number: "SYNTHETIC-ACCOUNT-000123456789",
+        pan: "SYNTHETIC-PAN-4012-8888-8888-1881"
+      }
+    }))).rejects.toBeInstanceOf(BankingValidationError);
+    await expect(importBankingSnapshot(rawPayloadFake.pool, TENANT_1, input({
+      account: { ...input().account as Record<string, unknown>, mask: "1881" }
+    }))).rejects.toBeInstanceOf(BankingValidationError);
     await expect(importBankingSnapshot(rawPayloadFake.pool, TENANT_1, input({
       transactions: [{
         id: "bad-date",
