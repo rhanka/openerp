@@ -3,6 +3,8 @@ kind: Kustomization
 namespace: openerp-dev
 resources:
 - ../../base
+# Mailpit is a DEV-only application component of this tenant; see mailpit.yaml.
+- mailpit.yaml
 patches:
 - target:
     kind: Ingress

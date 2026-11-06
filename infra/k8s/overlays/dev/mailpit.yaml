@@ -1,0 +1,77 @@
+# Mailpit: the in-namespace mail catcher the DEV auth burn-in sends to. It is
+# an application component of this tenant, not platform infrastructure, so it
+# belongs here and its cost belongs in this namespace's budget.
+#
+# It was created on 2026-07-28 by a client-side apply during the OVH migration
+# and never declared, so nothing restored it when it was scaled to 0 on
+# 2026-09-14. With 0 replicas the Service keeps no endpoint, and the deploy
+# pipeline's auth screen smoke can never reach it: `cluster-http-bridge.mjs`
+# fetches http://openerp-mailpit:8025 through the API pod. Declaring it here
+# puts it back under `kubectl apply -k` and makes its 128Mi visible in the
+# quota arithmetic.
+#
+# DEV only. Production sends through a real SMTP relay and must never route
+# mail to a catcher.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openerp-mailpit
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: mailpit
+spec:
+  replicas: 1
+  # Recreate rather than RollingUpdate: a surge pod would need another 128Mi
+  # of a namespace quota that has little headroom, and a mail catcher has no
+  # availability requirement.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openerp
+      app.kubernetes.io/component: mailpit
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openerp
+        app.kubernetes.io/component: mailpit
+    spec:
+      containers:
+        - name: mailpit
+          image: axllent/mailpit:v1.27.4
+          ports:
+            - name: smtp
+              containerPort: 1025
+              protocol: TCP
+            - name: http
+              containerPort: 8025
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openerp-mailpit
+  labels:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: mailpit
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: openerp
+    app.kubernetes.io/component: mailpit
+  ports:
+    - name: smtp
+      port: 1025
+      targetPort: smtp
+      protocol: TCP
+    - name: http
+      port: 8025
+      targetPort: http
+      protocol: TCP
