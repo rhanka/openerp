@@ -20,8 +20,6 @@ spec:
         app.kubernetes.io/component: worker
     spec:
       enableServiceLinks: false
-      imagePullSecrets:
-        - name: openerp-registry
       containers:
         - name: worker
           image: openerp/worker:latest

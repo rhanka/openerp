@@ -4,10 +4,11 @@ namespace: openerp-prod
 resources:
 - ../../base
 components:
-# Registry selector: change this one line to registry-ghcr after its target
-# access is verified, or to registry-ovh-TODO-POC-K8S only after poc-k8s fills
-# the exact OVH registry paths. registry-scaleway is the rollback baseline.
-- ../../components/registry-scaleway
+# Registry selector: GHCR, public packages, no pull secret. Switch to
+# registry-ovh-TODO-POC-K8S only once poc-k8s fills the exact OVH registry
+# paths. registry-scaleway stays the rollback path for as long as it still
+# holds the images.
+- ../../components/registry-ghcr
 patches:
 - target:
     kind: Ingress
