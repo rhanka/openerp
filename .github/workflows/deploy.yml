@@ -141,7 +141,15 @@ jobs:
     name: Deploy to dev
     needs: [build, images]
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`. GitHub rolled that label to Ubuntu 26.04 on
+    # 2026-11-07 and the pinned Playwright 1.60.0 does not know that release:
+    # `playwright install --with-deps chromium` fails with "Playwright does not
+    # support chromium on ubuntu26.04-x64", which broke this job on every
+    # branch at once. playwright-core 1.65.0 does list ubuntu26.04 (verified by
+    # reading the distribution table in both packages), so the exit from this
+    # pin is a tested bump to >= 1.65 — not a change to make while releases are
+    # queued behind a red CI.
+    runs-on: ubuntu-24.04
     environment: dev
     timeout-minutes: 15
     steps:
