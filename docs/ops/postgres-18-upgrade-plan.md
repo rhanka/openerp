@@ -32,7 +32,7 @@ The version is pinned in **five** places, not one:
 4. `docker-compose.yml:3` — local development
 5. `docs/ops/local-dev.md:13` — documentation table
 
-## 2. Four traps, each verified
+## 2. Six traps, each verified
 
 ### 2.1 `volumeClaimTemplates` is immutable — coexistence is forced
 
@@ -75,6 +75,32 @@ the container may start and write to an anonymous volume, or may fail outright.
   `/var/lib/postgresql/data`. Bumping the tag there without setting `PGDATA` loses the local
   development database on the next recreate. Set `PGDATA` in the same change.
 - **CI service container: no data risk** (fresh database per run), tag bump only.
+
+### 2.5 Roles live in the cluster, not in the database — found while building the tooling
+
+A database dump carries no roles. Migration `0003` creates `openerp_app` and `0042` creates
+`openerp_auth_system`, and functions are owned by the latter, so restoring into a fresh server fails
+on the first `ALTER FUNCTION ... OWNER TO`:
+
+```
+pg_restore: error: could not execute query: ERROR:  role "openerp_auth_system" does not exist
+```
+
+This was not in the plan and would have broken P1. The roles must be carried across first, with
+`pg_dumpall --globals-only --no-role-passwords`; `tools/pg-ops.mjs globals-dump` / `globals-restore`
+do it. Hashes are excluded on purpose — the service roles are `nologin`, the login role already
+exists on the target, and an artifact carrying no secret is one fewer thing to protect.
+
+Corollary for the acceptance gate: role presence and attributes belong in the structural comparison,
+because a missing service role is a functional break rather than an environment delta.
+
+### 2.6 A cross-version structural diff reports representation changes
+
+The rehearsal produced 699 differences between 16.15 and 18.6 with nothing lost: 558 `NOT NULL`
+constraints that 18 materialises in `pg_constraint` and 16 holds only in `pg_attribute`, 140 table
+ACLs widened by `MAINTAIN` (a privilege added in 17), and `fips_mode()` arriving with `pgcrypto`
+1.4. An acceptance gate that compares catalogs naively fails a successful upgrade. The tool
+normalises these three and prints what it normalised; see `docs/ops/postgres-dump-restore.md` §4.
 
 ## 3. Image choice
 
@@ -164,26 +190,35 @@ PVCs: one today in each namespace, two during coexistence — **within the exist
 increase needed, provided P3 cleanup happens before any other PVC is introduced.
 Pods: four today, five during coexistence, against a cap of 8.
 
-## 7. Prerequisite this repository does not have yet
+## 7. Prerequisite — now met
 
-There is **no `pg_dump` or `pg_restore` tooling anywhere in the repository** — no script, no job, no
-runbook section. The dump/restore step has to be built before P1, as a Node/TS orchestration driving
-the native binaries through `kubectl exec`, per the owner's rule that bans Python from repositories
-and jobs (a Python job would mean a new unvalidated container image in the supply chain).
+This section previously recorded that no `pg_dump`/`pg_restore` tooling existed anywhere in the
+repository. It now does: `tools/pg-ops.mjs`, documented in `docs/ops/postgres-dump-restore.md`.
 
-Minimum surface: dump, restore, the superuser pre-flight of §2.3, and the table-by-table row-count
-comparison that constitutes the acceptance gate.
+Node driving the PostgreSQL image's own binaries through `kubectl exec`, no Python, per the owner's
+supply-chain rule. It covers the minimum surface this section asked for and two things it did not:
+
+- dump, restore, the superuser preflight of §2.3, and a structural census whose diff is the
+  acceptance gate — row counts table by table, plus columns, indexes, constraints, triggers,
+  policies, owners, grants, partition parentage and RLS flags;
+- the cluster-level roles a database dump cannot carry (§2.5);
+- version-aware comparison, so a legitimate 16 → 18 representation change is not reported as loss.
+
+Rehearsed end to end 16.15 → 18.6 on the repository's own 43 migrations and seed data: `structure
+identical`, exit 0. Not yet run against a cluster Postgres, which would be a cluster mutation.
 
 ## 8. Not covered
 
-- **Cluster access**: this session has none. The local kubeconfigs
-  `~/.kube/poc-openerp-{dev,prod}.yaml` still point at the retired Scaleway cluster
-  (`*.api.k8s.fr-par.scw.cloud`), so they cannot reach the OVH cluster. Per the owner's rule each
-  tenant holds its own `tenant-admin` account in its `.env`; the platform session is raising the gap.
-  Nothing is attempted here, and no credential is requested from a peer.
-- **Provider drift, two items found while checking the above, neither blocking this plan**: the
-  overlays still pull images from the Scaleway registry (`rg.fr-par.scw.cloud/openerp/*`) although the
-  cluster is now OVH, while `deploy.yml` also mirrors every image to `ghcr.io/rhanka/*`; and
+- ~~**Cluster access**: this session has none.~~ **Corrected 2026-11-07.** Access was provisioned
+  from the start and this document was wrong to report it as a gap: `K8S_TENANT_ADMIN_KUBECONFIG_B64`
+  in `.env` holds a working `openerp-admin` identity with `openerp-dev` and `openerp-prod` contexts
+  on the OVH cluster. The stale `~/.kube/poc-openerp-{dev,prod}.yaml` files pointing at the retired
+  Scaleway cluster are real but irrelevant. Readings since have been taken read-only, plus
+  `--dry-run=server`, which persists nothing.
+- **Provider drift, two items found while checking the above, neither blocking this plan.** The
+  registry half is addressed by PRs #55 and #56, pending merge: the overlays still pull images from
+  the Scaleway registry (`rg.fr-par.scw.cloud/openerp/*`) although the cluster is now OVH, while
+  `deploy.yml` also mirrors every image to `ghcr.io/rhanka/*` non-fatally; and
   `docs/ops/deploy-runbook.md` still describes a "shared Scaleway Kapsule cluster" with "Scaleway
   Database" connection strings. The deploy workflow itself is sound: lines 169-174 refuse any
   kubeconfig whose server does not contain `hlhedx.c1.bhs5.k8s.ovh.net`.
