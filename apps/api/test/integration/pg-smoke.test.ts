@@ -9,6 +9,7 @@ import {
   decideApprovalRequest
 } from "../../src/foundation/approval-service";
 import { readApprovalJournalChain } from "../../src/foundation/h2a-bridge";
+import { listActiveOrganizationIds } from "../../src/foundation/tenant-enumeration";
 import { verifyJournalEntrySignatures } from "../../src/foundation/audit-signing";
 import { createEphemeralDb, type EphemeralDb } from "./helpers/ephemeral-db";
 
@@ -50,6 +51,39 @@ describeOrSkip("pg-client + migrate (integration)", () => {
     });
     expect(reRun.applied.length).toBe(0);
     expect(reRun.skipped.length).toBeGreaterThan(0);
+  }, 15000);
+
+  // Regression guard for the worker bootstrap. listActiveOrganizationIds is the
+  // first query every worker tick runs, and it filtered `deleted_at is null`,
+  // a column `organizations` does not have. Every tick died on
+  // `column "deleted_at" does not exist` in dev and prod, and the unit test
+  // missed it by asserting the SQL text against a mock rather than executing
+  // it. Running it here against the migrated schema makes that class of break
+  // fail in CI instead of in a cluster.
+  it("enumerates active organizations against the migrated schema", async () => {
+    const active = await pool.query<{ id: string }>(
+      `insert into organizations (
+         legal_name, display_name, slug, status, default_locale, default_currency,
+         default_timezone, country, province_state
+       ) values ('Enum Active', 'Enum Active', 'enum-active', 'active', 'fr', 'CAD',
+                 'America/Toronto', 'CA', 'QC')
+       returning id`,
+      []
+    );
+    const suspended = await pool.query<{ id: string }>(
+      `insert into organizations (
+         legal_name, display_name, slug, status, default_locale, default_currency,
+         default_timezone, country, province_state
+       ) values ('Enum Suspended', 'Enum Suspended', 'enum-suspended', 'suspended', 'fr', 'CAD',
+                 'America/Toronto', 'CA', 'QC')
+       returning id`,
+      []
+    );
+
+    const ids = await listActiveOrganizationIds(pool);
+
+    expect(ids).toContain(active.rows[0]!.id);
+    expect(ids).not.toContain(suspended.rows[0]!.id);
   }, 15000);
 
   it("creates the canon tables", async () => {

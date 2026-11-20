@@ -31,13 +31,21 @@ describe("listActiveOrganizationIds", () => {
     ]);
   });
 
-  it("issues SQL with where deleted_at is null and order by created_at asc", async () => {
+  // This assertion is deliberately narrow. Its previous version required
+  // `where deleted_at is null` — a column `organizations` has never had — and
+  // passed against the mock while every worker tick died in production on
+  // `column "deleted_at" does not exist`. A text assertion over a mocked db
+  // cannot tell whether the SQL is executable, so the predicate itself is
+  // verified against the migrated schema in
+  // apps/api/test/integration/pg-smoke.test.ts.
+  it("filters on the active status and orders by created_at asc", async () => {
     const db = makeDb([]);
     await listActiveOrganizationIds(db);
     const querySpy = db.query as ReturnType<typeof vi.fn>;
     expect(querySpy).toHaveBeenCalledOnce();
     const sql: string = querySpy.mock.calls[0]![0];
-    expect(sql).toContain("where deleted_at is null");
+    expect(sql).toContain("status = 'active'");
+    expect(sql).not.toContain("deleted_at");
     expect(sql).toContain("order by created_at asc");
   });
 });
