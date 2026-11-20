@@ -1,10 +1,15 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.6-alpine
     environment:
       POSTGRES_DB: openerp
       POSTGRES_USER: openerp
       POSTGRES_PASSWORD: openerp
+      # PostgreSQL 18 moved the image default to /var/lib/postgresql/18/docker,
+      # which the mount below would no longer carry. Set it explicitly, to the
+      # same subdirectory the k8s manifests already use, so local and cluster
+      # layouts match and the volume keeps holding the data directory.
+      PGDATA: /var/lib/postgresql/data/pgdata
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U openerp -d openerp"]
       interval: 10s
