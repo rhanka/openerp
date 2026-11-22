@@ -23,8 +23,6 @@ spec:
       # otherwise sets OPENERP_API_PORT=tcp://<ip>:3000, which the server reads
       # as its listen port (NaN -> crash).
       enableServiceLinks: false
-      imagePullSecrets:
-        - name: openerp-registry
       containers:
         - name: api
           image: openerp/api:latest

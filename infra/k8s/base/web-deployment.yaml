@@ -20,8 +20,6 @@ spec:
         app.kubernetes.io/component: web
     spec:
       enableServiceLinks: false
-      imagePullSecrets:
-        - name: openerp-registry
       containers:
         - name: web
           image: openerp/web:latest

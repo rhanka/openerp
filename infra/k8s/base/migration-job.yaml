@@ -16,8 +16,6 @@ spec:
     spec:
       restartPolicy: OnFailure
       enableServiceLinks: false
-      imagePullSecrets:
-        - name: openerp-registry
       initContainers:
         - name: wait-for-postgres
           image: postgres:16-alpine
